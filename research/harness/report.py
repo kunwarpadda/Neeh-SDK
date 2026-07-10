@@ -25,7 +25,7 @@ def _cell_stats(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 def build_summary(ledger: Optional[Ledger] = None) -> str:
     ledger = ledger or Ledger()
-    rows = list(ledger.rows())
+    rows = list(ledger.latest_rows().values())  # retried cells: newest row wins
     if not rows:
         return "# M1 summary\n\nLedger is empty.\n"
 
@@ -44,7 +44,8 @@ def build_summary(ledger: Optional[Ledger] = None) -> str:
     lines = [
         "# M1 summary",
         "",
-        f"Ledger rows: {len(rows)}. Context token cost = model-reported input tokens minus the",
+        f"Ledger cells: {len(rows)} (latest row per key). Context token cost = model-reported",
+        "input tokens minus the",
         "model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.",
         "",
         "| model | arm | family | n | score | input tok | Δctx tok | ctx chars | fail |",

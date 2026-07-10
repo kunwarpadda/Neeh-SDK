@@ -25,8 +25,20 @@ class Ledger:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
+    def latest_rows(self) -> dict[str, dict[str, Any]]:
+        """Last row per key — a retried cell's newest row supersedes older ones."""
+        latest: dict[str, dict[str, Any]] = {}
+        for row in self.rows():
+            if "key" in row:
+                latest[row["key"]] = row
+        return latest
+
     def existing_keys(self) -> set[str]:
-        return {row["key"] for row in self.rows() if "key" in row}
+        return set(self.latest_rows())
+
+    def failed_keys(self) -> set[str]:
+        """Keys whose latest attempt failed (candidates for --retry-failed)."""
+        return {key for key, row in self.latest_rows().items() if row.get("failure")}
 
     def rows(self) -> Iterator[dict[str, Any]]:
         if not self.path.exists():

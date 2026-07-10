@@ -11,3 +11,4 @@ build/
 examples/*.svg
 examples/*.neeh
 research/data/
+research/results/ledger-mock.jsonl

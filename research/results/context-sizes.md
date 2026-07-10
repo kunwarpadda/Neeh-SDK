@@ -22,6 +22,10 @@ sweep ledger, not from characters — this table is the model-free exhibit.
 | E5 | text | 6 | 74 | 2,626 | 0 | 0 |
 | E6 | shapes | 6 | 5 | 0 | 23,724 | 1836 |
 | E6 | text | 6 | 74 | 0 | 53,350 | 1836 |
+| E7 | shapes | 6 | 5 | 722 | 24,340 | 1836 |
+| E7 | text | 6 | 74 | 4,025 | 39,669 | 1836 |
+| E7v | shapes | 6 | 5 | 722 | 0 | 0 |
+| E7v | text | 6 | 74 | 4,025 | 0 | 0 |
 
 Reading: E1a/E1b carry the ICF v0 JSON — compare their context chars against
 E0's zero chars + 1836 visual tokens, and against E2/E4's compressed text.

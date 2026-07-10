@@ -38,6 +38,9 @@ def main() -> None:
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--workers", type=int, default=1,
                         help="parallel CLI calls (try 4-6; mock always runs serially)")
+    parser.add_argument("--retry-failed", action="store_true",
+                        help="re-run cells whose latest ledger row failed "
+                             "(e.g. after a quota outage)")
     parser.add_argument("--smoke", action="store_true",
                         help="tiny slice: 1 text + 1 shape page, arms E0+E2 only")
     parser.add_argument("--report", action="store_true",
@@ -78,8 +81,15 @@ def main() -> None:
             n_shape_pages=args.shape_pages, jitter=args.jitter,
         )
     tasks = generate_tasks(pages, families=tuple(args.families))
+    if args.backend == "mock":  # mock rows must never share the real ledger
+        from research.harness.ledger import DEFAULT_LEDGER
+
+        ledger = Ledger(DEFAULT_LEDGER.parent / "ledger-mock.jsonl")
+    else:
+        ledger = Ledger()
     config = SweepConfig(arms=list(args.arms), repeats=args.repeats,
-                         seed=args.seed, workers=args.workers, ledger=Ledger())
+                         seed=args.seed, workers=args.workers,
+                         retry_failed=args.retry_failed, ledger=ledger)
     print(f"backend={backend.name} model={backend.model} pages={len(pages)} "
           f"tasks={len(tasks)} arms={config.arms}+CTRL repeats={config.repeats} "
           f"workers={config.workers}")

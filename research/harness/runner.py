@@ -60,6 +60,7 @@ class SweepConfig:
     seed: int = 0
     include_ctrl: bool = True
     workers: int = 1
+    retry_failed: bool = False  # re-run cells whose latest ledger row failed
     ledger: Ledger = field(default_factory=Ledger)
 
 
@@ -83,6 +84,8 @@ def run_sweep(
     pages_by_id = {page.page.id: page for page in pages}
     arms = list(config.arms) + (["CTRL"] if config.include_ctrl else [])
     done = config.ledger.existing_keys()
+    if config.retry_failed:
+        done -= config.ledger.failed_keys()
     counts = {"run": 0, "skipped": 0, "failed": 0}
 
     # Encode each page once per arm, not once per task; collect pending cells.

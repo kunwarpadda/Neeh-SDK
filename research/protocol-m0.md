@@ -171,3 +171,12 @@ Changelog:
 - v0.3 (2026-07-09) — M2 harness components (arms E3/E5/E6; families T2/T5/T6 with executed
   action scoring) built ahead of the live M1 sweep so one sweep session can cover both
   milestones. Milestone exit criteria in §9 are unchanged; E7 still waits for first results.
+- v0.4 (2026-07-10) — E7 composed from the live M1 evidence (results/m1-findings.md), amending
+  the §2 placeholder: full-scale E0 raster + compact SVG whose path data uses E2's resampling
+  and integer-grid quantization (`M x y` + relative `l` offsets, one `<path id>` per stroke),
+  rather than a downscaled raster — M1 showed the vector side must carry addressable IDs in a
+  familiar syntax (E4 = 1.000 on T4 at ~4× less than ICF v0), and E2-grade geometry suffices
+  for layout. A secondary arm E7v (the compact SVG alone, no raster) probes whether a pure-text
+  arm holds the whole frontier. Also: sweep resume now treats a cell's *latest* ledger row as
+  authoritative — `--retry-failed` re-runs cells whose latest row failed (quota outages), and
+  reports deduplicate to the newest row per key.

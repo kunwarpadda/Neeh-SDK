@@ -14,6 +14,8 @@ from research.harness.encoders import (
     encode_e1b,
     encode_e2,
     encode_e4,
+    encode_e7,
+    encode_e7v,
 )
 
 
@@ -89,6 +91,36 @@ def test_encoders_are_deterministic_on_corpus_pages():
             second = ENCODERS[arm](page.page)
             assert first.text == second.text
             assert first.image_png == second.image_png
+
+
+def test_e7_golden_matches_e2_quantization():
+    """E7's SVG paths live on E2's grid: same start cell, same endpoint."""
+    encoded = encode_e7v(_tiny_page())
+    assert encoded.version == "E7v/0.1.0"
+    lines = encoded.text.splitlines()
+    assert lines[0] == '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 181 256">'
+    path = lines[1]
+    assert path.startswith('<path id="st_gold_0001" d="M18 18l')
+    d = path.split(' d="')[1].split('"')[0]
+    deltas = [int(v) for v in d.partition("l")[2].split()]
+    assert 18 + sum(deltas[0::2]) == 54  # same endpoint as the E2 golden test
+    assert 18 + sum(deltas[1::2]) == 54
+    assert encoded.image_png is None
+
+
+def test_e7_hybrid_carries_raster_and_same_svg():
+    pytest.importorskip("PIL")
+    hybrid = encode_e7(_tiny_page())
+    vector_only = encode_e7v(_tiny_page())
+    assert hybrid.image_png[:8] == b"\x89PNG\r\n\x1a\n"
+    assert hybrid.text == vector_only.text
+    assert "attached as an image" in hybrid.legend
+    assert "no image" in vector_only.legend
+
+
+def test_e7_svg_is_smaller_than_e4():
+    page = make_text_page(0, seed=3).page
+    assert len(encode_e7v(page).text) < 0.6 * len(encode_e4(page).text)
 
 
 def test_e2_and_e4_share_resampling_budget():

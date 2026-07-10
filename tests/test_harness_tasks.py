@@ -106,6 +106,55 @@ def test_parallel_sweep_matches_serial(tmp_path):
     assert again == {"run": 0, "skipped": 3 * len(tasks), "failed": 0}
 
 
+def test_retry_failed_reruns_only_failed_cells(tmp_path, monkeypatch):
+    """After an outage, --retry-failed re-runs failures; successes stay put."""
+    from research.harness import runner as runner_module
+    from research.harness.backends import BackendError, ModelReply
+
+    monkeypatch.setattr(runner_module, "RETRY_BACKOFF_S", 0.0)
+
+    class OutageBackend:
+        name = "stub"
+        model = "stub-model"
+        healthy = False
+
+        def complete(self, prompt, image_png):
+            if not self.healthy:
+                raise BackendError("quota exhausted")
+            return ModelReply(text="ok", input_tokens=1, output_tokens=1, meta={})
+
+    pages = generate_corpus(seed=4, n_text_pages=1, n_shape_pages=0)
+    tasks = generate_tasks(pages, families=("T1",))
+    ledger = Ledger(tmp_path / "ledger.jsonl")
+    backend = OutageBackend()
+
+    config = SweepConfig(arms=["E2"], include_ctrl=False, ledger=ledger)
+    first = run_sweep(backend, pages, tasks, config, log=lambda *a, **k: None)
+    assert first == {"run": 0, "skipped": 0, "failed": len(tasks)}
+
+    # Plain resume treats failed cells as done.
+    assert run_sweep(backend, pages, tasks, config,
+                     log=lambda *a, **k: None)["skipped"] == len(tasks)
+
+    backend.healthy = True
+    retry_config = SweepConfig(arms=["E2"], include_ctrl=False,
+                               retry_failed=True, ledger=ledger)
+    second = run_sweep(backend, pages, tasks, retry_config, log=lambda *a, **k: None)
+    assert second == {"run": len(tasks), "skipped": 0, "failed": 0}
+
+    # The newest row wins everywhere downstream.
+    latest = ledger.latest_rows()
+    assert len(latest) == len(tasks)
+    assert all(row["failure"] is None for row in latest.values())
+    assert ledger.failed_keys() == set()
+
+    from research.harness.report import build_summary
+
+    summary = build_summary(ledger)
+    assert f"Ledger cells: {len(tasks)}" in summary
+    assert "| 0% |" in summary  # failure rate reflects the retried rows
+
+
 def test_summary_builds_from_ledger(tmp_path):
     pages = generate_corpus(seed=2, n_text_pages=1, n_shape_pages=1)
     tasks = generate_tasks(pages)

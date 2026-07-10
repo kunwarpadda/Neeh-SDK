@@ -183,6 +183,65 @@ def encode_e4(page: Page) -> EncodedContext:
     )
 
 
+# -- E7 / E7v: hybrid composed from M1 evidence (m1-findings.md) --------------
+#
+# M1 measured: raster is unbeaten on transcription (E0 1.000 at +1.8k tok),
+# SVG-with-ids is unbeaten on addressing (E4 1.000 at a quarter of ICF's
+# cost), and E2's grid quantization is the cheapest geometry that still
+# solves layout. E7 composes exactly those winners: the E0 PNG plus a
+# compact SVG whose path data is E2-grade (resampled, integer grid,
+# relative offsets). E7v is the same SVG alone, probing whether a pure-text
+# arm can hold the frontier without pixels.
+
+_E7_SVG_LEGEND = (
+    "a compact SVG of the page: each ink stroke is one <path> whose id "
+    "attribute is its stable stroke id. Coordinates are on an integer grid "
+    "covering the whole page (the viewBox gives the grid size), (0,0) at the "
+    "top-left, x right, y down. Each path starts with an absolute `M x y` "
+    "and continues with relative `l dx dy dx dy ...` offsets. Paths are "
+    "listed in the order they were drawn."
+)
+E7_LEGEND = "The page is attached as an image, followed by " + _E7_SVG_LEGEND
+E7V_LEGEND = "The page is provided as " + _E7_SVG_LEGEND + " There is no image."
+
+
+def _compact_svg(page: Page) -> str:
+    """SVG paths with E2's resampling/quantization: same grid, same step."""
+    scale = GRID_LONG_EDGE / max(page.width, page.height)
+    grid_w = round(page.width * scale)
+    grid_h = round(page.height * scale)
+    step_page = RESAMPLE_GRID_STEP / scale
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {grid_w} {grid_h}">']
+    for stroke in _page_strokes(page):
+        resampled = _resample([(p.x, p.y) for p in stroke.points], step_page)
+        gx = [round(x * scale) for x, _ in resampled]
+        gy = [round(y * scale) for _, y in resampled]
+        d = f"M{gx[0]} {gy[0]}"
+        if len(gx) > 1:
+            d += "l" + " ".join(
+                f"{gx[i] - gx[i - 1]} {gy[i] - gy[i - 1]}" for i in range(1, len(gx))
+            )
+        parts.append(f'<path id="{stroke.id}" d="{d}"/>')
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def encode_e7(page: Page) -> EncodedContext:
+    from neeh.rendering.png import render_page_png
+
+    return EncodedContext(
+        arm="E7", version="E7/0.1.0", legend=E7_LEGEND,
+        text=_compact_svg(page), image_png=render_page_png(page),
+    )
+
+
+def encode_e7v(page: Page) -> EncodedContext:
+    return EncodedContext(
+        arm="E7v", version="E7v/0.1.0", legend=E7V_LEGEND,
+        text=_compact_svg(page), image_png=None,
+    )
+
+
 # -- Control arm: no page context at all -------------------------------------
 
 CTRL_LEGEND = "No page context is provided for this question."
@@ -205,6 +264,8 @@ ENCODERS: dict[str, Callable[[Page], EncodedContext]] = {
     "E1b": encode_e1b,
     "E2": encode_e2,
     "E4": encode_e4,
+    "E7": encode_e7,
+    "E7v": encode_e7v,
     "CTRL": encode_ctrl,
 }
 
@@ -220,4 +281,4 @@ try:
 except ImportError:  # pragma: no cover - partial-initialization cycle
     pass
 
-ALL_ARMS = M1_ARMS + ["E3", "E5", "E6"]
+ALL_ARMS = M1_ARMS + ["E3", "E5", "E6", "E7", "E7v"]

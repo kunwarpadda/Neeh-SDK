@@ -5,8 +5,8 @@ E0 / E1a / E1b / E2 / E4 plus the M2 arms E3 (grid language) / E5 (structural sc
 graph) / E6 (temporal raster) and a CTRL scaffolding baseline, task families T1–T6
 (T5 executes model tool calls through `neeh-tools/v1` and scores them geometrically),
 CLI model backends, append-only ledger, and summary/Pareto reporting. Imports `neeh`;
-never shipped with it. E7 (hybrid) is composed only after first live results, per the
-protocol.
+never shipped with it. E7/E7v (hybrid: raster + E2-quantized SVG paths) were composed
+2026-07-10 from the first live results, per the protocol — see results/m1-findings.md.
 
 ## Run (from the repo root)
 
@@ -24,9 +24,15 @@ python -m research.harness.run_m1 --backend codex --workers 4
 python -m research.harness.run_m1 --backend claude --model claude-haiku-4-5-20251001
 python -m research.harness.run_m1 --backend claude --model claude-opus-4-8
 
+# E7 hybrid arms, composed 2026-07-10 from M1 evidence (results/m1-findings.md)
+python -m research.harness.run_m1 --backend codex --workers 4 --arms E7 E7v
+
 # full matrix including M2 arms and all task families
-python -m research.harness.run_m1 --backend codex \
-  --arms E0 E1a E1b E2 E3 E4 E5 E6 --families T1 T2 T3 T4 T5 T6
+python -m research.harness.run_m1 --backend codex --workers 4 \
+  --arms E0 E1a E1b E2 E3 E4 E5 E6 E7 E7v --families T1 T2 T3 T4 T5 T6
+
+# after a quota outage: re-run only the cells whose latest row failed
+python -m research.harness.run_m1 --backend codex --retry-failed
 
 # real ink (S1 Quick, Draw!): fetch category slices once, then sweep
 python -m research.harness.fetch_quickdraw --categories cat house tree star
@@ -39,8 +45,9 @@ python -m research.harness.run_m1 --sizes    # results/context-sizes.md (offline
 ```
 
 The ledger (`results/ledger.jsonl`) is the source of truth; delete a row's file only to
-redo the whole sweep. Mock rows should never share a ledger with real rows — the mock is
-for pipeline validation only.
+redo the whole sweep. Resume takes the *latest* row per key as authoritative; reports do
+too. Mock runs write to `results/ledger-mock.jsonl` (gitignored scratch) — the mock is
+for pipeline validation only and never shares the real ledger.
 
 ## Backend notes
 
