@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Neeh — ink assistant</title>
+<style>
+  :root { --ink: #1a1a1a; --agent: #1d4ed8; --paper: #ffffff; --bg: #f3f1ec; --line: #ddd8cf; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  header { display: flex; align-items: baseline; gap: 14px; padding: 14px 20px 10px; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; letter-spacing: -0.01em; }
+  header .tag { color: #6b675f; font-size: 13px; }
+  .bar { display: flex; gap: 8px; padding: 0 20px 12px; align-items: center; flex-wrap: wrap; }
+  .bar input[type=text] { flex: 1 1 240px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font: inherit; }
+  button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font: inherit; cursor: pointer; }
+  button.primary { background: var(--agent); border-color: var(--agent); color: white; }
+  button:disabled { opacity: 0.45; cursor: default; }
+  #status { padding: 0 20px 10px; font-size: 13px; color: #6b675f; min-height: 1.2em; white-space: pre-wrap; }
+  #agentInput { display: none; margin: 0 20px 12px; padding: 10px; max-width: min(980px, calc(100vw - 40px)); max-height: 280px; overflow: auto; border: 1px solid var(--line); background: #fff; border-radius: 6px; font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+  #board { position: relative; margin: 0 20px 24px; width: min(660px, calc(100vw - 40px)); box-shadow: 0 1px 4px rgba(0,0,0,.12); border-radius: 4px; overflow: hidden; }
+  #page, #overlay { display: block; width: 100%; }
+  #page { background: var(--paper); }
+  #overlay { position: absolute; inset: 0; touch-action: none; cursor: crosshair; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Neeh ink assistant</h1>
+  <span class="tag">write a question in ink &middot; press Ask &middot; the agent answers on the page</span>
+</header>
+<div class="bar">
+  <input id="instruction" type="text" placeholder="Optional extra instruction for the agent&hellip;">
+  <button id="ask" class="primary">Ask ✨</button>
+  <button id="inspect">Inspect</button>
+  <button id="inspectRaw">Raw</button>
+  <button id="undo">Undo</button>
+  <button id="clear">Clear</button>
+</div>
+<div id="status">Draw with a mouse, finger, or pen.</div>
+<pre id="agentInput"></pre>
+<div id="board">
+  <img id="page" src="/page.svg" alt="notebook page" draggable="false">
+  <canvas id="overlay"></canvas>
+</div>
+<script>
+const PAGE_W = 1000, PAGE_H = 1414;
+const page = document.getElementById("page");
+const overlay = document.getElementById("overlay");
+const status = document.getElementById("status");
+const askBtn = document.getElementById("ask");
+const inspectBtn = document.getElementById("inspect");
+const inspectRawBtn = document.getElementById("inspectRaw");
+const agentInput = document.getElementById("agentInput");
+const ctx = overlay.getContext("2d");
+
+function sizeOverlay() {
+  const rect = page.getBoundingClientRect();
+  overlay.width = rect.width * devicePixelRatio;
+  overlay.height = rect.height * devicePixelRatio;
+  overlay.style.height = rect.height + "px";
+}
+page.addEventListener("load", sizeOverlay);
+addEventListener("resize", sizeOverlay);
+
+function refreshPage() { page.src = "/page.svg?" + Date.now(); }
+
+function toPage(e) {
+  const rect = overlay.getBoundingClientRect();
+  return [
+    (e.clientX - rect.left) / rect.width * PAGE_W,
+    (e.clientY - rect.top) / rect.height * PAGE_H,
+  ];
+}
+
+let stroke = null, t0 = 0;
+
+overlay.addEventListener("pointerdown", e => {
+  overlay.setPointerCapture(e.pointerId);
+  t0 = e.timeStamp;
+  const [x, y] = toPage(e);
+  stroke = [[x, y, 0, e.pressure > 0 ? e.pressure : 1.0]];
+  e.preventDefault();
+});
+
+overlay.addEventListener("pointermove", e => {
+  if (!stroke) return;
+  const [x, y] = toPage(e);
+  stroke.push([x, y, Math.round(e.timeStamp - t0), e.pressure > 0 ? e.pressure : 1.0]);
+  drawLive();
+  e.preventDefault();
+});
+
+async function finishStroke(e) {
+  if (!stroke) return;
+  const done = stroke; stroke = null;
+  try {
+    await post("/stroke", { points: done });
+    refreshPage();
+  } catch (err) {
+    setStatus("stroke failed: " + err.message);
+  }
+  setTimeout(() => ctx.clearRect(0, 0, overlay.width, overlay.height), 150);
+}
+overlay.addEventListener("pointerup", finishStroke);
+overlay.addEventListener("pointercancel", () => { stroke = null; });
+
+function drawLive() {
+  if (!stroke || stroke.length < 2) return;
+  const rect = overlay.getBoundingClientRect();
+  const sx = rect.width / PAGE_W * devicePixelRatio, sy = rect.height / PAGE_H * devicePixelRatio;
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+  ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = 2 * sx; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(stroke[0][0] * sx, stroke[0][1] * sy);
+  for (const [x, y] of stroke.slice(1)) ctx.lineTo(x * sx, y * sy);
+  ctx.stroke();
+}
+
+async function post(path, body) {
+  const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify(body || {}) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+async function getJson(path) {
+  const res = await fetch(path);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+function setStatus(text) { status.textContent = text; }
+
+async function inspectAgent(full) {
+  inspectBtn.disabled = true;
+  inspectRawBtn.disabled = true;
+  try {
+    const instruction = document.getElementById("instruction").value.trim();
+    const params = new URLSearchParams();
+    if (instruction) params.set("instruction", instruction);
+    if (full) params.set("full", "1");
+    const suffix = params.toString() ? "?" + params.toString() : "";
+    const data = await getJson("/agent-input" + suffix);
+    agentInput.textContent = JSON.stringify(data, null, 2);
+    agentInput.style.display = "block";
+    const label = full ? "raw agent input" : "agent input preview";
+    const raw = data.prompt ? "" : " · raw prompt hidden";
+    setStatus(`${label}: ${data.prompt_chars} prompt chars · ${data.context_chars} context chars · ${data.context.vector.stroke_count} strokes${raw}`);
+  } catch (err) {
+    setStatus("inspect failed: " + err.message);
+  } finally {
+    inspectBtn.disabled = false;
+    inspectRawBtn.disabled = false;
+  }
+}
+
+inspectBtn.addEventListener("click", () => inspectAgent(false));
+inspectRawBtn.addEventListener("click", () => inspectAgent(true));
+
+askBtn.addEventListener("click", async () => {
+  askBtn.disabled = true;
+  setStatus("Thinking… (the agent is looking at the page)");
+  try {
+    const instruction = document.getElementById("instruction").value.trim();
+    const result = await post("/ask", instruction ? { instruction } : {});
+    refreshPage();
+    const acts = result.actions.map(a => a.tool).join(", ") || "no tools used";
+    const model = result.model ? `${result.mode}:${result.model}` : result.mode;
+    const fallback = result.fallback_reason ? `\nfallback: ${result.fallback_reason}` : "";
+    setStatus(`[${model}] ${result.reply}\ntools: ${acts}${fallback}`);
+  } catch (err) {
+    setStatus("ask failed: " + err.message);
+  } finally {
+    askBtn.disabled = false;
+  }
+});
+
+document.getElementById("undo").addEventListener("click", async () => {
+  try { await post("/undo"); refreshPage(); } catch (err) { setStatus(err.message); }
+});
+document.getElementById("clear").addEventListener("click", async () => {
+  try { await post("/clear"); refreshPage(); setStatus("Cleared."); } catch (err) { setStatus(err.message); }
+});
+</script>
+</body>
+</html>

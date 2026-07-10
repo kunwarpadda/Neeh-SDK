@@ -1,0 +1,57 @@
+"""Tool registry: the agent-facing surface, described by JSON Schema.
+
+Every tool is registered with a name, description, and parameter schema so
+the future MCP server (and any LLM tool-use integration) can expose the
+surface mechanically — the registry IS the tool manifest.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Callable, Optional
+
+from neeh.canvas import Canvas
+
+ToolHandler = Callable[..., dict[str, Any]]
+
+_REGISTRY: dict[str, "ToolSpec"] = {}
+
+
+@dataclass(frozen=True)
+class ToolSpec:
+    name: str
+    description: str
+    parameters: dict[str, Any]  # JSON Schema for the arguments object
+    handler: ToolHandler
+
+
+def tool(name: str, description: str, parameters: dict[str, Any]) -> Callable[[ToolHandler], ToolHandler]:
+    def decorator(fn: ToolHandler) -> ToolHandler:
+        if name in _REGISTRY:
+            raise ValueError(f"tool {name!r} is already registered")
+        _REGISTRY[name] = ToolSpec(name=name, description=description, parameters=parameters, handler=fn)
+        return fn
+
+    return decorator
+
+
+def get_tool(name: str) -> ToolSpec:
+    if name not in _REGISTRY:
+        known = ", ".join(sorted(_REGISTRY))
+        raise KeyError(f"unknown tool {name!r} (known tools: {known})")
+    return _REGISTRY[name]
+
+
+def all_tools() -> list[ToolSpec]:
+    return list(_REGISTRY.values())
+
+
+def tool_schemas() -> list[dict[str, Any]]:
+    """Tool manifest in Claude-API / MCP shape."""
+    return [
+        {"name": spec.name, "description": spec.description, "input_schema": spec.parameters}
+        for spec in _REGISTRY.values()
+    ]
+
+
+def call_tool(canvas: Canvas, name: str, arguments: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+    return get_tool(name).handler(canvas, **(arguments or {}))
