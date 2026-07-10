@@ -1,38 +1,67 @@
 # M1 summary
 
-Ledger cells: 924 (latest row per key). Context token cost = model-reported
+Ledger cells: 1260 (latest row per key). Context token cost = model-reported
 input tokens minus the
 model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 
 | model | arm | family | n | score | input tok | Δctx tok | ctx chars | fail |
 |---|---|---|---|---|---|---|---|---|
-| default | CTRL | T2 | 6 | 0.000 | 12210 | +0 | 0 | 0% |
-| default | CTRL | T5 | 18 | 0.000 | 12237 | +27 | 0 | 0% |
-| default | CTRL | T6 | 12 | 0.250 | 12221 | +11 | 0 | 0% |
+| default | CTRL | T1 | 12 | 0.027 | 12243 | +33 | 0 | 0% |
+| default | CTRL | T2 | 12 | 0.000 | 12210 | +0 | 0 | 0% |
+| default | CTRL | T3 | 12 | 0.417 | 12222 | +12 | 0 | 0% |
+| default | CTRL | T4 | 6 | 0.000 | 12214 | +4 | 0 | 0% |
+| default | CTRL | T5 | 24 | 0.000 | 12236 | +26 | 0 | 0% |
+| default | CTRL | T6 | 18 | 0.444 | 12222 | +12 | 0 | 0% |
+| default | E0 | T1 | 12 | 0.758 | 14087 | +1877 | 0 | 0% |
+| default | E0 | T2 | 6 | 0.833 | 14018 | +1808 | 0 | 0% |
+| default | E0 | T3 | 12 | 1.000 | 14029 | +1819 | 0 | 0% |
+| default | E0 | T4 | 6 | 0.000 | 14022 | +1812 | 0 | 0% |
+| default | E0 | T5 | 6 | 0.833 | 14042 | +1832 | 0 | 0% |
+| default | E0 | T6 | 6 | 0.333 | 14032 | +1822 | 0 | 0% |
+| default | E1a | T1 | 12 | 0.832 | 20648 | +8438 | 12210 | 0% |
+| default | E1a | T2 | 6 | 0.833 | 17917 | +5707 | 7553 | 0% |
+| default | E1a | T3 | 12 | 1.000 | 17927 | +5717 | 7553 | 0% |
+| default | E1a | T4 | 6 | 1.000 | 17919 | +5709 | 7553 | 0% |
+| default | E1a | T5 | 6 | 0.833 | 17942 | +5732 | 7553 | 0% |
+| default | E1a | T6 | 6 | 1.000 | 17929 | +5719 | 7553 | 0% |
+| default | E1b | T1 | 6 | 0.354 | 21724 | +9514 | 16867 | 0% |
+| default | E2 | T1 | 6 | 0.333 | 13406 | +1196 | 1386 | 0% |
+| default | E2 | T2 | 6 | 0.833 | 13393 | +1183 | 1386 | 0% |
+| default | E2 | T3 | 12 | 0.500 | 13405 | +1195 | 1386 | 0% |
+| default | E2 | T4 | 6 | 0.667 | 13397 | +1187 | 1386 | 0% |
+| default | E2 | T5 | 6 | 0.667 | 13452 | +1242 | 1386 | 0% |
+| default | E2 | T6 | 6 | 0.667 | 13406 | +1196 | 1386 | 0% |
 | default | E3 | T4 | 10 | 0.800 | 13436 | +1226 | 1785 | 0% |
 | default | E3 | T5 | 18 | 0.556 | 13868 | +1658 | 2467 | 0% |
 | default | E3 | T6 | 12 | 0.833 | 13610 | +1400 | 2064 | 0% |
-| default | E4 | T2 | 6 | 1.000 | 13045 | +834 | 1610 | 0% |
+| default | E4 | T2 | 6 | 1.000 | 13045 | +835 | 1610 | 0% |
 | default | E4 | T5 | 18 | 1.000 | 15566 | +3356 | 7318 | 0% |
 | default | E4 | T6 | 12 | 0.917 | 14928 | +2718 | 5891 | 0% |
-| default | E5 | T1 | 12 | 0.308 | 13157 | +946 | 1477 | 0% |
-| default | E5 | T2 | 6 | 1.000 | 12487 | +277 | 329 | 0% |
-| default | E5 | T3 | 12 | 0.583 | 12499 | +288 | 329 | 0% |
-| default | E5 | T4 | 18 | 0.667 | 13377 | +1167 | 1860 | 0% |
-| default | E5 | T5 | 18 | 0.778 | 13387 | +1176 | 1860 | 0% |
-| default | E5 | T6 | 12 | 0.500 | 13170 | +960 | 1477 | 0% |
+| default | E5 | T1 | 18 | 0.205 | 12981 | +771 | 1201 | 0% |
+| default | E5 | T2 | 12 | 0.917 | 12574 | +364 | 489 | 0% |
+| default | E5 | T3 | 24 | 0.625 | 12585 | +375 | 489 | 0% |
+| default | E5 | T4 | 24 | 0.667 | 13198 | +988 | 1557 | 0% |
+| default | E5 | T5 | 24 | 0.750 | 13212 | +1002 | 1557 | 0% |
+| default | E5 | T6 | 18 | 0.500 | 13005 | +795 | 1201 | 0% |
 | default | E6 | T1 | 12 | 1.000 | 14072 | +1862 | 0 | 0% |
 | default | E6 | T2 | 6 | 1.000 | 14058 | +1848 | 0 | 0% |
-| default | E6 | T3 | 12 | 1.000 | 14068 | +1857 | 0 | 0% |
-| default | E6 | T4 | 18 | 0.000 | 22941 | +10730 | 0 | 0% |
+| default | E6 | T3 | 12 | 1.000 | 14068 | +1858 | 0 | 0% |
+| default | E6 | T4 | 18 | 0.000 | 22941 | +10731 | 0 | 0% |
 | default | E6 | T5 | 18 | 0.667 | 15669 | +3459 | 0 | 0% |
 | default | E6 | T6 | 12 | 0.917 | 14069 | +1859 | 0 | 0% |
-| default | E7 | T2 | 6 | 0.833 | 14641 | +2431 | 722 | 0% |
-| default | E7 | T5 | 18 | 0.833 | 15993 | +3782 | 2924 | 0% |
-| default | E7 | T6 | 12 | 1.000 | 15645 | +3435 | 2373 | 0% |
-| default | E7v | T2 | 6 | 0.333 | 12831 | +620 | 722 | 0% |
-| default | E7v | T5 | 18 | 1.000 | 14182 | +1972 | 2924 | 0% |
-| default | E7v | T6 | 12 | 0.917 | 13836 | +1626 | 2373 | 0% |
+| default | E7 | T1 | 12 | 0.758 | 15200 | +2990 | 1639 | 0% |
+| default | E7 | T2 | 12 | 0.833 | 14920 | +2710 | 1136 | 0% |
+| default | E7 | T3 | 12 | 1.000 | 15209 | +2999 | 1551 | 0% |
+| default | E7 | T4 | 6 | 1.000 | 15201 | +2991 | 1551 | 0% |
+| default | E7 | T5 | 24 | 0.750 | 15800 | +3590 | 2580 | 0% |
+| default | E7 | T6 | 18 | 0.944 | 15500 | +3290 | 2099 | 0% |
+| default | E7v | T1 | 12 | 0.461 | 13407 | +1197 | 1639 | 0% |
+| default | E7v | T2 | 12 | 0.583 | 13109 | +899 | 1136 | 0% |
+| default | E7v | T3 | 12 | 0.917 | 13399 | +1189 | 1551 | 0% |
+| default | E7v | T4 | 6 | 0.778 | 13391 | +1181 | 1551 | 0% |
+| default | E7v | T5 | 24 | 0.917 | 13990 | +1780 | 2580 | 0% |
+| default | E7v | T6 | 18 | 0.944 | 13691 | +1481 | 2099 | 0% |
+| default | E7v512 | T1 | 6 | 0.402 | 13787 | +1577 | 2201 | 0% |
 | default-high | CTRL | T1 | 12 | 0.000 | 15702 | +16 | 0 | 50% |
 | default-high | CTRL | T3 | 12 | 0.500 | 15690 | +5 | 0 | 0% |
 | default-high | CTRL | T4 | 18 | 0.000 | 15686 | +0 | 0 | 28% |
@@ -83,40 +112,66 @@ model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 ## Pareto view (score vs Δ context tokens, per model × family)
 
 **default — T1**
-- E5: score 0.308 at +946 tok  ← frontier
+- E5: score 0.205 at +771 tok  ← frontier
+- E2: score 0.333 at +1196 tok  ← frontier
+- E7v: score 0.461 at +1197 tok  ← frontier
+- E7v512: score 0.402 at +1577 tok
 - E6: score 1.000 at +1862 tok  ← frontier
+- E0: score 0.758 at +1877 tok
+- E7: score 0.758 at +2990 tok
+- E1a: score 0.832 at +8438 tok
+- E1b: score 0.354 at +9514 tok
 
 **default — T2**
-- E5: score 1.000 at +277 tok  ← frontier
-- E7v: score 0.333 at +620 tok
-- E4: score 1.000 at +834 tok
+- E5: score 0.917 at +364 tok  ← frontier
+- E4: score 1.000 at +835 tok  ← frontier
+- E7v: score 0.583 at +899 tok
+- E2: score 0.833 at +1183 tok
+- E0: score 0.833 at +1808 tok
 - E6: score 1.000 at +1848 tok
-- E7: score 0.833 at +2431 tok
+- E7: score 0.833 at +2710 tok
+- E1a: score 0.833 at +5707 tok
 
 **default — T3**
-- E5: score 0.583 at +288 tok  ← frontier
-- E6: score 1.000 at +1857 tok  ← frontier
+- E5: score 0.625 at +375 tok  ← frontier
+- E7v: score 0.917 at +1189 tok  ← frontier
+- E2: score 0.500 at +1195 tok
+- E0: score 1.000 at +1819 tok  ← frontier
+- E6: score 1.000 at +1858 tok
+- E7: score 1.000 at +2999 tok
+- E1a: score 1.000 at +5717 tok
 
 **default — T4**
-- E5: score 0.667 at +1167 tok  ← frontier
+- E5: score 0.667 at +988 tok  ← frontier
+- E7v: score 0.778 at +1181 tok  ← frontier
+- E2: score 0.667 at +1187 tok
 - E3: score 0.800 at +1226 tok  ← frontier
-- E6: score 0.000 at +10730 tok
+- E0: score 0.000 at +1812 tok
+- E7: score 1.000 at +2991 tok  ← frontier
+- E1a: score 1.000 at +5709 tok
+- E6: score 0.000 at +10731 tok
 
 **default — T5**
-- E5: score 0.778 at +1176 tok  ← frontier
+- E5: score 0.750 at +1002 tok  ← frontier
+- E2: score 0.667 at +1242 tok
 - E3: score 0.556 at +1658 tok
-- E7v: score 1.000 at +1972 tok  ← frontier
-- E4: score 1.000 at +3356 tok
+- E7v: score 0.917 at +1780 tok  ← frontier
+- E0: score 0.833 at +1832 tok
+- E4: score 1.000 at +3356 tok  ← frontier
 - E6: score 0.667 at +3459 tok
-- E7: score 0.833 at +3782 tok
+- E7: score 0.750 at +3590 tok
+- E1a: score 0.833 at +5732 tok
 
 **default — T6**
-- E5: score 0.500 at +960 tok  ← frontier
+- E5: score 0.500 at +795 tok  ← frontier
+- E2: score 0.667 at +1196 tok  ← frontier
 - E3: score 0.833 at +1400 tok  ← frontier
-- E7v: score 0.917 at +1626 tok  ← frontier
+- E7v: score 0.944 at +1481 tok  ← frontier
+- E0: score 0.333 at +1822 tok
 - E6: score 0.917 at +1859 tok
 - E4: score 0.917 at +2718 tok
-- E7: score 1.000 at +3435 tok  ← frontier
+- E7: score 0.944 at +3290 tok
+- E1a: score 1.000 at +5719 tok  ← frontier
 
 **default-high — T1**
 - E7v: score 0.910 at +1191 tok  ← frontier

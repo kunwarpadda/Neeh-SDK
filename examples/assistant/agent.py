@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from neeh.canvas import Canvas
-from neeh.context import build_ink_context
+from neeh.context import build_ink_context, build_ink_context_v1
 from neeh.rendering.png import render_page_png
 from neeh.tools import call_tool, tool_schemas
 
@@ -32,6 +32,9 @@ AGENT_INK = "#1d4ed8"  # agent ink is blue; user ink defaults to near-black
 MAX_TURNS = 12
 MAX_CONTEXT_STROKES = int(os.getenv("NEEH_CONTEXT_MAX_STROKES", "80"))
 MAX_CONTEXT_POINTS = int(os.getenv("NEEH_CONTEXT_MAX_POINTS", "12"))
+# "v1" = ink-context/v1-draft (compact SVG geometry, ~9x fewer context chars —
+# see research/results/m1-findings.md); "v0" = the original Phase 0 payload.
+CONTEXT_VERSION = os.getenv("NEEH_CONTEXT_VERSION", "v1")
 PROMPT_PREVIEW_CHARS = int(os.getenv("NEEH_PROMPT_PREVIEW_CHARS", "5000"))
 
 SYSTEM = """\
@@ -133,15 +136,41 @@ def _tool_result_content(result: dict[str, Any]) -> Any:
 
 
 def _ink_context(canvas: Canvas) -> dict[str, Any]:
-    return build_ink_context(
-        canvas,
-        max_strokes=MAX_CONTEXT_STROKES,
-        max_points_per_stroke=MAX_CONTEXT_POINTS,
+    if CONTEXT_VERSION == "v0":
+        return build_ink_context(
+            canvas,
+            max_strokes=MAX_CONTEXT_STROKES,
+            max_points_per_stroke=MAX_CONTEXT_POINTS,
+        )
+    return build_ink_context_v1(
+        canvas, max_strokes=MAX_CONTEXT_STROKES, raster="attached_image",
+    )
+
+
+def _context_note(context: dict[str, Any]) -> str:
+    """v1 payloads carry grid coordinates; tool calls must stay in page units.
+
+    Stated explicitly because the M2 sweep showed models answering regions in
+    grid units when a raster is attached (results/m2-findings.md)."""
+    if "ink" not in context:
+        return ""
+    grid_w, grid_h = context["ink"]["grid"]
+    scale = context["page"]["width"] / grid_w
+    return (
+        f"\nCoordinate note: ink.svg path coordinates are on a {grid_w}x{grid_h} "
+        f"grid; multiply by {scale:.3f} to convert to page units. Every tool-call "
+        f"coordinate (regions, points) MUST be in page units, never grid units."
     )
 
 
 def _ink_context_text(canvas: Canvas) -> str:
-    return "Current Ink Context Format v0 payload:\n" + json.dumps(_ink_context(canvas), separators=(",", ":"))
+    context = _ink_context(canvas)
+    label = "v0" if context["schema"] == "ink-context/v0" else "v1 draft"
+    return (
+        f"Current Ink Context Format {label} payload:\n"
+        + json.dumps(context, separators=(",", ":"))
+        + _context_note(context)
+    )
 
 
 def _codex_cli_tool_contract() -> list[dict[str, Any]]:
@@ -254,7 +283,7 @@ tool actions that should be applied, and return only JSON matching the provided
 output schema.
 
 Current ink context:
-{json.dumps(context, separators=(",", ":"))}
+{json.dumps(context, separators=(",", ":"))}{_context_note(context)}
 
 Available Neeh action tools:
 {json.dumps(_codex_cli_tool_contract(), separators=(",", ":"))}

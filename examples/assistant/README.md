@@ -16,6 +16,12 @@ Press Inspect to see the PNG transport details, compact Ink Context payload, con
 contract, prompt preview, and payload sizes that will be sent to Codex CLI. Press Raw when you
 need the exact full prompt and full tool schemas.
 
+The page context defaults to the Ink Context Format **v1 draft** (compact SVG
+geometry — far fewer prompt characters; see `research/icf-v1-draft.md`), with
+an explicit grid→page coordinate note so tool calls stay in page units. Pass
+`--context v0` for the original Phase 0 payload; press Inspect to see either
+live.
+
 `--agent codex` uses the local Codex CLI login. Other modes:
 
 - `--agent codex-api`: OpenAI Responses API with `OPENAI_API_KEY`.

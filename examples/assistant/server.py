@@ -25,6 +25,7 @@ from neeh.canvas import Canvas
 from neeh.ink import Author
 from neeh.rendering import render_page_svg
 
+import agent
 from agent import (
     ModelUnavailableError,
     agent_input_preview,
@@ -152,13 +153,22 @@ def main() -> None:
         help="model backend to use for /ask",
     )
     parser.add_argument("--mock", action="store_true", help="shortcut for --agent mock")
+    parser.add_argument(
+        "--context",
+        choices=["v1", "v0"],
+        default=agent.CONTEXT_VERSION,
+        help="ink context payload: v1 draft (compact SVG, default) or the "
+             "original v0 JSON",
+    )
     args = parser.parse_args()
     agent_mode = "mock" if args.mock else args.agent
+    agent.CONTEXT_VERSION = args.context
 
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     label = "codex-cli" if agent_mode == "codex" else agent_mode
     mode = label if agent_mode == "mock" else f"{label} (mock fallback)"
-    print(f"Neeh ink assistant on http://127.0.0.1:{args.port}  [agent: {mode}]")
+    print(f"Neeh ink assistant on http://127.0.0.1:{args.port}  "
+          f"[agent: {mode}] [context: {args.context}]")
     server.serve_forever()
 
 
