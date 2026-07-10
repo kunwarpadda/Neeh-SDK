@@ -227,9 +227,9 @@ def _compact_svg(page: Page, grid_long_edge: int = GRID_LONG_EDGE,
             )
         bbox = ""
         if with_bboxes:
-            box = stroke.bbox
-            bbox = (f' data-bbox="{round(box.min_x * scale)} {round(box.min_y * scale)} '
-                    f'{round(box.max_x * scale)} {round(box.max_y * scale)}"')
+            box = stroke.bbox  # page units per the v1 frame rule (echoable coords)
+            bbox = (f' data-bbox="{round(box.min_x)} {round(box.min_y)} '
+                    f'{round(box.max_x)} {round(box.max_y)}"')
         parts.append(f'<path id="{stroke.id}"{bbox} d="{d}"/>')
     parts.append("</svg>")
     return "\n".join(parts)
@@ -259,11 +259,18 @@ def encode_e7v(page: Page) -> EncodedContext:
 
 # E7b: the E1b-addendum experiment (real-ink-findings.md) — does E1a's
 # reading gain over raster survive when the vector side is the compact SVG
-# plus per-stroke bboxes instead of full point JSON?
+# plus per-stroke bboxes instead of full point JSON? (Answer: yes, 0.672 vs
+# 0.664 at 30% of the cost.)
+#
+# 0.1.0 emitted bboxes in grid units and models copied them into region tool
+# calls unconverted (T5 collapsed to 0.167). 0.2.0 applies the v1 frame rule:
+# path geometry stays grid-quantized, but bboxes — coordinates a model might
+# echo back — are PAGE units, and the legend says so.
 
 E7B_LEGEND = (
     E7_LEGEND[:-1] + "; each path also carries data-bbox=\"min_x min_y max_x "
-    "max_y\", the stroke's bounding box on the same grid."
+    "max_y\", the stroke's bounding box in PAGE units (not grid units). Any "
+    "coordinates you output (regions, points) must be page units."
 )
 
 
@@ -271,7 +278,7 @@ def encode_e7b(page: Page) -> EncodedContext:
     from neeh.rendering.png import render_page_png
 
     return EncodedContext(
-        arm="E7b", version="E7b/0.1.0", legend=E7B_LEGEND,
+        arm="E7b", version="E7b/0.2.0", legend=E7B_LEGEND,
         text=_compact_svg(page, with_bboxes=True), image_png=render_page_png(page),
     )
 

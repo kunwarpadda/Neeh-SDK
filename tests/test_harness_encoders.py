@@ -123,15 +123,18 @@ def test_e7_svg_is_smaller_than_e4():
     assert len(encode_e7v(page).text) < 0.6 * len(encode_e4(page).text)
 
 
-def test_e7b_adds_grid_bboxes_beside_raster():
+def test_e7b_adds_page_unit_bboxes_beside_raster():
     pytest.importorskip("PIL")
     from research.harness.encoders import encode_e7b
 
     encoded = encode_e7b(_tiny_page())
+    assert encoded.version == "E7b/0.2.0"
     assert encoded.image_png[:8] == b"\x89PNG\r\n\x1a\n"
     line = encoded.text.splitlines()[1]
-    assert 'data-bbox="18 18 54 54"' in line  # same grid as the path golden
-    assert "data-bbox" in encoded.legend
+    # Frame rule: geometry on the grid, echoable bboxes in page units.
+    assert 'data-bbox="100 100 300 300"' in line
+    assert 'd="M18 18l' in line
+    assert "PAGE units" in encoded.legend
 
 
 def test_e7vb_differs_only_in_legend():

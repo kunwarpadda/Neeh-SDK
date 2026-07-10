@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from pathlib import Path
-from statistics import mean
+from statistics import mean, pstdev
 from typing import Any, Optional
 
 from research.harness.ledger import DEFAULT_LEDGER, Ledger
@@ -14,9 +14,16 @@ SUMMARY_PATH = DEFAULT_LEDGER.parent / "summary.md"
 def _cell_stats(rows: list[dict[str, Any]]) -> dict[str, Any]:
     scored = [r for r in rows if r.get("score") is not None]
     tokens = [r["input_tokens"] for r in rows if r.get("input_tokens") is not None]
+    # Variance across repeats of the same task (protocol §5 risk 5); None
+    # when every task ran once.
+    by_task: dict[str, list[float]] = defaultdict(list)
+    for r in scored:
+        by_task[r["task_id"]].append(r["score"])
+    spreads = [pstdev(v) for v in by_task.values() if len(v) > 1]
     return {
         "n": len(rows),
         "score": mean(r["score"] for r in scored) if scored else None,
+        "repeat_sd": mean(spreads) if spreads else None,
         "input_tokens": mean(tokens) if tokens else None,
         "context_chars": mean(r["context_chars"] for r in rows) if rows else None,
         "failure_rate": sum(1 for r in rows if r.get("failure")) / len(rows) if rows else 0.0,
@@ -48,8 +55,8 @@ def build_summary(ledger: Optional[Ledger] = None) -> str:
         "input tokens minus the",
         "model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.",
         "",
-        "| model | arm | family | n | score | input tok | Δctx tok | ctx chars | fail |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "| model | arm | family | n | score | ±sd(rep) | input tok | Δctx tok | ctx chars | fail |",
+        "|---|---|---|---|---|---|---|---|---|---|",
     ]
     def fmt(value, spec: str) -> str:
         return format(value, spec) if value is not None else "—"
@@ -61,6 +68,7 @@ def build_summary(ledger: Optional[Ledger] = None) -> str:
             delta = stats["input_tokens"] - ctrl_tokens[model]
         lines.append(
             f"| {model} | {arm} | {family} | {stats['n']} | {fmt(stats['score'], '.3f')} "
+            f"| {fmt(stats['repeat_sd'], '.3f')} "
             f"| {fmt(stats['input_tokens'], '.0f')} | {fmt(delta, '+.0f')} "
             f"| {fmt(stats['context_chars'], '.0f')} | {stats['failure_rate']:.0%} |"
         )
