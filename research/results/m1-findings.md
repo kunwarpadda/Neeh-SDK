@@ -84,6 +84,23 @@ The composition above was implemented and run immediately (changelog v0.4):
   on these families, pixels are now only worth paying for when the last
   ~9% of transcription fidelity matters.
 
+## Early M2 observations (177 clean rows; matrix incomplete — quota gate)
+
+- **H5 (temporal) supported:** T6 first/last-written — E1a/E1b = 1.000, E0
+  raster = 0.500 (exactly chance; a static image carries no time). Drawn
+  order in the stroke listing is a free, sufficient temporal signal.
+- **T5 actions:** ICF arms execute perfect tool calls (1.000); raster
+  manages 0.556 — it can aim a highlight region at pixels but cannot name
+  strokes to erase.
+- **Counting exposes a perceptual-grouping gap.** Every T2 miss (E1b 3×,
+  E2 1×) is the same error on the same pages: answering 5 where truth is 4,
+  and each such page contains the arrow — the only shape drawn as two
+  strokes. Flat vector listings over-count multi-stroke objects; raster
+  groups them visually (E1a = 1.000). This is direct evidence for ICF v1's
+  open question #2 (optional cluster semantics) and predicts E5 (clustering
+  scene graph) should count correctly in pure vector — check when the M2
+  matrix completes.
+
 ## Consequences for ICF v1
 
 - Stroke IDs are the non-negotiable core (H2). Raw point streams are not:

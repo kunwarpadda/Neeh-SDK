@@ -123,6 +123,18 @@ def test_e7_svg_is_smaller_than_e4():
     assert len(encode_e7v(page).text) < 0.6 * len(encode_e4(page).text)
 
 
+def test_e7v_grid_resolution_arms():
+    from research.harness.encoders import encode_e7v128, encode_e7v512
+
+    page = make_text_page(0, seed=3).page
+    low, mid, high = (encode_e7v128(page), encode_e7v(page), encode_e7v512(page))
+    assert 'viewBox="0 0 91 128"' in low.text
+    assert 'viewBox="0 0 362 512"' in high.text
+    # Higher resolution costs more characters; ids survive at every level.
+    assert len(low.text) < len(mid.text) < len(high.text)
+    assert low.text.count("<path ") == mid.text.count("<path ") == high.text.count("<path ")
+
+
 def test_e2_and_e4_share_resampling_budget():
     """E2 vs E4 must differ only in syntax: same points after resampling."""
     page = make_shape_page(1, seed=3).page

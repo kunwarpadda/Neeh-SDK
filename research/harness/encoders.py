@@ -205,9 +205,9 @@ E7_LEGEND = "The page is attached as an image, followed by " + _E7_SVG_LEGEND
 E7V_LEGEND = "The page is provided as " + _E7_SVG_LEGEND + " There is no image."
 
 
-def _compact_svg(page: Page) -> str:
+def _compact_svg(page: Page, grid_long_edge: int = GRID_LONG_EDGE) -> str:
     """SVG paths with E2's resampling/quantization: same grid, same step."""
-    scale = GRID_LONG_EDGE / max(page.width, page.height)
+    scale = grid_long_edge / max(page.width, page.height)
     grid_w = round(page.width * scale)
     grid_h = round(page.height * scale)
     step_page = RESAMPLE_GRID_STEP / scale
@@ -242,6 +242,26 @@ def encode_e7v(page: Page) -> EncodedContext:
     )
 
 
+# Grid-resolution sweep arms for the ICF v1 draft's open question #3: 256 was
+# inherited from Google's ink-tokenization recipe and never swept. The 4-grid-
+# unit resampling step is kept, so resolution coherently changes both
+# quantization and sampling density.
+
+
+def encode_e7v128(page: Page) -> EncodedContext:
+    return EncodedContext(
+        arm="E7v128", version="E7v128/0.1.0", legend=E7V_LEGEND,
+        text=_compact_svg(page, grid_long_edge=128), image_png=None,
+    )
+
+
+def encode_e7v512(page: Page) -> EncodedContext:
+    return EncodedContext(
+        arm="E7v512", version="E7v512/0.1.0", legend=E7V_LEGEND,
+        text=_compact_svg(page, grid_long_edge=512), image_png=None,
+    )
+
+
 # -- Control arm: no page context at all -------------------------------------
 
 CTRL_LEGEND = "No page context is provided for this question."
@@ -266,6 +286,8 @@ ENCODERS: dict[str, Callable[[Page], EncodedContext]] = {
     "E4": encode_e4,
     "E7": encode_e7,
     "E7v": encode_e7v,
+    "E7v128": encode_e7v128,
+    "E7v512": encode_e7v512,
     "CTRL": encode_ctrl,
 }
 

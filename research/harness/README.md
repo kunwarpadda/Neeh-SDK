@@ -34,6 +34,30 @@ python -m research.harness.run_m1 --backend codex --workers 4 \
 # after a quota outage: re-run only the cells whose latest row failed
 python -m research.harness.run_m1 --backend codex --retry-failed
 
+# grid-resolution sweep (ICF v1 draft open question #3; M3 scope)
+python -m research.harness.run_m1 --backend codex --workers 4 \
+  --arms E7v128 E7v E7v512 --families T1 T2 T3 T4 T5 T6
+```
+
+## Next quota window — queued commands, in priority order
+
+```bash
+export NEEH_CODEX_HOME="$HOME/.neeh-codex-home"   # persistent harness-owned home
+
+# 1. finish the M2 matrix (~345 cells incl. 5 failed retries)
+python -m research.harness.run_m1 --backend codex --workers 4 --retry-failed \
+  --arms E0 E1a E1b E2 E3 E4 E5 E6 E7 E7v --families T1 T2 T3 T4 T5 T6
+
+# 2. S1 real ink, winners only (needs research/data/quickdraw/, already fetched)
+python -m research.harness.run_m1 --backend codex --workers 4 --corpus s1 \
+  --arms E0 E1a E2 E5 E7 E7v --families T1 T2 T3 T4 T5 T6
+
+# 3. grid-resolution sweep (M3)
+python -m research.harness.run_m1 --backend codex --workers 4 \
+  --arms E7v128 E7v512 --families T1 T3 T4
+
+python -m research.harness.run_m1 --report
+
 # real ink (S1 Quick, Draw!): fetch category slices once, then sweep
 python -m research.harness.fetch_quickdraw --categories cat house tree star
 python -m research.harness.run_m1 --backend codex --corpus s1 \
