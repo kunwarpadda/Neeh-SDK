@@ -12,7 +12,7 @@
 | H1 | Vector context reaches zero-shot parity with PNG | ≥95% of E0 score | **Supported** — E1a (ICF v0) = 1.000 on T1 and T3, equal to E0, no pixels sent |
 | H2 | Stroke IDs enable addressing raster cannot do | ≥80% set-F1; E0 near 0 | **Strongly supported** — E0 = 0.000 (18/18 misses); E1a, E1b, E4 = 1.000 |
 | H3 | Abstraction wins on global layout | ≤60% of E0 token cost at parity | **Supported** — E2 = 1.000 at +692 tok vs E0's +1790 (39%) |
-| H4 | A hybrid dominates the frontier | — | **Untested** — E7 is composed from these results (below) |
+| H4 | A hybrid dominates the frontier | — | **Supported** (same-day follow-up, 84 rows) — see "E7 results" below |
 | H5 | Temporal order is recoverable | — | **Untested** — T2/T5/T6 + M2 arms not yet run live |
 
 ## The three-family picture
@@ -60,6 +60,29 @@ vector for addressing**:
 - Secondary arm worth one sweep: **compressed SVG alone** (no raster), to
   see whether a pure-text arm can hold the whole frontier when
   transcription fidelity matters less.
+
+## E7 results (same-day follow-up, 84 rows, 0 failures)
+
+The composition above was implemented and run immediately (changelog v0.4):
+
+| arm | T1 | T3 | T4 | Δtok T1 | Δtok T3 | Δtok T4 |
+|---|---|---|---|---|---|---|
+| E7 (PNG + compact SVG) | **1.000** | **1.000** | **1.000** | +2959 | +1937 | +3264 |
+| E7v (compact SVG only) | 0.910 | **1.000** | **1.000** | +1186 | +189 | +1474 |
+
+- **H4 supported.** E7 is the only arm at 1.000 in every family, at roughly
+  a quarter of ICF v0's token cost (E1a needs +10.7k/+13.3k for the same
+  scores). One E7 context serves perception, layout, and addressing at once.
+- **E7v resets the pure-text frontier.** Perfect addressing at +1474 —
+  under half of E4's +3320 — and layout at +189, cheaper than E2's +692
+  despite similar characters (SVG path syntax evidently tokenizes better
+  than the bespoke QRP lines). Its 0.910 transcription beats every other
+  textual arm and shows none of E2's page-level collapse: the two text-page
+  misses are single-word tail errors ("buzzle"/"puzzle"), the third is a
+  square-vs-rectangle judgment call.
+- Notably E7v T1 (0.910 at +1186) sits *below* E0's token cost (+1793):
+  on these families, pixels are now only worth paying for when the last
+  ~9% of transcription fidelity matters.
 
 ## Consequences for ICF v1
 

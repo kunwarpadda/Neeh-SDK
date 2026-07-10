@@ -1,6 +1,7 @@
 # M1 summary
 
-Ledger rows: 252. Context token cost = model-reported input tokens minus the
+Ledger cells: 336 (latest row per key). Context token cost = model-reported
+input tokens minus the
 model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 
 | model | arm | family | n | score | input tok | Δctx tok | ctx chars | fail |
@@ -23,27 +24,39 @@ model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 | default | E4 | T1 | 12 | 0.754 | 18412 | +2727 | 5891 | 0% |
 | default | E4 | T3 | 12 | 1.000 | 16539 | +854 | 1610 | 0% |
 | default | E4 | T4 | 18 | 1.000 | 19006 | +3320 | 7318 | 0% |
+| default | E7 | T1 | 12 | 1.000 | 18649 | +2964 | 2373 | 0% |
+| default | E7 | T3 | 12 | 1.000 | 17627 | +1942 | 722 | 0% |
+| default | E7 | T4 | 18 | 1.000 | 18954 | +3269 | 2924 | 0% |
+| default | E7v | T1 | 12 | 0.910 | 16876 | +1191 | 2373 | 0% |
+| default | E7v | T3 | 12 | 1.000 | 15880 | +194 | 722 | 0% |
+| default | E7v | T4 | 18 | 1.000 | 17165 | +1479 | 2924 | 0% |
 
 ## Pareto view (score vs Δ context tokens, per model × family)
 
 **default — T1**
-- E2: score 0.830 at +1543 tok  ← frontier
+- E7v: score 0.910 at +1191 tok  ← frontier
+- E2: score 0.830 at +1543 tok
 - E0: score 1.000 at +1793 tok  ← frontier
 - E4: score 0.754 at +2727 tok
+- E7: score 1.000 at +2964 tok
 - E1b: score 0.917 at +9038 tok
 - E1a: score 1.000 at +10729 tok
 
 **default — T3**
-- E2: score 1.000 at +692 tok  ← frontier
+- E7v: score 1.000 at +194 tok  ← frontier
+- E2: score 1.000 at +692 tok
 - E4: score 1.000 at +854 tok
 - E1b: score 1.000 at +1317 tok
 - E0: score 1.000 at +1790 tok
+- E7: score 1.000 at +1942 tok
 - E1a: score 1.000 at +3045 tok
 
 **default — T4**
-- E0: score 0.000 at +1784 tok  ← frontier
-- E2: score 0.722 at +1816 tok  ← frontier
-- E4: score 1.000 at +3320 tok  ← frontier
+- E7v: score 1.000 at +1479 tok  ← frontier
+- E0: score 0.000 at +1784 tok
+- E2: score 0.722 at +1816 tok
+- E7: score 1.000 at +3269 tok
+- E4: score 1.000 at +3320 tok
 - E1b: score 1.000 at +11635 tok
 - E1a: score 1.000 at +13349 tok
 
