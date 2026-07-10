@@ -180,3 +180,10 @@ Changelog:
   arm holds the whole frontier. Also: sweep resume now treats a cell's *latest* ledger row as
   authoritative — `--retry-failed` re-runs cells whose latest row failed (quota outages), and
   reports deduplicate to the newest row per key.
+- v0.5 (2026-07-10) — reasoning-effort amendment. ChatGPT-account codex rejects every explicit
+  `--model` value on CLI 0.133.0, so conditions are set via the CODEX_HOME config
+  (`model_reasoning_effort`) and named in the ledger with `--model-label`. The M2 matrix
+  completed across an effort split: `default-high` (morning rows, effort high) and `default`
+  (afternoon completion, effort low, 0 failures). Cross-split comparisons are caveated in
+  results/m2-findings.md; subsequent sweeps run at effort low uniformly, which also satisfies
+  the §5 risk-4 fixed-reasoning-budget mitigation.
