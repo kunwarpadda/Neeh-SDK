@@ -41,25 +41,16 @@ python -m research.harness.run_m1 --backend codex --workers 4 \
 
 ## Next quota window — queued commands, in priority order
 
+All milestone sweeps (M1, M2 matrix, E7/E7b, S1, S2, legend variant) are
+complete — see results/*.md. Remaining:
+
 ```bash
-export NEEH_CODEX_HOME="$HOME/.neeh-codex-home"   # persistent harness-owned home
+# 1. finish the N=3 repeats for variance bars (~294 failed cells retry)
+python -m research.harness.run_m1 --backend codex --workers 4 --repeats 3 \
+  --retry-failed --arms E0 E1a E7 E7v E7b --families T1 T3 T4
 
-# 1. finish the M2 matrix (~345 cells incl. 5 failed retries)
-python -m research.harness.run_m1 --backend codex --workers 4 --retry-failed \
-  --arms E0 E1a E1b E2 E3 E4 E5 E6 E7 E7v --families T1 T2 T3 T4 T5 T6
-
-# 2. S1 real ink, winners only (needs research/data/quickdraw/, already fetched)
-python -m research.harness.run_m1 --backend codex --workers 4 --corpus s1 \
-  --arms E0 E1a E2 E5 E7 E7v --families T1 T2 T3 T4 T5 T6
-
-# 3. S2 real handwriting (MathWriting excerpt already fetched) — the
-#    transcription gate for ICF v1; E7v512 rides along for resolution data
-python -m research.harness.run_m1 --backend codex --workers 4 --corpus s2 \
-  --arms E0 E1a E7 E7v E7v512 --families T1
-
-# 4. grid-resolution + legend-variant sweep on synthetic (M3)
-python -m research.harness.run_m1 --backend codex --workers 4 \
-  --arms E7v128 E7v512 E7vB --families T1 T3 T4
+# 2. second model (run from a normal terminal, NOT a nested agent session)
+python -m research.harness.run_m1 --backend claude --model claude-haiku-4-5-20251001
 
 python -m research.harness.run_m1 --report
 

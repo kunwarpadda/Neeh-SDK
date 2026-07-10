@@ -82,6 +82,24 @@ and everything raster does plus the things raster cannot.
 - T2 counting: every arm scored 0.833 — the same one composed page trips
   all of them; inspect that page before reading anything into the family.
 
+## Robustness follow-ups (same day)
+
+- **The frame rule fixes actions.** E7b/0.2.0 (bboxes in page units + the
+  conversion note in the legend) took T5 from 0.167 to **0.833** — parity
+  with the best arm on those tasks — while holding 1.000 on
+  classify/layout/addressing/temporal and keeping reading at 0.658 ≈ 0.672
+  (page-unit bboxes read as well as grid-unit ones). E7b/0.2.0 is the
+  complete perception-tier encoding.
+- **Legend sensitivity is small.** E7vB (identical geometry, rewritten
+  legend): T1 0.903 vs 0.910, T3 1.000 vs 1.000, T4 0.944 vs 1.000 —
+  differences within a few points, and the comparison additionally crosses
+  the effort split, so the true wording effect is at most marginal. The
+  encoding, not the prompt wording, carries the results (protocol §5
+  risk 1 addressed).
+- Repeats for variance bars: 29 clean rows landed before a quota gate;
+  the remaining ~294 cells retry next window
+  (`--repeats 3 --retry-failed`, queued in the README).
+
 ## ICF v1 draft: state of the open questions
 
 1. Style/author metadata — still open (no S1/S2 task needed them).
