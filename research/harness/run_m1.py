@@ -29,6 +29,8 @@ def main() -> None:
                         help=f"encoding arms; M1 default. All: {ALL_ARMS}")
     parser.add_argument("--families", nargs="*", default=["T1", "T3", "T4"],
                         help=f"task families; M1 default. All: {list(ALL_FAMILIES)}")
+    parser.add_argument("--corpus", choices=["s0", "s1"], default="s0",
+                        help="s0 = synthetic; s1 = Quick, Draw! (fetch first)")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--jitter", type=float, default=0.0)
     parser.add_argument("--text-pages", type=int, default=6)
@@ -64,10 +66,15 @@ def main() -> None:
     else:
         backend = MockBackend()
 
-    pages = generate_corpus(
-        seed=args.seed, n_text_pages=args.text_pages,
-        n_shape_pages=args.shape_pages, jitter=args.jitter,
-    )
+    if args.corpus == "s1":
+        from research.harness.quickdraw import generate_s1_corpus
+
+        pages = generate_s1_corpus(seed=args.seed, n_pages=args.shape_pages)
+    else:
+        pages = generate_corpus(
+            seed=args.seed, n_text_pages=args.text_pages,
+            n_shape_pages=args.shape_pages, jitter=args.jitter,
+        )
     tasks = generate_tasks(pages, families=tuple(args.families))
     config = SweepConfig(arms=list(args.arms), repeats=args.repeats,
                          seed=args.seed, ledger=Ledger())

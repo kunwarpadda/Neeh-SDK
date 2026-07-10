@@ -24,22 +24,37 @@ class TaskInstance:
 
 
 def t1_tasks(page: CorpusPage) -> list[TaskInstance]:
-    """Transcription: read all words in reading order."""
-    if page.kind != "text":
-        return []
-    truth = " ".join(w["word"] for w in sorted(page.words, key=lambda w: w["order"]))
-    return [TaskInstance(
-        task_id=f"T1_{page.page.id}",
-        family="T1",
-        page_id=page.page.id,
-        prompt=(
-            "Transcribe every handwritten word on the page in reading order "
-            "(left to right, then top to bottom). Reply with only the words, "
-            "lowercase, separated by single spaces."
-        ),
-        truth=truth,
-        scorer="cer",
-    )]
+    """Local perception: transcribe words, or classify one drawing."""
+    if page.kind == "text":
+        truth = " ".join(w["word"] for w in sorted(page.words, key=lambda w: w["order"]))
+        return [TaskInstance(
+            task_id=f"T1_{page.page.id}",
+            family="T1",
+            page_id=page.page.id,
+            prompt=(
+                "Transcribe every handwritten word on the page in reading order "
+                "(left to right, then top to bottom). Reply with only the words, "
+                "lowercase, separated by single spaces."
+            ),
+            truth=truth,
+            scorer="cer",
+        )]
+    if page.kind == "shapes":
+        rng = random.Random(f"t1:{page.page.id}")
+        target = rng.choice(page.shapes)
+        return [TaskInstance(
+            task_id=f"T1_{page.page.id}",
+            family="T1",
+            page_id=page.page.id,
+            prompt=(
+                f"The page is divided into four equal quadrants. What is drawn in "
+                f"the {target['quadrant']} quadrant? Reply with one or two words, "
+                f"lowercase."
+            ),
+            truth=target["kind"],
+            scorer="exact",
+        )]
+    return []
 
 
 def t3_tasks(page: CorpusPage) -> list[TaskInstance]:

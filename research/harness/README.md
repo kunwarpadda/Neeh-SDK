@@ -27,6 +27,11 @@ python -m research.harness.run_m1 --backend claude --model claude-opus-4-8
 python -m research.harness.run_m1 --backend codex \
   --arms E0 E1a E1b E2 E3 E4 E5 E6 --families T1 T2 T3 T4 T5 T6
 
+# real ink (S1 Quick, Draw!): fetch category slices once, then sweep
+python -m research.harness.fetch_quickdraw --categories cat house tree star
+python -m research.harness.run_m1 --backend codex --corpus s1 \
+  --arms E0 E1a E1b E2 E3 E4 E5 E6 --families T1 T2 T3 T4 T5 T6
+
 # artifacts
 python -m research.harness.run_m1 --report   # results/summary.md from the ledger
 python -m research.harness.run_m1 --sizes    # results/context-sizes.md (offline, exact)

@@ -36,8 +36,9 @@ def test_task_generation_is_deterministic_and_covers_families():
     assert [t.task_id for t in tasks_a] == [t.task_id for t in tasks_b]
     families = {t.family for t in tasks_a}
     assert families == {"T1", "T3", "T4"}
-    # T1 per text page; T3 two per shape page; T4 two per text + one per shape.
-    assert sum(t.family == "T1" for t in tasks_a) == 2
+    # T1 per page (transcribe/classify); T3 two per shape page; T4 two per
+    # text page + one per shape page.
+    assert sum(t.family == "T1" for t in tasks_a) == 4
     assert sum(t.family == "T3" for t in tasks_a) == 4
     assert sum(t.family == "T4" for t in tasks_a) == 6
 
