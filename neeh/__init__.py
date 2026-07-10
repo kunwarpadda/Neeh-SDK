@@ -2,11 +2,15 @@
 whiteboard, and handwriting applications."""
 from neeh.canvas import Canvas, History, Selection, Viewport
 from neeh.context import (
+    DEFAULT_GRID_LONG_EDGE,
     DEFAULT_MAX_POINTS_PER_STROKE,
     DEFAULT_MAX_STROKES,
+    DEFAULT_RESAMPLE_GRID_STEP,
     InkContextError,
     SemanticItem,
     build_ink_context,
+    build_ink_context_v1,
+    build_ink_paths,
 )
 from neeh.document import Document, Layer, Page
 from neeh.ink import Author, BoundingBox, Brush, Point, Stroke, StrokeStyle
@@ -19,8 +23,10 @@ __all__ = [
     "BoundingBox",
     "Brush",
     "Canvas",
+    "DEFAULT_GRID_LONG_EDGE",
     "DEFAULT_MAX_POINTS_PER_STROKE",
     "DEFAULT_MAX_STROKES",
+    "DEFAULT_RESAMPLE_GRID_STEP",
     "Document",
     "History",
     "InkContextError",
@@ -35,5 +41,7 @@ __all__ = [
     "SvgRenderer",
     "Viewport",
     "build_ink_context",
+    "build_ink_context_v1",
+    "build_ink_paths",
     "render_page_svg",
 ]

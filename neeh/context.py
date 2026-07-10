@@ -19,10 +19,12 @@ from neeh.document.layer import Layer
 from neeh.document.page import Page
 from neeh.ink.geometry import BoundingBox, Point
 from neeh.ink.stroke import Author, Stroke
-from neeh.protocol import INK_CONTEXT_VERSION
+from neeh.protocol import INK_CONTEXT_V1_DRAFT_VERSION, INK_CONTEXT_VERSION
 
 DEFAULT_MAX_STROKES = 80
 DEFAULT_MAX_POINTS_PER_STROKE = 12
+DEFAULT_GRID_LONG_EDGE = 256  # v1 draft: grid resolution across the longer page edge
+DEFAULT_RESAMPLE_GRID_STEP = 4.0  # v1 draft: arc-length step between path points, grid units
 _HEX_COLOR = re.compile(r"#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?\Z")
 
 PageSelector = Union[int, str, Page]
@@ -491,10 +493,214 @@ def build_ink_context(
     }
 
 
+# -- ink-context/v1-draft (research/icf-v1-draft.md) --------------------------
+#
+# The v1 draft replaces JSON point arrays with grid-quantized SVG paths — the
+# encoding that won the M1/E7 evaluation (harness arm E7v/0.1.0). The builder
+# below must stay byte-identical to that arm's `svg` output for the same page;
+# a cross-check test enforces it.
+
+
+def _resample_polyline(
+    points: list[tuple[float, float]], step: float
+) -> list[tuple[float, float]]:
+    """Arc-length resampling; always keeps first and last points."""
+    if len(points) < 2 or step <= 0:
+        return list(points)
+    out = [points[0]]
+    carried = 0.0
+    for (x0, y0), (x1, y1) in zip(points, points[1:]):
+        segment = math.hypot(x1 - x0, y1 - y0)
+        if segment == 0:
+            continue
+        position = carried
+        while position + step <= segment:
+            position += step
+            t = position / segment
+            out.append((x0 + (x1 - x0) * t, y0 + (y1 - y0) * t))
+        carried = position - segment  # negative remainder toward the next segment
+    if out[-1] != points[-1]:
+        out.append(points[-1])
+    return out
+
+
+def _select_strokes_v1(
+    page: Page,
+    region: Optional[BoundingBox],
+    visible_only: bool,
+    max_strokes: Optional[int],
+) -> tuple[list[Stroke], int]:
+    """Eligible strokes in drawn (layer, then stroke) order, newest-tail capped."""
+    matches: list[Stroke] = []
+    for layer in page.layers:
+        if visible_only and not layer.visible:
+            continue
+        for stroke in layer.strokes:
+            if region is not None and not region.intersects(stroke.bbox):
+                continue
+            matches.append(stroke)
+    stroke_count = len(matches)
+    if max_strokes is not None and stroke_count > max_strokes:
+        matches = matches[stroke_count - max_strokes:]
+    return matches, stroke_count
+
+
+def _paths_svg(
+    page: Page,
+    strokes: list[Stroke],
+    grid_long_edge: int,
+    resample_grid_step: float,
+) -> tuple[str, int, int]:
+    scale = grid_long_edge / max(page.width, page.height)
+    grid_w = round(page.width * scale)
+    grid_h = round(page.height * scale)
+    step_page = resample_grid_step / scale
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {grid_w} {grid_h}">']
+    for stroke in strokes:
+        stroke_id = _non_empty_string(stroke.id, "stroke id")
+        if not stroke.points:
+            raise InkContextError(f"stroke {stroke_id!r} must contain at least one point")
+        resampled = _resample_polyline(
+            [(p.x, p.y) for p in stroke.points], step_page
+        )
+        gx = [round(x * scale) for x, _ in resampled]
+        gy = [round(y * scale) for _, y in resampled]
+        d = f"M{gx[0]} {gy[0]}"
+        if len(gx) > 1:
+            d += "l" + " ".join(
+                f"{gx[i] - gx[i - 1]} {gy[i] - gy[i - 1]}" for i in range(1, len(gx))
+            )
+        parts.append(f'<path id="{stroke_id}" d="{d}"/>')
+    parts.append("</svg>")
+    return "\n".join(parts), grid_w, grid_h
+
+
+def build_ink_paths(
+    source: ContextSource,
+    *,
+    page: Optional[PageSelector] = None,
+    region: Optional[RegionLike] = None,
+    visible_only: bool = True,
+    max_strokes: Optional[int] = None,
+    grid_long_edge: int = DEFAULT_GRID_LONG_EDGE,
+    resample_grid_step: float = DEFAULT_RESAMPLE_GRID_STEP,
+) -> str:
+    """Return the bare compact-SVG ink block of the ``ink-context/v1-draft``.
+
+    One ``<path id=…>`` per stroke in drawn order; coordinates on an integer
+    grid whose long edge is ``grid_long_edge``. This is the model-facing text
+    without the JSON envelope — use :func:`build_ink_context_v1` for the full
+    payload.
+    """
+    selected_page = _resolve_page(source, page)
+    selected_region = None if region is None else _box(region, "region")
+    if not isinstance(visible_only, bool):
+        raise InkContextError("visible_only must be a boolean")
+    if max_strokes is not None:
+        max_strokes = _integer(max_strokes, "max_strokes", minimum=0)
+    grid_long_edge = _integer(grid_long_edge, "grid_long_edge", minimum=16)
+    resample_grid_step = _finite_number(resample_grid_step, "resample_grid_step")
+    if resample_grid_step <= 0:
+        raise InkContextError("resample_grid_step must be positive")
+    strokes, _ = _select_strokes_v1(
+        selected_page, selected_region, visible_only, max_strokes
+    )
+    svg, _, _ = _paths_svg(selected_page, strokes, grid_long_edge, resample_grid_step)
+    return svg
+
+
+def build_ink_context_v1(
+    source: ContextSource,
+    *,
+    page: Optional[PageSelector] = None,
+    region: Optional[RegionLike] = None,
+    visible_only: bool = True,
+    max_strokes: Optional[int] = None,
+    grid_long_edge: int = DEFAULT_GRID_LONG_EDGE,
+    resample_grid_step: float = DEFAULT_RESAMPLE_GRID_STEP,
+    raster: str = "none",
+    semantics: Optional[Iterable[Union[SemanticItem, Mapping[str, Any]]]] = None,
+) -> dict[str, Any]:
+    """Build a deterministic ``ink-context/v1-draft`` snapshot.
+
+    Geometry rides as grid-quantized SVG paths (``ink.svg``) instead of v0's
+    JSON point arrays; strokes appear in drawn order, which carries the
+    temporal signal. ``raster`` is ``"none"`` (structure tier, default) or
+    ``"attached_image"`` (perception tier — the transport must then attach one
+    page PNG beside the JSON, exactly as in v0).
+    """
+    if raster not in ("none", "attached_image"):
+        raise InkContextError("raster must be 'none' or 'attached_image'")
+
+    selected_page = _resolve_page(source, page)
+    selected_region = None if region is None else _box(region, "region")
+    if not isinstance(visible_only, bool):
+        raise InkContextError("visible_only must be a boolean")
+    if max_strokes is not None:
+        max_strokes = _integer(max_strokes, "max_strokes", minimum=0)
+    grid_long_edge = _integer(grid_long_edge, "grid_long_edge", minimum=16)
+    resample_grid_step = _finite_number(resample_grid_step, "resample_grid_step")
+    if resample_grid_step <= 0:
+        raise InkContextError("resample_grid_step must be positive")
+
+    page_id = _non_empty_string(selected_page.id, "page.id")
+    page_width = _finite_number(selected_page.width, "page.width")
+    page_height = _finite_number(selected_page.height, "page.height")
+    if page_width <= 0 or page_height <= 0:
+        raise InkContextError("page.width and page.height must be positive")
+    page_background = _non_empty_string(selected_page.background, "page.background")
+    if not _HEX_COLOR.fullmatch(page_background):
+        raise InkContextError("page.background must be a #rgb or #rrggbb hex color")
+
+    included, stroke_count = _select_strokes_v1(
+        selected_page, selected_region, visible_only, max_strokes
+    )
+    svg, grid_w, grid_h = _paths_svg(
+        selected_page, included, grid_long_edge, resample_grid_step
+    )
+    included_ids = {stroke.id for stroke in included}
+    if len(included_ids) != len(included):
+        raise InkContextError("ink.svg contains duplicate stroke ids")
+
+    region_list = None if selected_region is None else _box_list(selected_region)
+    omitted = stroke_count - len(included)
+    return {
+        "schema": INK_CONTEXT_V1_DRAFT_VERSION,
+        "page": {
+            "id": page_id,
+            "width": page_width,
+            "height": page_height,
+            "background": page_background,
+        },
+        "raster": {
+            "format": "png",
+            "transport": raster,
+            "coordinate_space": "page",
+            "region": region_list,
+        },
+        "ink": {
+            "encoding": "svg-paths/grid",
+            "grid": [grid_w, grid_h],
+            "drawn_order": True,
+            "region": region_list,
+            "stroke_count": stroke_count,
+            "included_stroke_count": len(included),
+            "omitted_older_stroke_count": omitted,
+            "truncated": omitted > 0,
+            "svg": svg,
+        },
+        "semantics": _semantic_items(semantics, included_ids),
+    }
+
+
 __all__ = [
+    "DEFAULT_GRID_LONG_EDGE",
     "DEFAULT_MAX_POINTS_PER_STROKE",
     "DEFAULT_MAX_STROKES",
+    "DEFAULT_RESAMPLE_GRID_STEP",
     "InkContextError",
     "SemanticItem",
     "build_ink_context",
+    "build_ink_context_v1",
+    "build_ink_paths",
 ]

@@ -9,6 +9,9 @@ from __future__ import annotations
 from typing import Final
 
 INK_CONTEXT_VERSION: Final = "ink-context/v0"
+# Draft under evaluation (research/icf-v1-draft.md); not in the negotiation
+# manifest until promoted to spec/ as ink-context/v1.
+INK_CONTEXT_V1_DRAFT_VERSION: Final = "ink-context/v1-draft"
 TOOL_SURFACE_VERSION: Final = "neeh-tools/v1"
 UIM_PROFILE_VERSION: Final = "neeh-uim/v1"
 
@@ -26,6 +29,7 @@ def protocol_versions() -> dict[str, str]:
 
 
 __all__ = [
+    "INK_CONTEXT_V1_DRAFT_VERSION",
     "INK_CONTEXT_VERSION",
     "TOOL_SURFACE_VERSION",
     "UIM_PROFILE_VERSION",
