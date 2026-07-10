@@ -39,6 +39,19 @@ def t1_tasks(page: CorpusPage) -> list[TaskInstance]:
             truth=truth,
             scorer="cer",
         )]
+    if page.kind == "math":
+        return [TaskInstance(
+            task_id=f"T1_{page.page.id}",
+            family="T1",
+            page_id=page.page.id,
+            prompt=(
+                "The page contains one handwritten mathematical expression. "
+                "Transcribe it as LaTeX. Reply with only the LaTeX string — "
+                "no surrounding $ delimiters, no explanation."
+            ),
+            truth=page.expression,
+            scorer="cer_raw",
+        )]
     if page.kind == "shapes":
         rng = random.Random(f"t1:{page.page.id}")
         target = rng.choice(page.shapes)

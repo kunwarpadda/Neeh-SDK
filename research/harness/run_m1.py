@@ -29,8 +29,9 @@ def main() -> None:
                         help=f"encoding arms; M1 default. All: {ALL_ARMS}")
     parser.add_argument("--families", nargs="*", default=["T1", "T3", "T4"],
                         help=f"task families; M1 default. All: {list(ALL_FAMILIES)}")
-    parser.add_argument("--corpus", choices=["s0", "s1"], default="s0",
-                        help="s0 = synthetic; s1 = Quick, Draw! (fetch first)")
+    parser.add_argument("--corpus", choices=["s0", "s1", "s2"], default="s0",
+                        help="s0 = synthetic; s1 = Quick, Draw!; s2 = MathWriting "
+                             "(fetch the real-ink corpora first)")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--jitter", type=float, default=0.0)
     parser.add_argument("--text-pages", type=int, default=6)
@@ -75,6 +76,10 @@ def main() -> None:
         from research.harness.quickdraw import generate_s1_corpus
 
         pages = generate_s1_corpus(seed=args.seed, n_pages=args.shape_pages)
+    elif args.corpus == "s2":
+        from research.harness.mathwriting import generate_s2_corpus
+
+        pages = generate_s2_corpus(n_pages=args.text_pages)
     else:
         pages = generate_corpus(
             seed=args.seed, n_text_pages=args.text_pages,

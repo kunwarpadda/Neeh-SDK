@@ -7,10 +7,12 @@ from neeh.context import (
     DEFAULT_MAX_STROKES,
     DEFAULT_RESAMPLE_GRID_STEP,
     InkContextError,
+    ParsedInkPath,
     SemanticItem,
     build_ink_context,
     build_ink_context_v1,
     build_ink_paths,
+    parse_ink_paths,
 )
 from neeh.document import Document, Layer, Page
 from neeh.ink import Author, BoundingBox, Brush, Point, Stroke, StrokeStyle
@@ -32,6 +34,7 @@ __all__ = [
     "InkContextError",
     "Layer",
     "Page",
+    "ParsedInkPath",
     "Point",
     "Renderer",
     "Selection",
@@ -43,5 +46,6 @@ __all__ = [
     "build_ink_context",
     "build_ink_context_v1",
     "build_ink_paths",
+    "parse_ink_paths",
     "render_page_svg",
 ]

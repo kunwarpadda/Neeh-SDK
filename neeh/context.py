@@ -693,14 +693,87 @@ def build_ink_context_v1(
     }
 
 
+@dataclass(frozen=True)
+class ParsedInkPath:
+    """One decoded ``svg-paths/grid`` stroke: grid cells, optionally page units."""
+
+    id: str
+    grid_points: tuple[tuple[int, int], ...]
+    page_points: Optional[tuple[tuple[float, float], ...]] = None
+
+
+_VIEWBOX = re.compile(r'viewBox="0 0 (\d+) (\d+)"')
+_PATH = re.compile(r'<path id="([^"]+)" d="([^"]*)"\s*/>')
+
+
+def parse_ink_paths(
+    svg: str,
+    *,
+    page_width: Optional[float] = None,
+    page_height: Optional[float] = None,
+) -> tuple[tuple[int, int], list[ParsedInkPath]]:
+    """Decode an ``ink.svg`` block back into per-stroke polylines.
+
+    Returns ``((grid_w, grid_h), paths)`` in listing (drawn) order. When both
+    page dimensions are given, each path also carries ``page_points`` mapped
+    back to page units — the consumer-side inverse of :func:`build_ink_paths`
+    (lossy: quantization is not undone).
+    """
+    box = _VIEWBOX.search(svg)
+    if not box:
+        raise InkContextError("ink svg has no integer viewBox")
+    grid_w, grid_h = int(box.group(1)), int(box.group(2))
+    if grid_w < 1 or grid_h < 1:
+        raise InkContextError("ink svg viewBox must be at least 1x1")
+
+    scale = None
+    if page_width is not None or page_height is not None:
+        if page_width is None or page_height is None:
+            raise InkContextError("page_width and page_height must be given together")
+        page_width = _finite_number(page_width, "page_width")
+        page_height = _finite_number(page_height, "page_height")
+        if page_width <= 0 or page_height <= 0:
+            raise InkContextError("page dimensions must be positive")
+        scale = max(page_width, page_height) / max(grid_w, grid_h)
+
+    paths: list[ParsedInkPath] = []
+    seen: set[str] = set()
+    for stroke_id, d in _PATH.findall(svg):
+        if stroke_id in seen:
+            raise InkContextError(f"ink svg repeats stroke id {stroke_id!r}")
+        seen.add(stroke_id)
+        head, _, rest = d.partition("l")
+        if not head.startswith("M"):
+            raise InkContextError(f"path {stroke_id!r} must start with an absolute M")
+        try:
+            x, y = (int(v) for v in head[1:].split())
+            offsets = [int(v) for v in rest.split()] if rest else []
+        except ValueError as exc:
+            raise InkContextError(f"path {stroke_id!r} has non-integer coordinates") from exc
+        if len(offsets) % 2:
+            raise InkContextError(f"path {stroke_id!r} has an odd offset count")
+        points = [(x, y)]
+        for i in range(0, len(offsets), 2):
+            x += offsets[i]
+            y += offsets[i + 1]
+            points.append((x, y))
+        page_points = None
+        if scale is not None:
+            page_points = tuple((px * scale, py * scale) for px, py in points)
+        paths.append(ParsedInkPath(stroke_id, tuple(points), page_points))
+    return (grid_w, grid_h), paths
+
+
 __all__ = [
     "DEFAULT_GRID_LONG_EDGE",
     "DEFAULT_MAX_POINTS_PER_STROKE",
     "DEFAULT_MAX_STROKES",
     "DEFAULT_RESAMPLE_GRID_STEP",
     "InkContextError",
+    "ParsedInkPath",
     "SemanticItem",
     "build_ink_context",
     "build_ink_context_v1",
     "build_ink_paths",
+    "parse_ink_paths",
 ]

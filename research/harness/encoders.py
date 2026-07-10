@@ -248,6 +248,25 @@ def encode_e7v(page: Page) -> EncodedContext:
 # quantization and sampling density.
 
 
+# Legend-variant arm (protocol §5 risk 1: prompt sensitivity). Identical
+# geometry text to E7v; only the legend differs, isolating the wording effect
+# on the winning arm.
+
+E7VB_LEGEND = (
+    "SVG of the page. One <path> per pen stroke, in drawing order; the id "
+    "attribute is the stroke's id. Integer coordinates on the viewBox grid, "
+    "origin top-left, x right, y down; `M` is absolute, `l` offsets are "
+    "relative. No image."
+)
+
+
+def encode_e7vb(page: Page) -> EncodedContext:
+    return EncodedContext(
+        arm="E7vB", version="E7vB/0.1.0", legend=E7VB_LEGEND,
+        text=_compact_svg(page), image_png=None,
+    )
+
+
 def encode_e7v128(page: Page) -> EncodedContext:
     return EncodedContext(
         arm="E7v128", version="E7v128/0.1.0", legend=E7V_LEGEND,
@@ -286,6 +305,7 @@ ENCODERS: dict[str, Callable[[Page], EncodedContext]] = {
     "E4": encode_e4,
     "E7": encode_e7,
     "E7v": encode_e7v,
+    "E7vB": encode_e7vb,
     "E7v128": encode_e7v128,
     "E7v512": encode_e7v512,
     "CTRL": encode_ctrl,

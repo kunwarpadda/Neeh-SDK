@@ -107,6 +107,41 @@ def test_raster_tier_and_validation():
         build_ink_paths(page, resample_grid_step=0)
 
 
+def test_parse_ink_paths_round_trip():
+    from neeh import parse_ink_paths
+
+    page = _page_with([
+        _stroke("st_a", [(100, 100), (300, 100), (300, 300)]),
+        _stroke("st_b", [(500, 700), (510, 705)], t0=50),
+    ])
+    svg = build_ink_paths(page)
+    (grid_w, grid_h), paths = parse_ink_paths(
+        svg, page_width=page.width, page_height=page.height
+    )
+    assert (grid_w, grid_h) == (181, 256)
+    assert [p.id for p in paths] == ["st_a", "st_b"]  # drawn order preserved
+    a = paths[0]
+    assert a.grid_points[0] == (18, 18) and a.grid_points[-1] == (54, 54)
+    # Page-unit mapping inverts the encoder scale; quantization error stays
+    # within half a grid cell (page long edge / grid long edge / 2 ≈ 2.8).
+    assert a.page_points[0] == pytest.approx((100, 100), abs=2.8)
+    assert a.page_points[-1] == pytest.approx((300, 300), abs=2.8)
+
+
+def test_parse_ink_paths_rejects_malformed_input():
+    from neeh import parse_ink_paths
+
+    with pytest.raises(InkContextError):
+        parse_ink_paths("<svg>no viewbox</svg>")
+    good = '<svg xmlns="x" viewBox="0 0 10 10">\n'
+    with pytest.raises(InkContextError):  # duplicate ids
+        parse_ink_paths(good + '<path id="a" d="M1 1"/>\n<path id="a" d="M2 2"/>\n</svg>')
+    with pytest.raises(InkContextError):  # odd offset count
+        parse_ink_paths(good + '<path id="a" d="M1 1l2"/>\n</svg>')
+    with pytest.raises(InkContextError):  # one page dimension without the other
+        parse_ink_paths(good + "</svg>", page_width=100)
+
+
 def test_svg_matches_evaluated_harness_arm_byte_for_byte():
     """The SDK builder IS the evaluated encoding (E7v/0.1.0) — keep them locked."""
     harness = pytest.importorskip("research.harness.encoders")

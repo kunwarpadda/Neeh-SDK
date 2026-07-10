@@ -52,9 +52,14 @@ python -m research.harness.run_m1 --backend codex --workers 4 --retry-failed \
 python -m research.harness.run_m1 --backend codex --workers 4 --corpus s1 \
   --arms E0 E1a E2 E5 E7 E7v --families T1 T2 T3 T4 T5 T6
 
-# 3. grid-resolution sweep (M3)
+# 3. S2 real handwriting (MathWriting excerpt already fetched) — the
+#    transcription gate for ICF v1; E7v512 rides along for resolution data
+python -m research.harness.run_m1 --backend codex --workers 4 --corpus s2 \
+  --arms E0 E1a E7 E7v E7v512 --families T1
+
+# 4. grid-resolution + legend-variant sweep on synthetic (M3)
 python -m research.harness.run_m1 --backend codex --workers 4 \
-  --arms E7v128 E7v512 --families T1 T3 T4
+  --arms E7v128 E7v512 E7vB --families T1 T3 T4
 
 python -m research.harness.run_m1 --report
 
@@ -62,6 +67,11 @@ python -m research.harness.run_m1 --report
 python -m research.harness.fetch_quickdraw --categories cat house tree star
 python -m research.harness.run_m1 --backend codex --corpus s1 \
   --arms E0 E1a E1b E2 E3 E4 E5 E6 --families T1 T2 T3 T4 T5 T6
+
+# real handwriting (S2 MathWriting): LaTeX transcription, raw CER
+python -m research.harness.fetch_mathwriting
+python -m research.harness.run_m1 --backend codex --corpus s2 \
+  --arms E0 E1a E7 E7v E7v512 --families T1
 
 # artifacts
 python -m research.harness.run_m1 --report   # results/summary.md from the ledger

@@ -123,6 +123,16 @@ def test_e7_svg_is_smaller_than_e4():
     assert len(encode_e7v(page).text) < 0.6 * len(encode_e4(page).text)
 
 
+def test_e7vb_differs_only_in_legend():
+    from research.harness.encoders import encode_e7v, encode_e7vb
+
+    page = make_shape_page(0, seed=3).page
+    a, b = encode_e7v(page), encode_e7vb(page)
+    assert a.text == b.text and b.image_png is None
+    assert a.legend != b.legend
+    assert b.version == "E7vB/0.1.0"
+
+
 def test_e7v_grid_resolution_arms():
     from research.harness.encoders import encode_e7v128, encode_e7v512
 

@@ -51,13 +51,15 @@ class CorpusPage:
 
     document: Document
     page: Page
-    kind: str  # "text" | "shapes"
+    kind: str  # "text" | "shapes" | "math"
     seed: int
     jitter: float
     # text pages: [{"word", "order", "stroke_ids", "bbox"}]
     words: tuple[dict[str, Any], ...] = ()
     # shape pages: [{"kind", "quadrant", "center", "stroke_ids", "bbox"}]
     shapes: tuple[dict[str, Any], ...] = ()
+    # math pages (S2): the LaTeX ground-truth transcription
+    expression: str = ""
 
 
 class _StrokeFactory:
