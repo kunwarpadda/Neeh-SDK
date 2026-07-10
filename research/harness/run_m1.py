@@ -25,6 +25,9 @@ def main() -> None:
     parser.add_argument("--backend", choices=["claude", "codex", "mock"], default="mock")
     parser.add_argument("--model", default=None,
                         help="model id (claude backend) or codex --model value")
+    parser.add_argument("--model-label", default=None,
+                        help="ledger label for the condition when the CLI model "
+                             "string can't express it (codex effort variants)")
     parser.add_argument("--arms", nargs="*", default=M1_ARMS,
                         help=f"encoding arms; M1 default. All: {ALL_ARMS}")
     parser.add_argument("--families", nargs="*", default=["T1", "T3", "T4"],
@@ -68,7 +71,7 @@ def main() -> None:
     if args.backend == "claude":
         backend = ClaudeCliBackend(model=args.model or "claude-haiku-4-5-20251001")
     elif args.backend == "codex":
-        backend = CodexCliBackend(model=args.model or "default")
+        backend = CodexCliBackend(model=args.model or "default", label=args.model_label)
     else:
         backend = MockBackend()
 

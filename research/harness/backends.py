@@ -134,8 +134,15 @@ class CodexCliBackend:
 
     name = "codex-cli"
 
-    def __init__(self, model: str = "default", timeout_s: float = 240.0) -> None:
-        self.model = model
+    def __init__(self, model: str = "default", timeout_s: float = 240.0,
+                 label: Optional[str] = None) -> None:
+        # `model` is what goes to `codex exec --model` ("default" = omit the
+        # flag and use the CODEX_HOME config). `label` names the condition in
+        # the ledger when the CLI model string can't (e.g. ChatGPT-account
+        # codex rejects every explicit --model value, so effort variants set
+        # in config are distinguished by label alone).
+        self.model = label or model
+        self._cli_model = model
         self.timeout_s = timeout_s
         self._bin = _which("codex", "NEEH_CODEX_CLI_BIN")
 
@@ -159,8 +166,8 @@ class CodexCliBackend:
                 image_path = tmp / "page.png"
                 image_path.write_bytes(image_png)
                 command.extend(["--image", str(image_path)])
-            if self.model != "default":
-                command.extend(["--model", self.model])
+            if self._cli_model != "default":
+                command.extend(["--model", self._cli_model])
             command.append("-")
             try:
                 completed = subprocess.run(
