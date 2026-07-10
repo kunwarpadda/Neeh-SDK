@@ -161,3 +161,13 @@ changelog entry with rationale (§10).
 
 Changelog:
 - v0.1 (2026-07-09) — initial protocol.
+- v0.2 (2026-07-09) — M1 inference runs through local `claude` / `codex` CLI logins instead of
+  raw APIs (owner decision). Consequences: (a) temperature is not controllable — repeats measure
+  variance as before; (b) reported token usage includes CLI scaffolding, so per-arm context cost
+  is computed as the delta against a CTRL (empty-context) arm run per model with an otherwise
+  byte-identical prompt; (c) the free token-counting endpoint is unavailable — exact offline
+  measurements (context chars, PNG bytes, visual tokens by the 28×28-patch rule) are recorded in
+  `results/context-sizes.md` beside the ledger's model-reported usage.
+- v0.3 (2026-07-09) — M2 harness components (arms E3/E5/E6; families T2/T5/T6 with executed
+  action scoring) built ahead of the live M1 sweep so one sweep session can cover both
+  milestones. Milestone exit criteria in §9 are unchanged; E7 still waits for first results.
