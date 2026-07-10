@@ -17,9 +17,30 @@ class Layer:
     locked: bool = False
     strokes: list[Stroke] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.name, str) or not self.name.strip():
+            raise ValueError("layer name must be a non-empty string")
+        if not isinstance(self.id, str) or not self.id.strip():
+            raise ValueError("layer id must be a non-empty string")
+        if not isinstance(self.author, Author):
+            self.author = Author(self.author)
+        if not isinstance(self.visible, bool) or not isinstance(self.locked, bool):
+            raise ValueError("layer visible and locked flags must be booleans")
+        if not isinstance(self.strokes, list) or any(
+            not isinstance(stroke, Stroke) for stroke in self.strokes
+        ):
+            raise ValueError("layer strokes must be a list of Stroke instances")
+        ids = [stroke.id for stroke in self.strokes]
+        if len(ids) != len(set(ids)):
+            raise ValueError("layer contains duplicate stroke ids")
+
     def add(self, stroke: Stroke) -> Stroke:
         if self.locked:
             raise ValueError(f"layer '{self.name}' is locked")
+        if not isinstance(stroke, Stroke):
+            raise ValueError("layer can only contain Stroke instances")
+        if self.get(stroke.id) is not None:
+            raise ValueError(f"duplicate stroke id {stroke.id!r} in layer")
         self.strokes.append(stroke)
         return stroke
 

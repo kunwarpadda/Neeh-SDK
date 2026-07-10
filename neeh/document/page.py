@@ -1,6 +1,8 @@
 """Pages: a fixed-size ink surface holding an ordered stack of layers."""
 from __future__ import annotations
 
+import math
+import re
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -11,6 +13,7 @@ from neeh.ink import Author, BoundingBox, Stroke
 # Abstract page units, root-2 aspect (A-series paper). Renderers map to pixels.
 DEFAULT_PAGE_WIDTH = 1000.0
 DEFAULT_PAGE_HEIGHT = 1414.0
+_HEX_COLOR = re.compile(r"#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?\Z")
 
 
 @dataclass
@@ -20,6 +23,30 @@ class Page:
     background: str = "#ffffff"
     id: str = field(default_factory=lambda: new_id("pg"))
     layers: list[Layer] = field(default_factory=lambda: [Layer(name="ink")])
+
+    def __post_init__(self) -> None:
+        for field_name, value in (("width", self.width), ("height", self.height)):
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(value)
+                or value <= 0
+            ):
+                raise ValueError(f"page {field_name} must be a finite positive number")
+        if not isinstance(self.background, str) or _HEX_COLOR.fullmatch(self.background) is None:
+            raise ValueError("page background must be #rgb or #rrggbb")
+        if not isinstance(self.id, str) or not self.id.strip():
+            raise ValueError("page id must be a non-empty string")
+        if not isinstance(self.layers, list) or any(
+            not isinstance(layer, Layer) for layer in self.layers
+        ):
+            raise ValueError("page layers must be a list of Layer instances")
+        layer_ids = [layer.id for layer in self.layers]
+        if len(layer_ids) != len(set(layer_ids)):
+            raise ValueError("page contains duplicate layer ids")
+        stroke_ids = [stroke.id for layer in self.layers for stroke in layer.strokes]
+        if len(stroke_ids) != len(set(stroke_ids)):
+            raise ValueError("page contains duplicate stroke ids")
 
     @property
     def rect(self) -> BoundingBox:
@@ -74,6 +101,12 @@ class Page:
     def strokes_since(self, epoch_ms: int) -> list[Stroke]:
         """Temporal query — 'what was written in the last 30 seconds'. Time is
         a first-class axis; no screenshot pipeline can answer this."""
+        if (
+            isinstance(epoch_ms, bool)
+            or not isinstance(epoch_ms, int)
+            or not 0 <= epoch_ms <= 2**63 - 1
+        ):
+            raise ValueError("epoch_ms must be a non-negative signed 64-bit integer")
         return [s for s in self.all_strokes() if s.created_at_ms >= epoch_ms]
 
     @property

@@ -9,7 +9,7 @@ import pytest
 
 pytest.importorskip("uim")
 
-from neeh.adapters.uim import document_from_uim, document_to_uim, load_uim, save_uim
+from neeh.adapters.uim import NEEH_PROFILE, document_from_uim, document_to_uim, load_uim, save_uim
 from neeh.document import Document, Layer, Page
 from neeh.ink import Author, Point, Stroke
 from neeh.ink.style import Brush, StrokeStyle
@@ -156,6 +156,34 @@ def test_rejects_non_neeh_uim():
     blob = UIMEncoder310().encode(model)
     with pytest.raises(ValueError, match="neeh"):
         document_from_uim(blob)
+
+
+def test_profile_identifier_is_canonical_and_unknown_versions_are_rejected():
+    from uim.codec.parser.uim import UIMParser
+    from uim.codec.writer.encoder.encoder_3_1_0 import UIMEncoder310
+
+    blob = document_to_uim(make_document())
+    model = UIMParser().parse(blob)
+    assert dict(model.properties)["neeh.profile"] == NEEH_PROFILE == "neeh-uim/v1"
+
+    model.properties = [
+        (key, "neeh-uim/v999" if key == "neeh.profile" else value)
+        for key, value in model.properties
+    ]
+    with pytest.raises(ValueError, match="unsupported Neeh UIM profile"):
+        document_from_uim(UIMEncoder310().encode(model))
+
+
+def test_initial_numeric_profile_remains_readable():
+    from uim.codec.parser.uim import UIMParser
+    from uim.codec.writer.encoder.encoder_3_1_0 import UIMEncoder310
+
+    model = UIMParser().parse(document_to_uim(make_document()))
+    model.properties = [
+        (key, "1" if key == "neeh.profile" else value) for key, value in model.properties
+    ]
+
+    assert document_from_uim(UIMEncoder310().encode(model)).id == make_document().id
 
 
 def test_save_and_load_file(tmp_path):

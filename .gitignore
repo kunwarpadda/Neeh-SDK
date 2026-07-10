@@ -4,6 +4,8 @@ __pycache__/
 .venv/
 dist/
 build/
+/build-*/
+/cmake-build-*/
 *.egg-info/
 .DS_Store
 examples/*.svg

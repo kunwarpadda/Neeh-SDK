@@ -65,8 +65,10 @@ from neeh.document import Document, Layer, Page
 from neeh.ink import Author, Point
 from neeh.ink.stroke import Stroke
 from neeh.ink.style import Brush, StrokeStyle
+from neeh.protocol import UIM_PROFILE_VERSION
 
-NEEH_PROFILE = "1"
+NEEH_PROFILE = UIM_PROFILE_VERSION
+_LEGACY_NEEH_PROFILES = {"1"}
 _NS = uuid.NAMESPACE_URL
 
 # Triple predicates of the Neeh profile.
@@ -284,8 +286,13 @@ def document_from_uim(data: bytes) -> Document:
     model = UIMParser().parse(data)
 
     props = dict(model.properties)
-    if "neeh.profile" not in props:
+    profile = props.get("neeh.profile")
+    if profile is None:
         raise ValueError("not a Neeh-profile UIM file (missing neeh.profile property)")
+    if profile != NEEH_PROFILE and profile not in _LEGACY_NEEH_PROFILES:
+        raise ValueError(
+            f"unsupported Neeh UIM profile {profile!r}; supported profile is {NEEH_PROFILE!r}"
+        )
 
     facts: dict[str, dict[str, str]] = {}
     for triple in model.knowledge_graph.statements:

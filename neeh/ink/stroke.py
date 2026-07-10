@@ -45,8 +45,26 @@ class Stroke:
             object.__setattr__(self, "points", tuple(self.points))
         if not self.points:
             raise ValueError("a stroke needs at least one point")
+        if any(not isinstance(point, Point) for point in self.points):
+            raise ValueError("stroke points must be Point instances")
+        if not isinstance(self.id, str) or not self.id.strip():
+            raise ValueError("stroke id must be a non-empty string")
+        if (
+            isinstance(self.created_at_ms, bool)
+            or not isinstance(self.created_at_ms, int)
+            or not 0 <= self.created_at_ms <= 2**63 - 1
+        ):
+            raise ValueError(
+                "stroke created_at_ms must be a non-negative signed 64-bit integer, "
+                f"got {self.created_at_ms!r}"
+            )
         if not isinstance(self.author, Author):
             object.__setattr__(self, "author", Author(self.author))
+        previous_t_ms = self.points[0].t_ms
+        for point in self.points[1:]:
+            if point.t_ms < previous_t_ms:
+                raise ValueError("stroke point t_ms values must be non-decreasing")
+            previous_t_ms = point.t_ms
 
     @cached_property
     def bbox(self) -> BoundingBox:

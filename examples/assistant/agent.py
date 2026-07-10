@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from neeh.canvas import Canvas
+from neeh.context import build_ink_context
 from neeh.rendering.png import render_page_png
 from neeh.tools import call_tool, tool_schemas
 
@@ -131,79 +132,12 @@ def _tool_result_content(result: dict[str, Any]) -> Any:
     return json.dumps(result)
 
 
-def _round_float(value: Any) -> Any:
-    return round(value, 2) if isinstance(value, float) else value
-
-
-def _round_list(values: list[Any]) -> list[Any]:
-    return [_round_float(value) for value in values]
-
-
-def _sample_points(points: list[list[Any]], limit: int = MAX_CONTEXT_POINTS) -> list[list[Any]]:
-    if len(points) <= limit:
-        return [_round_list(point) for point in points]
-    if limit <= 2:
-        indexes = [0, len(points) - 1]
-    else:
-        indexes = sorted({round(i * (len(points) - 1) / (limit - 1)) for i in range(limit)})
-    return [_round_list(points[index]) for index in indexes]
-
-
-def _compact_stroke(stroke: dict[str, Any]) -> dict[str, Any]:
-    style = stroke.get("style", {})
-    compact = {
-        "id": stroke["id"],
-        "layer": stroke["layer_name"],
-        "author": stroke["author"],
-        "created_at_ms": stroke["created_at_ms"],
-        "duration_ms": stroke["duration_ms"],
-        "bbox": _round_list(stroke["bbox"]),
-        "point_count": stroke["point_count"],
-        "style": {
-            "color": style.get("color"),
-            "width": _round_float(style.get("width")),
-            "opacity": _round_float(style.get("opacity")),
-            "brush": style.get("brush"),
-        },
-    }
-    if points := stroke.get("points"):
-        compact["points_sample"] = _sample_points(points)
-    return compact
-
-
 def _ink_context(canvas: Canvas) -> dict[str, Any]:
-    vector = call_tool(canvas, "get_strokes", {"visible_only": True, "include_points": True})
-    strokes = vector["strokes"]
-    omitted = max(len(strokes) - MAX_CONTEXT_STROKES, 0)
-    if omitted:
-        strokes = strokes[-MAX_CONTEXT_STROKES:]
-    vector = {
-        "page_id": vector["page_id"],
-        "width": vector["width"],
-        "height": vector["height"],
-        "region": vector["region"],
-        "stroke_count": vector["stroke_count"],
-        "included_stroke_count": len(strokes),
-        "omitted_older_stroke_count": omitted,
-        "points_policy": f"sampled up to {MAX_CONTEXT_POINTS} points per stroke",
-        "strokes": [_compact_stroke(stroke) for stroke in strokes],
-    }
-    return {
-        "schema": "ink-context/v0",
-        "page": {
-            "id": canvas.page.id,
-            "width": canvas.page.width,
-            "height": canvas.page.height,
-            "background": canvas.page.background,
-        },
-        "raster": {
-            "format": "png",
-            "transport": "attached_image",
-            "coordinate_space": "page",
-        },
-        "vector": vector,
-        "semantics": [],
-    }
+    return build_ink_context(
+        canvas,
+        max_strokes=MAX_CONTEXT_STROKES,
+        max_points_per_stroke=MAX_CONTEXT_POINTS,
+    )
 
 
 def _ink_context_text(canvas: Canvas) -> str:

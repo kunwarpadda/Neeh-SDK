@@ -6,10 +6,12 @@ surface mechanically — the registry IS the tool manifest.
 """
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 from neeh.canvas import Canvas
+from neeh.protocol import TOOL_SURFACE_VERSION
 
 ToolHandler = Callable[..., dict[str, Any]]
 
@@ -28,7 +30,14 @@ def tool(name: str, description: str, parameters: dict[str, Any]) -> Callable[[T
     def decorator(fn: ToolHandler) -> ToolHandler:
         if name in _REGISTRY:
             raise ValueError(f"tool {name!r} is already registered")
-        _REGISTRY[name] = ToolSpec(name=name, description=description, parameters=parameters, handler=fn)
+        normalized_parameters = deepcopy(parameters)
+        normalized_parameters.setdefault("additionalProperties", False)
+        _REGISTRY[name] = ToolSpec(
+            name=name,
+            description=description,
+            parameters=normalized_parameters,
+            handler=fn,
+        )
         return fn
 
     return decorator
@@ -48,10 +57,24 @@ def all_tools() -> list[ToolSpec]:
 def tool_schemas() -> list[dict[str, Any]]:
     """Tool manifest in Claude-API / MCP shape."""
     return [
-        {"name": spec.name, "description": spec.description, "input_schema": spec.parameters}
+        {
+            "name": spec.name,
+            "description": spec.description,
+            "input_schema": deepcopy(spec.parameters),
+        }
         for spec in _REGISTRY.values()
     ]
 
 
+def tool_manifest() -> dict[str, Any]:
+    """Return the versioned, JSON-serializable tool-surface manifest."""
+
+    return {"protocol": TOOL_SURFACE_VERSION, "tools": tool_schemas()}
+
+
 def call_tool(canvas: Canvas, name: str, arguments: Optional[dict[str, Any]] = None) -> dict[str, Any]:
-    return get_tool(name).handler(canvas, **(arguments or {}))
+    if arguments is None:
+        arguments = {}
+    elif not isinstance(arguments, dict):
+        raise ValueError("tool arguments must be an object")
+    return get_tool(name).handler(canvas, **arguments)

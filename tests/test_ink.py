@@ -18,6 +18,31 @@ class TestPoint:
         assert (q.x, q.y) == (11, 22)
         assert (q.t_ms, q.pressure) == (7, 0.5)
 
+    @pytest.mark.parametrize(
+        "values",
+        [
+            [float("nan"), 0],
+            [0, float("inf")],
+            [0, 0, -1],
+            [0, 0, 2**63],
+            [0, 0, 0.5],
+            [0, 0, 0, 1.1],
+            [0, 0, 0, 1, 91],
+            [0, 0, 0, 1, 0, -91],
+        ],
+    )
+    def test_rejects_invalid_channels(self, values):
+        with pytest.raises(ValueError):
+            Point.from_list(values)
+
+    def test_rejects_invalid_tuple_lengths(self):
+        with pytest.raises(ValueError):
+            Point.from_list([1])
+        with pytest.raises(ValueError):
+            Point.from_list([1, 2, 3, 4, 5, 6, 7])
+        with pytest.raises(ValueError):
+            Point.from_list("123456")
+
 
 class TestBoundingBox:
     def test_inverted_raises(self):
@@ -46,6 +71,14 @@ class TestBoundingBox:
     def test_union_all_empty_is_none(self):
         assert BoundingBox.union_all([]) is None
 
+    def test_rejects_non_finite_coordinates_and_wrong_length(self):
+        with pytest.raises(ValueError):
+            BoundingBox(0, 0, float("inf"), 1)
+        with pytest.raises(ValueError):
+            BoundingBox.from_list([0, 1, 2])
+        with pytest.raises(ValueError):
+            BoundingBox.from_list("0123")
+
 
 class TestStrokeStyle:
     def test_validation(self):
@@ -60,6 +93,24 @@ class TestStrokeStyle:
     def test_highlighter_preset(self):
         style = StrokeStyle.highlighter()
         assert style.brush is Brush.HIGHLIGHTER and style.opacity < 1.0
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"color": "red"},
+            {"color": "#12"},
+            {"width": float("inf")},
+            {"width": True},
+            {"opacity": float("nan")},
+        ],
+    )
+    def test_rejects_invalid_wire_values(self, kwargs):
+        with pytest.raises(ValueError):
+            StrokeStyle(**kwargs)
+
+    def test_accepts_short_and_long_hex_colors(self):
+        assert StrokeStyle(color="#abc").color == "#abc"
+        assert StrokeStyle(color="#aabbcc").color == "#aabbcc"
 
 
 class TestStroke:
@@ -92,3 +143,13 @@ class TestStroke:
         restored = Stroke.from_dict(s.to_dict())
         assert restored == s
         assert restored.author is Author.AGENT
+
+    def test_rejects_invalid_identity_time_and_point_order(self):
+        with pytest.raises(ValueError):
+            Stroke(points=(Point(0, 0),), id="")
+        with pytest.raises(ValueError):
+            Stroke(points=(Point(0, 0),), created_at_ms=-1)
+        with pytest.raises(ValueError):
+            Stroke(points=(Point(0, 0),), created_at_ms=2**63)
+        with pytest.raises(ValueError):
+            Stroke(points=(Point(0, 0, 5), Point(1, 1, 4)))

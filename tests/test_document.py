@@ -32,6 +32,18 @@ class TestLayer:
         found = layer.strokes_in(BoundingBox(0, 0, 50, 50))
         assert found == [near]
 
+    def test_validates_identity_flags_and_duplicate_strokes(self):
+        with pytest.raises(ValueError, match="name"):
+            Layer(name="")
+        with pytest.raises(ValueError, match="id"):
+            Layer(id=" ")
+        with pytest.raises(ValueError, match="booleans"):
+            Layer(visible=1)
+        stroke = make_stroke()
+        layer = Layer(strokes=[stroke])
+        with pytest.raises(ValueError, match="duplicate"):
+            layer.add(stroke)
+
 
 class TestPage:
     def test_default_ink_layer(self):
@@ -61,6 +73,32 @@ class TestPage:
         cutoff = int(time.time() * 1000) - 60_000
         assert page.strokes_since(cutoff) == [recent]
 
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"width": 0},
+            {"height": float("nan")},
+            {"background": "white"},
+            {"id": ""},
+        ],
+    )
+    def test_validates_page_wire_values(self, kwargs):
+        with pytest.raises(ValueError):
+            Page(**kwargs)
+
+    def test_rejects_duplicate_layer_and_stroke_ids(self):
+        with pytest.raises(ValueError, match="layer ids"):
+            Page(layers=[Layer(id="ly_same"), Layer(id="ly_same")])
+        stroke = make_stroke()
+        with pytest.raises(ValueError, match="stroke ids"):
+            Page(layers=[Layer(strokes=[stroke]), Layer(strokes=[stroke])])
+
+    def test_strokes_since_requires_non_negative_int64(self):
+        with pytest.raises(ValueError):
+            Page().strokes_since(-1)
+        with pytest.raises(ValueError):
+            Page().strokes_since(2**63)
+
 
 class TestDocument:
     def test_pages(self):
@@ -87,3 +125,13 @@ class TestDocument:
     def test_rejects_foreign_format(self):
         with pytest.raises(ValueError):
             Document.from_dict({"format": "uim/1.0", "id": "doc_x"})
+
+    def test_validates_metadata_and_page_ids(self):
+        with pytest.raises(ValueError, match="title"):
+            Document(title=None)
+        with pytest.raises(ValueError, match="id"):
+            Document(id="")
+        with pytest.raises(ValueError, match="signed 64-bit"):
+            Document(created_at_ms=2**63)
+        with pytest.raises(ValueError, match="page ids"):
+            Document(pages=[Page(id="pg_same"), Page(id="pg_same")])

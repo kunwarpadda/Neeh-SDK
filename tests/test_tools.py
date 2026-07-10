@@ -43,6 +43,11 @@ def test_view_region_echoes_region():
     assert 'viewBox="0 0 100 100"' in result["data"]
 
 
+def test_render_format_is_validated_for_direct_python_calls():
+    with pytest.raises(ValueError, match="format"):
+        call_tool(Canvas(), "view_page", {"format": "jpeg"})
+
+
 def test_get_strokes_returns_vector_context_and_filters():
     canvas = Canvas()
     user = canvas.add_stroke([(0, 0), (10, 10)])
@@ -62,6 +67,13 @@ def test_get_strokes_returns_vector_context_and_filters():
     region = call_tool(canvas, "get_strokes", {"region": [-1, -1, 20, 20]})
     assert [s["id"] for s in region["strokes"]] == [user.id]
 
+    assert call_tool(canvas, "get_strokes", {"stroke_ids": []})["stroke_count"] == 0
+
+    with pytest.raises(ValueError, match="author"):
+        call_tool(canvas, "get_strokes", {"author": "robot"})
+    with pytest.raises(ValueError, match="non-empty strings"):
+        call_tool(canvas, "get_strokes", {"stroke_ids": [""]})
+
 
 def test_add_stroke_is_agent_authored():
     canvas = Canvas()
@@ -70,6 +82,30 @@ def test_add_stroke_is_agent_authored():
     assert stroke.author is Author.AGENT
     assert layer.author is Author.AGENT
     assert stroke.style.color == "#ff0000"
+
+
+def test_add_stroke_does_not_turn_invalid_falsey_values_into_defaults():
+    canvas = Canvas()
+    with pytest.raises(ValueError, match="width"):
+        call_tool(canvas, "add_stroke", {"points": [[0, 0]], "width": 0})
+    with pytest.raises(ValueError, match="color"):
+        call_tool(canvas, "add_stroke", {"points": [[0, 0]], "color": ""})
+    assert canvas.page.all_strokes() == []
+
+
+@pytest.mark.parametrize(
+    "points",
+    [[], [[0, 0, 1.5]], [[float("inf"), 0]]],
+)
+def test_failed_agent_stroke_validation_does_not_create_a_layer(points):
+    canvas = Canvas()
+    before_layers = [layer.id for layer in canvas.page.layers]
+
+    with pytest.raises(ValueError):
+        call_tool(canvas, "add_stroke", {"points": points})
+
+    assert [layer.id for layer in canvas.page.layers] == before_layers
+    assert canvas.history.can_undo is False
 
 
 def test_erase_select_move_flow():
@@ -83,6 +119,48 @@ def test_erase_select_move_flow():
 
     assert call_tool(canvas, "move", {"dx": 5, "dy": 5})["moved"] == 1
     assert call_tool(canvas, "erase", {"stroke_ids": [b]})["erased"] == [b]
+
+
+def test_selector_cross_fields_and_move_numbers_are_validated_atomically():
+    canvas = Canvas()
+    stroke_id = call_tool(canvas, "add_stroke", {"points": [[0, 0], [10, 10]]})["stroke_id"]
+
+    with pytest.raises(ValueError, match="exactly one"):
+        call_tool(
+            canvas,
+            "erase",
+            {"stroke_ids": [stroke_id], "region": [-1, -1, 20, 20]},
+        )
+    with pytest.raises(ValueError, match="at most one"):
+        call_tool(
+            canvas,
+            "select",
+            {"stroke_ids": [stroke_id], "region": [-1, -1, 20, 20]},
+        )
+    with pytest.raises(ValueError, match="finite"):
+        call_tool(canvas, "move", {"stroke_ids": [stroke_id], "dx": float("inf"), "dy": 0})
+
+    assert canvas.page.find(stroke_id) is not None
+
+
+def test_duplicate_id_selectors_are_idempotent_and_undo_safe():
+    canvas = Canvas()
+    stroke_id = call_tool(canvas, "add_stroke", {"points": [[0, 0], [10, 10]]})["stroke_id"]
+
+    assert call_tool(
+        canvas,
+        "move",
+        {"stroke_ids": [stroke_id, stroke_id], "dx": 5, "dy": 0},
+    ) == {"moved": 1}
+    assert len(canvas.page.all_strokes()) == 1
+    assert call_tool(canvas, "undo") == {"undone": "move"}
+    assert len(canvas.page.all_strokes()) == 1
+
+    assert call_tool(canvas, "erase", {"stroke_ids": [stroke_id, stroke_id]}) == {
+        "erased": [stroke_id]
+    }
+    assert call_tool(canvas, "undo") == {"undone": "erase"}
+    assert [stroke.id for stroke in canvas.page.all_strokes()] == [stroke_id]
 
 
 def test_highlight_creates_translucent_agent_stroke():
@@ -102,6 +180,18 @@ def test_undo_redo_via_tools():
     assert call_tool(canvas, "redo") == {"redone": "add_stroke"}
     assert call_tool(canvas, "undo", {})["undone"] == "add_stroke"
     assert call_tool(canvas, "undo")["undone"] is None
+
+
+@pytest.mark.parametrize("arguments", [[], False, 0, ""])
+def test_non_object_arguments_are_rejected_without_executing(arguments):
+    canvas = Canvas()
+    stroke = canvas.add_stroke([(0, 0)])
+
+    with pytest.raises(ValueError, match="arguments must be an object"):
+        call_tool(canvas, "undo", arguments)
+
+    assert canvas.page.find(stroke.id) is not None
+    assert canvas.history.can_undo is True
 
 
 def test_write_text_prints_ink_and_user_font_is_reserved():

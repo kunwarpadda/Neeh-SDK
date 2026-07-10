@@ -29,6 +29,27 @@ class Document:
     created_at_ms: int = field(default_factory=_now_ms)
     pages: list[Page] = field(default_factory=lambda: [Page()])
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.title, str):
+            raise ValueError("document title must be a string")
+        if not isinstance(self.id, str) or not self.id.strip():
+            raise ValueError("document id must be a non-empty string")
+        if (
+            isinstance(self.created_at_ms, bool)
+            or not isinstance(self.created_at_ms, int)
+            or not 0 <= self.created_at_ms <= 2**63 - 1
+        ):
+            raise ValueError(
+                "document created_at_ms must be a non-negative signed 64-bit integer"
+            )
+        if not isinstance(self.pages, list) or any(
+            not isinstance(page, Page) for page in self.pages
+        ):
+            raise ValueError("document pages must be a list of Page instances")
+        page_ids = [page.id for page in self.pages]
+        if len(page_ids) != len(set(page_ids)):
+            raise ValueError("document contains duplicate page ids")
+
     def new_page(self, **kwargs: Any) -> Page:
         page = Page(**kwargs)
         self.pages.append(page)

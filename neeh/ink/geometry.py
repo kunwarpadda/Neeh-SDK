@@ -1,8 +1,14 @@
 """Geometric primitives: the coordinate-level substrate of ink."""
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Iterable, Optional, Sequence
+
+
+def _finite(value: object, field: str) -> None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise ValueError(f"{field} must be a finite number, got {value!r}")
 
 
 @dataclass(frozen=True)
@@ -21,6 +27,25 @@ class Point:
     tilt_x: float = 0.0
     tilt_y: float = 0.0
 
+    def __post_init__(self) -> None:
+        _finite(self.x, "point x")
+        _finite(self.y, "point y")
+        if (
+            isinstance(self.t_ms, bool)
+            or not isinstance(self.t_ms, int)
+            or not 0 <= self.t_ms <= 2**63 - 1
+        ):
+            raise ValueError(
+                f"point t_ms must be a non-negative signed 64-bit integer, got {self.t_ms!r}"
+            )
+        _finite(self.pressure, "point pressure")
+        if not 0.0 <= self.pressure <= 1.0:
+            raise ValueError(f"point pressure must be in [0, 1], got {self.pressure!r}")
+        for field, value in (("tilt_x", self.tilt_x), ("tilt_y", self.tilt_y)):
+            _finite(value, f"point {field}")
+            if not -90.0 <= value <= 90.0:
+                raise ValueError(f"point {field} must be in [-90, 90], got {value!r}")
+
     def translated(self, dx: float, dy: float) -> "Point":
         return Point(self.x + dx, self.y + dy, self.t_ms, self.pressure, self.tilt_x, self.tilt_y)
 
@@ -29,11 +54,15 @@ class Point:
 
     @classmethod
     def from_list(cls, data: Sequence[float]) -> "Point":
+        if isinstance(data, (str, bytes, bytearray)):
+            raise ValueError("a point must be a numeric sequence")
+        if not 2 <= len(data) <= 6:
+            raise ValueError(f"a point needs 2 to 6 values, got {len(data)}")
         x, y, *rest = data
         return cls(
             x=float(x),
             y=float(y),
-            t_ms=int(rest[0]) if len(rest) > 0 else 0,
+            t_ms=rest[0] if len(rest) > 0 else 0,
             pressure=float(rest[1]) if len(rest) > 1 else 1.0,
             tilt_x=float(rest[2]) if len(rest) > 2 else 0.0,
             tilt_y=float(rest[3]) if len(rest) > 3 else 0.0,
@@ -50,6 +79,13 @@ class BoundingBox:
     max_y: float
 
     def __post_init__(self) -> None:
+        for field, value in (
+            ("min_x", self.min_x),
+            ("min_y", self.min_y),
+            ("max_x", self.max_x),
+            ("max_y", self.max_y),
+        ):
+            _finite(value, f"bounding box {field}")
         if self.max_x < self.min_x or self.max_y < self.min_y:
             raise ValueError(f"inverted bounding box: {self}")
 
@@ -121,4 +157,8 @@ class BoundingBox:
 
     @classmethod
     def from_list(cls, data: Sequence[float]) -> "BoundingBox":
+        if isinstance(data, (str, bytes, bytearray)):
+            raise ValueError("a bounding box must be a numeric sequence")
+        if len(data) != 4:
+            raise ValueError(f"a bounding box needs exactly 4 values, got {len(data)}")
         return cls(*(float(v) for v in data))

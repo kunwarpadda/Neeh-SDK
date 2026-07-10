@@ -1,9 +1,13 @@
 """Visual properties of a stroke."""
 from __future__ import annotations
 
+import math
+import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
+
+_HEX_COLOR = re.compile(r"#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?\Z")
 
 
 class Brush(str, Enum):
@@ -25,9 +29,21 @@ class StrokeStyle:
     def __post_init__(self) -> None:
         if not isinstance(self.brush, Brush):
             object.__setattr__(self, "brush", Brush(self.brush))
-        if self.width <= 0:
+        if not isinstance(self.color, str) or _HEX_COLOR.fullmatch(self.color) is None:
+            raise ValueError(f"stroke color must be #rgb or #rrggbb, got {self.color!r}")
+        if (
+            isinstance(self.width, bool)
+            or not isinstance(self.width, (int, float))
+            or not math.isfinite(self.width)
+            or self.width <= 0
+        ):
             raise ValueError(f"stroke width must be positive, got {self.width}")
-        if not 0.0 < self.opacity <= 1.0:
+        if (
+            isinstance(self.opacity, bool)
+            or not isinstance(self.opacity, (int, float))
+            or not math.isfinite(self.opacity)
+            or not 0.0 < self.opacity <= 1.0
+        ):
             raise ValueError(f"opacity must be in (0, 1], got {self.opacity}")
 
     @classmethod

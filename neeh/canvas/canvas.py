@@ -48,10 +48,16 @@ class Canvas:
         author: Author = Author.USER,
         layer: Optional[Layer] = None,
     ) -> Stroke:
+        # Build and validate the immutable value before resolving a default
+        # layer, because agent-layer resolution may create one.
+        stroke = Stroke(
+            points=_coerce_points(points),
+            style=style or StrokeStyle(),
+            author=author,
+        )
         target = layer or self._default_layer(author)
         if target.locked:
             raise ValueError(f"layer '{target.name}' is locked")
-        stroke = Stroke(points=_coerce_points(points), style=style or StrokeStyle(), author=author)
         edit = StrokeEdit("add_stroke", self.page.id, added=[(target.id, stroke)])
         self.history.push(edit, self.document)
         return stroke
@@ -65,15 +71,17 @@ class Canvas:
     ) -> list[Stroke]:
         """Add several strokes as ONE edit — undo removes them all together
         (a written word or shape is one gesture, not one command per line)."""
-        target = layer or self._default_layer(author)
-        if target.locked:
-            raise ValueError(f"layer '{target.name}' is locked")
         strokes = [
             Stroke(points=_coerce_points(pts), style=style or StrokeStyle(), author=author)
             for pts in strokes_points
         ]
         if not strokes:
             return []
+        # As above, default-layer lookup happens only after every stroke has
+        # validated, so a failed atomic batch cannot leave an empty layer.
+        target = layer or self._default_layer(author)
+        if target.locked:
+            raise ValueError(f"layer '{target.name}' is locked")
         edit = StrokeEdit("add_strokes", self.page.id, added=[(target.id, s) for s in strokes])
         self.history.push(edit, self.document)
         return strokes
@@ -87,7 +95,7 @@ class Canvas:
         point-accurate hit-testing arrives with the geometry layer)."""
         targets: list[tuple[Layer, Stroke]] = []
         if stroke_ids is not None:
-            for stroke_id in stroke_ids:
+            for stroke_id in dict.fromkeys(stroke_ids):
                 found = self.page.find(stroke_id)
                 if found is not None and not found[0].locked:
                     targets.append(found)
@@ -114,7 +122,11 @@ class Canvas:
     def move(self, dx: float, dy: float, stroke_ids: Optional[Iterable[str]] = None) -> int:
         """Translate the given strokes (default: current selection). Ids are
         preserved, so references to moved strokes stay valid."""
-        ids = list(stroke_ids) if stroke_ids is not None else list(self.selection.stroke_ids)
+        ids = (
+            list(dict.fromkeys(stroke_ids))
+            if stroke_ids is not None
+            else list(self.selection.stroke_ids)
+        )
         removed: list[tuple[str, Stroke]] = []
         added: list[tuple[str, Stroke]] = []
         for stroke_id in ids:

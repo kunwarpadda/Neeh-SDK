@@ -7,21 +7,23 @@ name = "neeh"
 version = "0.1.0.dev0"
 description = "A common foundation for building AI-powered notebook, whiteboard, and handwriting applications."
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.10"
 authors = [{ name = "Kunwar Padda" }]
 keywords = ["ink", "handwriting", "stylus", "agents", "mcp", "notebook", "whiteboard"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Topic :: Software Development :: Libraries",
 ]
 
 [project.optional-dependencies]
-uim = ["universal-ink-library>=2.1"]
+uim = ["universal-ink-library>=2.1,<3"]
 png = ["Pillow>=10"]
 agents = ["openai>=1.100", "anthropic>=0.60", "Pillow>=10"]
-dev = ["pytest>=7", "universal-ink-library>=2.1", "Pillow>=10", "openai>=1.100", "anthropic>=0.60"]
+dev = ["pytest>=7", "universal-ink-library>=2.1,<3", "Pillow>=10", "openai>=1.100", "anthropic>=0.60"]
 
 [tool.setuptools.packages.find]
 include = ["neeh*"]
