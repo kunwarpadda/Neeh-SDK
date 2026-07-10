@@ -19,7 +19,8 @@ python -m research.harness.run_m1 --backend codex --smoke
 python -m research.harness.run_m1 --backend claude --model claude-haiku-4-5-20251001 --smoke
 
 # full M1 sweep per model (resumable; re-running skips completed cells)
-python -m research.harness.run_m1 --backend codex
+# --workers parallelizes independent CLI calls; 4-6 is a good default
+python -m research.harness.run_m1 --backend codex --workers 4
 python -m research.harness.run_m1 --backend claude --model claude-haiku-4-5-20251001
 python -m research.harness.run_m1 --backend claude --model claude-opus-4-8
 

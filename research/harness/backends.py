@@ -149,6 +149,7 @@ class CodexCliBackend:
             command = [
                 self._bin, "exec",
                 "--ephemeral", "--skip-git-repo-check",
+                "--ignore-user-config",
                 "-C", str(tmp),
                 "--sandbox", "read-only",
                 "--json",

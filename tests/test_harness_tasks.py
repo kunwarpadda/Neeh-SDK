@@ -73,6 +73,39 @@ def test_mock_sweep_end_to_end(tmp_path):
     assert counts_again["skipped"] == 3 * len(tasks)
 
 
+def test_parallel_sweep_matches_serial(tmp_path):
+    """workers>1 must produce the same ledger coverage as a serial run."""
+    import time as _time
+
+    from research.harness.backends import ModelReply
+
+    class SlowEchoBackend:
+        name = "stub"
+        model = "stub-model"
+
+        def complete(self, prompt, image_png):
+            _time.sleep(0.01)
+            return ModelReply(text="whatever", input_tokens=1,
+                              output_tokens=1, meta={})
+
+    pages = generate_corpus(seed=3, n_text_pages=1, n_shape_pages=1)
+    tasks = generate_tasks(pages)
+    ledger = Ledger(tmp_path / "ledger.jsonl")
+    config = SweepConfig(arms=["E2", "E4"], ledger=ledger, workers=4)
+    counts = run_sweep(SlowEchoBackend(), pages, tasks, config,
+                       log=lambda *a, **k: None)
+
+    rows = list(ledger.rows())
+    assert counts["run"] == len(rows) == 3 * len(tasks)  # E2, E4, CTRL
+    assert len({row["key"] for row in rows}) == len(rows)  # no duplicate cells
+    assert all(row["failure"] is None for row in rows)
+
+    # Resume with the same config: everything is already ledgered.
+    again = run_sweep(SlowEchoBackend(), pages, tasks, config,
+                      log=lambda *a, **k: None)
+    assert again == {"run": 0, "skipped": 3 * len(tasks), "failed": 0}
+
+
 def test_summary_builds_from_ledger(tmp_path):
     pages = generate_corpus(seed=2, n_text_pages=1, n_shape_pages=1)
     tasks = generate_tasks(pages)

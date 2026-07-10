@@ -36,6 +36,8 @@ def main() -> None:
     parser.add_argument("--text-pages", type=int, default=6)
     parser.add_argument("--shape-pages", type=int, default=6)
     parser.add_argument("--repeats", type=int, default=1)
+    parser.add_argument("--workers", type=int, default=1,
+                        help="parallel CLI calls (try 4-6; mock always runs serially)")
     parser.add_argument("--smoke", action="store_true",
                         help="tiny slice: 1 text + 1 shape page, arms E0+E2 only")
     parser.add_argument("--report", action="store_true",
@@ -77,9 +79,10 @@ def main() -> None:
         )
     tasks = generate_tasks(pages, families=tuple(args.families))
     config = SweepConfig(arms=list(args.arms), repeats=args.repeats,
-                         seed=args.seed, ledger=Ledger())
+                         seed=args.seed, workers=args.workers, ledger=Ledger())
     print(f"backend={backend.name} model={backend.model} pages={len(pages)} "
-          f"tasks={len(tasks)} arms={config.arms}+CTRL repeats={config.repeats}")
+          f"tasks={len(tasks)} arms={config.arms}+CTRL repeats={config.repeats} "
+          f"workers={config.workers}")
     counts = run_sweep(backend, pages, tasks, config)
     print(f"done: {counts}")
 
