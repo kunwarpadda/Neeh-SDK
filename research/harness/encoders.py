@@ -205,8 +205,12 @@ E7_LEGEND = "The page is attached as an image, followed by " + _E7_SVG_LEGEND
 E7V_LEGEND = "The page is provided as " + _E7_SVG_LEGEND + " There is no image."
 
 
-def _compact_svg(page: Page, grid_long_edge: int = GRID_LONG_EDGE) -> str:
-    """SVG paths with E2's resampling/quantization: same grid, same step."""
+def _compact_svg(page: Page, grid_long_edge: int = GRID_LONG_EDGE,
+                 with_bboxes: bool = False) -> str:
+    """SVG paths with E2's resampling/quantization: same grid, same step.
+
+    ``with_bboxes`` adds a data-bbox attribute (grid units) per stroke — the
+    segmentation cue E1a carries that E7 lacks; see real-ink-findings.md."""
     scale = grid_long_edge / max(page.width, page.height)
     grid_w = round(page.width * scale)
     grid_h = round(page.height * scale)
@@ -221,7 +225,12 @@ def _compact_svg(page: Page, grid_long_edge: int = GRID_LONG_EDGE) -> str:
             d += "l" + " ".join(
                 f"{gx[i] - gx[i - 1]} {gy[i] - gy[i - 1]}" for i in range(1, len(gx))
             )
-        parts.append(f'<path id="{stroke.id}" d="{d}"/>')
+        bbox = ""
+        if with_bboxes:
+            box = stroke.bbox
+            bbox = (f' data-bbox="{round(box.min_x * scale)} {round(box.min_y * scale)} '
+                    f'{round(box.max_x * scale)} {round(box.max_y * scale)}"')
+        parts.append(f'<path id="{stroke.id}"{bbox} d="{d}"/>')
     parts.append("</svg>")
     return "\n".join(parts)
 
@@ -246,6 +255,25 @@ def encode_e7v(page: Page) -> EncodedContext:
 # inherited from Google's ink-tokenization recipe and never swept. The 4-grid-
 # unit resampling step is kept, so resolution coherently changes both
 # quantization and sampling density.
+
+
+# E7b: the E1b-addendum experiment (real-ink-findings.md) — does E1a's
+# reading gain over raster survive when the vector side is the compact SVG
+# plus per-stroke bboxes instead of full point JSON?
+
+E7B_LEGEND = (
+    E7_LEGEND[:-1] + "; each path also carries data-bbox=\"min_x min_y max_x "
+    "max_y\", the stroke's bounding box on the same grid."
+)
+
+
+def encode_e7b(page: Page) -> EncodedContext:
+    from neeh.rendering.png import render_page_png
+
+    return EncodedContext(
+        arm="E7b", version="E7b/0.1.0", legend=E7B_LEGEND,
+        text=_compact_svg(page, with_bboxes=True), image_png=render_page_png(page),
+    )
 
 
 # Legend-variant arm (protocol §5 risk 1: prompt sensitivity). Identical
@@ -304,6 +332,7 @@ ENCODERS: dict[str, Callable[[Page], EncodedContext]] = {
     "E2": encode_e2,
     "E4": encode_e4,
     "E7": encode_e7,
+    "E7b": encode_e7b,
     "E7v": encode_e7v,
     "E7vB": encode_e7vb,
     "E7v128": encode_e7v128,
