@@ -50,9 +50,19 @@ and everything raster does plus the things raster cannot.
   but paired with pixels it contributes segmentation structure the raster
   lacks. Reading order on S2: E1b 0.354 < E7v512 0.402 < E7v 0.421 <
   E7 0.516 ≈ E0 0.517 < **E1a 0.664**.
-- Next designed experiment (E7b): raster + compact SVG **+ per-stroke
-  bboxes** — the piece E1a has and E7 lacks — to test whether the +0.15
-  reading gain survives compression of everything else.
+- **E7b ran same-day and settled it: bboxes ARE the missing cue.** Raster +
+  compact SVG + per-stroke bboxes reads at **0.672 for +3,352 tok** —
+  matching E1a's 0.664 at +11,104 (30% of the cost) — while holding 1.000
+  on S1 classification, layout, addressing, AND temporal (it even fixes
+  E7's T6 dip). The perception tier's composition is settled.
+- **E7b also weaponized the frame bug**: its T5 dropped to 0.167 because
+  the grid-unit `data-bbox` values look like ready-made region answers and
+  get copied into tool calls unconverted. The v1 design rule that falls
+  out: **geometry may be grid-quantized, but any coordinate a consumer
+  might echo back (bboxes, regions, semantics) must be page units.**
+  `build_ink_context_v1(stroke_bboxes=True)` implements exactly that;
+  an E7b/0.2.0 harness arm with page-unit bboxes + the conversion note
+  should re-measure T5.
 - Real handwritten math is hard, full stop: the best arm reads at 0.664.
   Transcription-grade ICF claims need recognizer support (semantics layer),
   not more geometry.

@@ -107,6 +107,13 @@ def test_raster_tier_and_validation():
         build_ink_paths(page, resample_grid_step=0)
 
 
+def test_stroke_bboxes_are_page_units():
+    page = _page_with([_stroke("st_a", [(100, 100), (300, 250)])])
+    payload = build_ink_context_v1(page, stroke_bboxes=True)
+    assert payload["ink"]["bboxes"] == {"st_a": [100.0, 100.0, 300.0, 250.0]}
+    assert "bboxes" not in build_ink_context_v1(page)["ink"]  # opt-in
+
+
 def test_parse_ink_paths_round_trip():
     from neeh import parse_ink_paths
 

@@ -619,6 +619,7 @@ def build_ink_context_v1(
     grid_long_edge: int = DEFAULT_GRID_LONG_EDGE,
     resample_grid_step: float = DEFAULT_RESAMPLE_GRID_STEP,
     raster: str = "none",
+    stroke_bboxes: bool = False,
     semantics: Optional[Iterable[Union[SemanticItem, Mapping[str, Any]]]] = None,
 ) -> dict[str, Any]:
     """Build a deterministic ``ink-context/v1-draft`` snapshot.
@@ -628,6 +629,12 @@ def build_ink_context_v1(
     temporal signal. ``raster`` is ``"none"`` (structure tier, default) or
     ``"attached_image"`` (perception tier — the transport must then attach one
     page PNG beside the JSON, exactly as in v0).
+
+    ``stroke_bboxes`` adds ``ink.bboxes`` (stroke id → page-unit box) — the
+    segmentation cue that recovers full-ICF reading accuracy at compact cost
+    (research/results/real-ink-findings.md). Bboxes are page units, never grid
+    units: coordinates a consumer might echo into tool calls must not need a
+    frame conversion.
     """
     if raster not in ("none", "attached_image"):
         raise InkContextError("raster must be 'none' or 'attached_image'")
@@ -664,6 +671,19 @@ def build_ink_context_v1(
 
     region_list = None if selected_region is None else _box_list(selected_region)
     omitted = stroke_count - len(included)
+    ink: dict[str, Any] = {
+        "encoding": "svg-paths/grid",
+        "grid": [grid_w, grid_h],
+        "drawn_order": True,
+        "region": region_list,
+        "stroke_count": stroke_count,
+        "included_stroke_count": len(included),
+        "omitted_older_stroke_count": omitted,
+        "truncated": omitted > 0,
+        "svg": svg,
+    }
+    if stroke_bboxes:
+        ink["bboxes"] = {stroke.id: _box_list(stroke.bbox) for stroke in included}
     return {
         "schema": INK_CONTEXT_V1_DRAFT_VERSION,
         "page": {
@@ -678,17 +698,7 @@ def build_ink_context_v1(
             "coordinate_space": "page",
             "region": region_list,
         },
-        "ink": {
-            "encoding": "svg-paths/grid",
-            "grid": [grid_w, grid_h],
-            "drawn_order": True,
-            "region": region_list,
-            "stroke_count": stroke_count,
-            "included_stroke_count": len(included),
-            "omitted_older_stroke_count": omitted,
-            "truncated": omitted > 0,
-            "svg": svg,
-        },
+        "ink": ink,
         "semantics": _semantic_items(semantics, included_ids),
     }
 

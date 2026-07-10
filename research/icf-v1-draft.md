@@ -98,9 +98,14 @@ One request-time choice, since no single fidelity wins all task families:
 
 | tier | payload | measured cost/score profile |
 |---|---|---|
-| **structure** (default) | `ink.svg` only, `transport: none` | layout 1.000 @ +189 tok; addressing 1.000 @ +1474; transcription 0.910 @ +1186 |
-| **perception** | `ink.svg` + attached PNG | 1.000 everywhere @ ~+2-3.3k tok (E7) |
+| **structure** (default) | `ink.svg` only, `transport: none` | layout 1.000 @ +189 tok; addressing 1.000 @ +1474; transcription 0.910 @ +1186 (synthetic) |
+| **perception** | `ink.svg` + `ink.bboxes` + attached PNG | real ink: classification/layout/addressing/temporal 1.000; handwriting reading 0.672 @ +3.4k tok — matches full ICF v0 (0.664 @ +11.1k) at 30% of the cost (E7b, real-ink-findings.md) |
 | **archive** | ICF v0 payload | full points/time/pressure; 6-9× cost; for provenance and replay, not routine model context |
+
+**Frame rule** (from E7b's action failures): path geometry is grid-quantized,
+but every coordinate a consumer might echo back into a tool call — `ink.bboxes`,
+regions, semantic boxes — is in **page units**. A model must never need a frame
+conversion to act.
 
 ## Open questions (gated on pending results)
 

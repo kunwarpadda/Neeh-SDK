@@ -1,6 +1,6 @@
 # M1 summary
 
-Ledger cells: 1260 (latest row per key). Context token cost = model-reported
+Ledger cells: 1302 (latest row per key). Context token cost = model-reported
 input tokens minus the
 model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 
@@ -55,6 +55,11 @@ model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 | default | E7 | T4 | 6 | 1.000 | 15201 | +2991 | 1551 | 0% |
 | default | E7 | T5 | 24 | 0.750 | 15800 | +3590 | 2580 | 0% |
 | default | E7 | T6 | 18 | 0.944 | 15500 | +3290 | 2099 | 0% |
+| default | E7b | T1 | 12 | 0.836 | 15518 | +3308 | 2200 | 0% |
+| default | E7b | T3 | 12 | 1.000 | 15419 | +3209 | 1941 | 0% |
+| default | E7b | T4 | 6 | 1.000 | 15410 | +3200 | 1941 | 0% |
+| default | E7b | T5 | 6 | 0.167 | 15434 | +3224 | 1941 | 0% |
+| default | E7b | T6 | 6 | 1.000 | 15455 | +3245 | 1941 | 0% |
 | default | E7v | T1 | 12 | 0.461 | 13407 | +1197 | 1639 | 0% |
 | default | E7v | T2 | 12 | 0.583 | 13109 | +899 | 1136 | 0% |
 | default | E7v | T3 | 12 | 0.917 | 13399 | +1189 | 1551 | 0% |
@@ -119,6 +124,7 @@ model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 - E6: score 1.000 at +1862 tok  ← frontier
 - E0: score 0.758 at +1877 tok
 - E7: score 0.758 at +2990 tok
+- E7b: score 0.836 at +3308 tok
 - E1a: score 0.832 at +8438 tok
 - E1b: score 0.354 at +9514 tok
 
@@ -139,6 +145,7 @@ model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 - E0: score 1.000 at +1819 tok  ← frontier
 - E6: score 1.000 at +1858 tok
 - E7: score 1.000 at +2999 tok
+- E7b: score 1.000 at +3209 tok
 - E1a: score 1.000 at +5717 tok
 
 **default — T4**
@@ -148,6 +155,7 @@ model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 - E3: score 0.800 at +1226 tok  ← frontier
 - E0: score 0.000 at +1812 tok
 - E7: score 1.000 at +2991 tok  ← frontier
+- E7b: score 1.000 at +3200 tok
 - E1a: score 1.000 at +5709 tok
 - E6: score 0.000 at +10731 tok
 
@@ -157,6 +165,7 @@ model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 - E3: score 0.556 at +1658 tok
 - E7v: score 0.917 at +1780 tok  ← frontier
 - E0: score 0.833 at +1832 tok
+- E7b: score 0.167 at +3224 tok
 - E4: score 1.000 at +3356 tok  ← frontier
 - E6: score 0.667 at +3459 tok
 - E7: score 0.750 at +3590 tok
@@ -170,8 +179,9 @@ model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 - E0: score 0.333 at +1822 tok
 - E6: score 0.917 at +1859 tok
 - E4: score 0.917 at +2718 tok
+- E7b: score 1.000 at +3245 tok  ← frontier
 - E7: score 0.944 at +3290 tok
-- E1a: score 1.000 at +5719 tok  ← frontier
+- E1a: score 1.000 at +5719 tok
 
 **default-high — T1**
 - E7v: score 0.910 at +1191 tok  ← frontier
