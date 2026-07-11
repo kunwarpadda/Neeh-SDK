@@ -30,7 +30,10 @@ from research.harness.backends import (
     BackendError,
     ClaudeCliBackend,
     CodexCliBackend,
+    CodexCliSession,
     MockBackend,
+    MockSession,
+    ModelReply,
 )
 from research.harness.corpus_s0 import CorpusPage, make_dense_text_page
 from research.harness.encoders import _compact_svg
@@ -171,6 +174,88 @@ def _region_png(page: Page, regions: list[BoundingBox]) -> Optional[bytes]:
     return render_page_png(page, region=box)
 
 
+STATEFUL_VERSION = "T8/0.2.0-stateful"
+
+PHASE2_FOLLOWUP = """\
+Fetched detail for your requested regions is below.
+{legend}
+
+Now answer the question from the first message using the index and this
+detail. Reply with only the answer in the exact format the question asks
+for — no explanation.
+
+=== FETCHED DETAIL ===
+{detail}"""
+
+
+def run_episode_stateful(make_session, cpage: CorpusPage, arm: str,
+                         task: dict[str, Any], ledger: Ledger, seed: int) -> None:
+    """H7-S: one real session per episode; phase 2 pays only the increment.
+
+    F0 is one turn (push). F1/F3 are two turns where the second sends only
+    the fetched detail (or nothing) — the gist and question are already in
+    the thread. F2 is excluded: codex resume cannot attach images.
+    """
+    session = make_session()
+    key = row_key(session.model, arm, STATEFUL_VERSION, task["task_id"], 0)
+    if key in ledger.existing_keys():
+        return
+    gist = _gist(cpage)
+    question = task["question"]
+    started = time.monotonic()
+    failure = answer = None
+    turns: list[ModelReply] = []
+    try:
+        if arm == "F0":
+            detail = _compact_svg(cpage.page, with_bboxes=True)
+            prompt = PHASE2_PREAMBLE.format(
+                legend=F1_LEGEND, gist="(index omitted — full page below)",
+                detail=detail, question=question,
+            )
+            if isinstance(session, MockSession):
+                session.pending_truth = task["truth"]
+            turns.append(session.send(prompt))
+        else:
+            p1 = PHASE1_PREAMBLE.format(
+                max_regions=MAX_REGIONS, gist=gist, question=question,
+            )
+            if isinstance(session, MockSession):
+                session.pending_truth = json.dumps({"regions": [[0, 0, 1000, 1414]]})
+            r1 = session.send(p1)
+            turns.append(r1)
+            regions = _parse_regions(r1.text)
+            if arm == "F1":
+                detail, legend = _region_svg(cpage.page, regions), F1_LEGEND
+            else:  # F3: no fetch, answer from the index alone
+                detail, legend = "(no detail available)", F3_LEGEND
+            if isinstance(session, MockSession):
+                session.pending_truth = task["truth"]
+            turns.append(session.send(
+                PHASE2_FOLLOWUP.format(legend=legend, detail=detail)))
+        answer = turns[-1].text
+    except BackendError as exc:
+        failure = str(exc)
+
+    tokens_in = sum(t.input_tokens or 0 for t in turns) or None
+    cached = sum(t.meta.get("cached_input_tokens") or 0 for t in turns)
+    tokens_out = sum(t.output_tokens or 0 for t in turns) or None
+    value = None if answer is None else score(task["scorer"], answer, task["truth"])
+    ledger.append(
+        key=key, model=session.model, backend=session.name, arm=arm,
+        encoder_version=STATEFUL_VERSION, task_id=task["task_id"], family="T8",
+        page_id=cpage.page.id, repeat=0, seed=seed,
+        prompt_sha1=hashlib.sha1(question.encode()).hexdigest()[:12],
+        context_chars=len(gist), image_bytes=0,
+        score=value, scorer=task["scorer"],
+        answer=None if answer is None else answer[:2000],
+        truth=task["truth"], input_tokens=tokens_in, output_tokens=tokens_out,
+        latency_s=round(time.monotonic() - started, 3), failure=failure,
+        extra={"cached_input_tokens": cached, "turns": len(turns),
+               "uncached_input_tokens": (tokens_in - cached) if tokens_in else None,
+               "thread_id": getattr(session, "thread_id", None)},
+    )
+
+
 def run_episode(backend: Backend, cpage: CorpusPage, arm: str,
                 task: dict[str, Any], ledger: Ledger, seed: int) -> None:
     key = row_key(backend.model, arm, VERSION, task["task_id"], 0)
@@ -251,7 +336,10 @@ def main() -> None:
     parser.add_argument("--model-label", default=None)
     parser.add_argument("--pages", type=int, default=4)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--arms", nargs="+", default=list(ARMS))
+    parser.add_argument("--arms", nargs="+", default=None)
+    parser.add_argument("--stateful", action="store_true",
+                        help="H7-S: real sessions via codex exec resume; "
+                             "phase 2 pays only incremental input (F2 excluded)")
     args = parser.parse_args()
 
     if args.backend == "codex":
@@ -262,6 +350,18 @@ def main() -> None:
     else:
         backend = MockBackend()
 
+    if args.stateful:
+        if args.backend == "claude":
+            raise SystemExit("--stateful currently supports codex and mock only")
+        def make_session():
+            if args.backend == "mock":
+                return MockSession()
+            return CodexCliSession(model=args.model or "default",
+                                   label=args.model_label)
+        arms = args.arms or ["F0", "F1", "F3"]
+    else:
+        arms = args.arms or list(ARMS)
+
     # Mock runs stay off the real ledger, same as run_m1.
     ledger = Ledger(DEFAULT_LEDGER.parent / "ledger-mock.jsonl") \
         if args.backend == "mock" else Ledger()
@@ -269,8 +369,12 @@ def main() -> None:
     n = 0
     for cpage in pages:
         for task in _episode_tasks(cpage, args.seed):
-            for arm in args.arms:
-                run_episode(backend, cpage, arm, task, ledger, args.seed)
+            for arm in arms:
+                if args.stateful:
+                    run_episode_stateful(make_session, cpage, arm, task,
+                                         ledger, args.seed)
+                else:
+                    run_episode(backend, cpage, arm, task, ledger, args.seed)
                 n += 1
                 print(f"[{n}] {arm} {task['task_id']} done")
     print("episodes complete")

@@ -250,3 +250,113 @@ class MockBackend:
         tokens = len(prompt) // 4 + (1836 if image_png is not None else 0)
         return ModelReply(text=answer, input_tokens=tokens, output_tokens=len(answer) // 4,
                           meta={"mock": True})
+
+
+class CodexCliSession:
+    """A persistent multi-turn session over `codex exec` / `codex exec resume`.
+
+    Turn 1 starts a thread (NOT --ephemeral, so it persists under CODEX_HOME);
+    later turns resume it, paying only incremental uncached input. The model
+    config MUST stay identical across turns — a model mismatch on resume
+    invalidates the provider cache (probed 2026-07-10). Images attach on the
+    first turn only. Usage per turn includes the cache split, so the honest
+    incremental cost of turn N is input_tokens - cached_input_tokens.
+    """
+
+    name = "codex-cli-session"
+
+    def __init__(self, model: str = "default", timeout_s: float = 240.0,
+                 label: Optional[str] = None) -> None:
+        self.model = label or model
+        self._cli_model = model
+        self.timeout_s = timeout_s
+        self._bin = _which("codex", "NEEH_CODEX_CLI_BIN")
+        self.thread_id: Optional[str] = None
+
+    def send(self, prompt: str, image_png: Optional[bytes] = None) -> ModelReply:
+        env = None
+        if os.getenv("NEEH_CODEX_HOME"):
+            env = dict(os.environ, CODEX_HOME=os.environ["NEEH_CODEX_HOME"])
+        with tempfile.TemporaryDirectory(prefix="neeh-codex-s-") as tmp_dir:
+            tmp = Path(tmp_dir)
+            if self.thread_id is None:
+                command = [self._bin, "exec", "--skip-git-repo-check",
+                           "-C", str(tmp), "--sandbox", "read-only", "--json"]
+                if image_png is not None:
+                    suffix = "jpg" if _image_media_type(image_png) == "image/jpeg" else "png"
+                    image_path = tmp / f"page.{suffix}"
+                    image_path.write_bytes(image_png)
+                    command.extend(["--image", str(image_path)])
+                if self._cli_model != "default":
+                    command.extend(["--model", self._cli_model])
+            else:
+                if image_png is not None:
+                    raise BackendError("codex resume does not support image attachments")
+                command = [self._bin, "exec", "resume", self.thread_id,
+                           "--skip-git-repo-check", "--json"]
+                if self._cli_model != "default":
+                    command.extend(["--model", self._cli_model])
+            command.append("-")
+            try:
+                completed = subprocess.run(
+                    command, input=prompt, text=True, capture_output=True,
+                    timeout=self.timeout_s, check=False, env=env,
+                )
+            except subprocess.TimeoutExpired as exc:
+                raise BackendError(f"codex session timed out after {self.timeout_s:g}s") from exc
+        if completed.returncode != 0:
+            detail = (completed.stderr or completed.stdout or "").strip()[:500]
+            raise BackendError(f"codex session exited {completed.returncode}: {detail}")
+        return self._parse(completed.stdout)
+
+    def _parse(self, stdout: str) -> ModelReply:
+        text = None
+        usage: dict[str, Any] = {}
+        for line in stdout.splitlines():
+            line = line.strip()
+            if not line.startswith("{"):
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("type") == "thread.started":
+                self.thread_id = event.get("thread_id", self.thread_id)
+            elif event.get("type") == "item.completed":
+                item = event.get("item") or {}
+                if item.get("type") == "agent_message":
+                    text = item.get("text")
+            elif event.get("type") == "turn.completed":
+                usage = event.get("usage") or {}
+        if not text:
+            raise BackendError("codex session produced no agent message")
+        return ModelReply(
+            text=text,
+            input_tokens=usage.get("input_tokens"),
+            output_tokens=usage.get("output_tokens"),
+            meta={"thread_id": self.thread_id,
+                  "cached_input_tokens": usage.get("cached_input_tokens")},
+        )
+
+
+class MockSession:
+    """Oracle session for validating multi-turn runners offline."""
+
+    name = "mock-session"
+
+    def __init__(self) -> None:
+        self.model = "mock"
+        self.pending_truth: Any = None
+        self.thread_id = "thread_mock"
+        self._history_chars = 0
+
+    def send(self, prompt: str, image_png: Optional[bytes] = None) -> ModelReply:
+        truth = self.pending_truth
+        answer = json.dumps(truth) if isinstance(truth, (list, dict)) else str(truth)
+        new = len(prompt) // 4 + (1836 if image_png is not None else 0)
+        cached = self._history_chars
+        self._history_chars += new + len(answer) // 4
+        return ModelReply(text=answer, input_tokens=cached + new,
+                          output_tokens=len(answer) // 4,
+                          meta={"thread_id": self.thread_id,
+                                "cached_input_tokens": cached})
