@@ -36,4 +36,44 @@ icf-v2-transport-design.md. Started 2026-07-10.*
   a wire-format simplification, not a loss for the thesis (D0, with no ids
   anywhere, scored 0.00).
 
-## H7-S stateful foveation: pending (runner queued)
+## H7-S stateful foveation: the pull win is real but conditional
+
+19/24 rows (stopped early), real `codex exec resume` sessions, per-turn
+cache splits recorded:
+
+| arm | addressing | reading | raw input/episode | uncached input/episode |
+|---|---|---|---|---|
+| F0 push (1 turn) | 1.000 | 1.000 | ~22.5k | ~11.3k (steady state) |
+| F1 pull (2 turns) | 0.985 | 0.456 | ~39.3k | 4.3k–22.8k (mean ≈ F0) |
+| F3 gist only | 0.000 | 0.000 | ~38.9k | ~3.9k best case |
+
+Three findings, all about economics rather than capability:
+
+1. **A resumed turn re-reads the whole thread.** F1's raw input is ~39k
+   because turn 2 replays turn 1 plus the fetch. Under raw-input billing,
+   pull *loses* to push on a one-question episode: the extra turn costs a
+   full history read (~16.8k), more than the ~10k of content pull saves.
+2. **Under cache-aware serving, pull wins — when the cache holds.** Best
+   episodes: F1 uncached 4.3k vs F0's 11.3k (62% cheaper). But roughly
+   half the resumed turns missed cache (uncached 16–23k), erasing the win.
+   The pull advantage is bounded between "62% cheaper" (warm cache) and
+   "worse than push" (cold resume); the mean landed at parity.
+3. **The demo regime dodges the tax entirely.** An agentic tool-loop pull
+   (`fetch_ink_region` as an in-turn tool call) appends the fetch to the
+   *same* turn — no new user turn, no history re-read. H7-S measured the
+   worst transport for pull (user-turn resume); the tool-loop transport,
+   which the assistant demo already implements, pays only the fetch
+   content. That is where the H7 stateless −86% content saving converts
+   to real tokens.
+
+Accuracy note: F1 reading dropped to 0.456 (from 0.850 stateless) because
+the phase-2 follow-up said "answer the question from the first message" —
+leaving question recall to a low-effort model. Fixed in the runner
+(follow-up now restates the question verbatim, ~30 tokens); re-measure
+with the next quota window if desired. Addressing was unaffected (0.985).
+
+**Program verdict:** push/pull is not a binary — it's priced by transport.
+Ranked by pull-friendliness: in-turn tool loop (demo) > cached resume >
+cold resume > stateless two-shot. ICF v2's pull extension should say
+exactly this: pull pays off in agentic loops and cached sessions; push
+remains right for one-shot transports. The spec's wording already matches.

@@ -180,12 +180,13 @@ PHASE2_FOLLOWUP = """\
 Fetched detail for your requested regions is below.
 {legend}
 
-Now answer the question from the first message using the index and this
-detail. Reply with only the answer in the exact format the question asks
-for — no explanation.
+Answer using the index and this detail. Reply with only the answer in the
+exact format the question asks for — no explanation.
 
 === FETCHED DETAIL ===
-{detail}"""
+{detail}
+=== QUESTION (repeated) ===
+{question}"""
 
 
 def run_episode_stateful(make_session, cpage: CorpusPage, arm: str,
@@ -231,7 +232,8 @@ def run_episode_stateful(make_session, cpage: CorpusPage, arm: str,
             if isinstance(session, MockSession):
                 session.pending_truth = task["truth"]
             turns.append(session.send(
-                PHASE2_FOLLOWUP.format(legend=legend, detail=detail)))
+                PHASE2_FOLLOWUP.format(legend=legend, detail=detail,
+                                       question=question)))
         answer = turns[-1].text
     except BackendError as exc:
         failure = str(exc)
