@@ -60,6 +60,8 @@ class CorpusPage:
     shapes: tuple[dict[str, Any], ...] = ()
     # math pages (S2): the LaTeX ground-truth transcription
     expression: str = ""
+    # argument pages (T9): {"claims": [...], "statements": [...]} oracle graph
+    argument: dict[str, Any] = field(default_factory=dict)
 
 
 class _StrokeFactory:
@@ -244,3 +246,79 @@ def generate_corpus(
     pages = [make_text_page(i, seed, jitter) for i in range(n_text_pages)]
     pages += [make_shape_page(i, seed, jitter) for i in range(n_shape_pages)]
     return pages
+
+
+def make_argument_page(index: int, seed: int) -> CorpusPage:
+    """T9 corpus: two claim words, six evidence words, arrows carrying support.
+
+    Support deliberately CROSSES the column layout (some left-column evidence
+    supports the right claim and vice versa), so spatial proximity misleads;
+    the truth lives only in the drawn arrows (flat geometry) or in explicit
+    graph edges (the H9 arm). Claim support counts are asymmetric (4 vs 2) so
+    counting questions aren't guessable.
+    """
+    tag = f"s0a{seed}_{index:02d}"
+    rng = random.Random(f"{seed}:arg:{index}")
+    factory = _StrokeFactory(tag, random.Random(f"{seed}:arg:{index}:j"), 0.0)
+    document, page, layer = _make_page(tag)
+
+    picked = rng.sample(WORDS, 8)
+    claim_words, evidence_words = picked[:2], picked[2:]
+
+    def _write(word: str, box: BoundingBox) -> tuple[list[str], BoundingBox]:
+        polylines, _ = layout_text(word, box, size=34.0)
+        ids = [layer.add(factory.make(p)).id for p in polylines]
+        return ids, BoundingBox.union_all(layer.get(i).bbox for i in ids)
+
+    claims: list[dict[str, Any]] = []
+    for ci, word in enumerate(claim_words):
+        cx = 250.0 + ci * 500.0
+        ids, bbox = _write(word, BoundingBox(cx - 150, 90.0, cx + 150, 190.0))
+        claims.append({"id": f"cl_{tag}_{ci}", "word": word,
+                       "stroke_ids": ids, "bbox": bbox.to_list()})
+
+    # Slots L0..L2 (left column) and R0..R2 (right column), three rows.
+    slots = [(250.0 + col * 500.0, 430.0 + row * 340.0)
+             for col in range(2) for row in range(3)]
+    # Crossing pattern: left claim gets 4 statements (two from the right
+    # column), right claim gets 2 (one from the left column).
+    big = rng.randrange(2)                      # which claim is 4-supported
+    support = [big, big, 1 - big, big, big, 1 - big]
+    order = list(range(6))
+    rng.shuffle(order)
+
+    statements: list[dict[str, Any]] = []
+    for slot_i, word_i in enumerate(order):
+        sx, sy = slots[slot_i]
+        word = evidence_words[word_i]
+        ids, bbox = _write(word, BoundingBox(sx - 160, sy - 50, sx + 160, sy + 50))
+        claim = claims[support[slot_i]]
+        cb = claim["bbox"]
+        start = ((bbox.min_x + bbox.max_x) / 2, bbox.min_y - 8)
+        end = ((cb[0] + cb[2]) / 2, cb[3] + 8)
+        dx, dy = end[0] - start[0], end[1] - start[1]
+        norm = max((dx * dx + dy * dy) ** 0.5, 1.0)
+        ux, uy = dx / norm, dy / norm
+        # shaft + head, drawn like the shape-page arrows
+        shaft = factory.make([start, end])
+        head = factory.make([
+            (end[0] - 40 * ux + 18 * uy, end[1] - 40 * uy - 18 * ux),
+            end,
+            (end[0] - 40 * ux - 18 * uy, end[1] - 40 * uy + 18 * ux),
+        ])
+        statements.append({
+            "id": f"st_{tag}_{slot_i}", "word": word, "stroke_ids": ids,
+            "bbox": bbox.to_list(), "supports": claim["id"],
+            "arrow_stroke_ids": [shaft.id, head.id],
+            "crosses": (slot_i < 3) != (support[slot_i] == 0),
+        })
+
+    return CorpusPage(
+        document=document, page=page, kind="argument", seed=seed, jitter=0.0,
+        words=tuple({"word": s["word"], "order": i,
+                     "stroke_ids": s["stroke_ids"], "bbox": s["bbox"]}
+                    for i, s in enumerate(statements)),
+        shapes=(),
+        expression="",
+        argument={"claims": claims, "statements": statements},
+    )
