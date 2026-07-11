@@ -205,12 +205,38 @@ E7_LEGEND = "The page is attached as an image, followed by " + _E7_SVG_LEGEND
 E7V_LEGEND = "The page is provided as " + _E7_SVG_LEGEND + " There is no image."
 
 
+def _rdp(points: list[tuple[float, float]], eps: float) -> list[tuple[float, float]]:
+    """Ramer-Douglas-Peucker: keep corners and endpoints, drop straight-run
+    points below `eps` perpendicular deviation."""
+    if len(points) < 3:
+        return list(points)
+    (x0, y0), (x1, y1) = points[0], points[-1]
+    dx, dy = x1 - x0, y1 - y0
+    norm = math.hypot(dx, dy)
+    dmax, idx = 0.0, 0
+    for i in range(1, len(points) - 1):
+        px, py = points[i]
+        if norm:
+            d = abs(dy * (px - x0) - dx * (py - y0)) / norm
+        else:
+            d = math.hypot(px - x0, py - y0)
+        if d > dmax:
+            dmax, idx = d, i
+    if dmax <= eps:
+        return [points[0], points[-1]]
+    left = _rdp(points[: idx + 1], eps)
+    return left[:-1] + _rdp(points[idx:], eps)
+
+
 def _compact_svg(page: Page, grid_long_edge: int = GRID_LONG_EDGE,
-                 with_bboxes: bool = False) -> str:
+                 with_bboxes: bool = False,
+                 simplify_eps_grid: Optional[float] = None) -> str:
     """SVG paths with E2's resampling/quantization: same grid, same step.
 
-    ``with_bboxes`` adds a data-bbox attribute (grid units) per stroke — the
-    segmentation cue E1a carries that E7 lacks; see real-ink-findings.md."""
+    ``with_bboxes`` adds a data-bbox attribute (page units, per the v1 frame
+    rule) per stroke — the segmentation cue E1a carries that E7 lacks.
+    ``simplify_eps_grid`` additionally runs RDP simplification (tolerance in
+    grid units) so straight runs cost two points instead of dozens."""
     scale = grid_long_edge / max(page.width, page.height)
     grid_w = round(page.width * scale)
     grid_h = round(page.height * scale)
@@ -218,6 +244,8 @@ def _compact_svg(page: Page, grid_long_edge: int = GRID_LONG_EDGE,
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {grid_w} {grid_h}">']
     for stroke in _page_strokes(page):
         resampled = _resample([(p.x, p.y) for p in stroke.points], step_page)
+        if simplify_eps_grid is not None:
+            resampled = _rdp(resampled, simplify_eps_grid / scale)
         gx = [round(x * scale) for x, _ in resampled]
         gy = [round(y * scale) for _, y in resampled]
         d = f"M{gx[0]} {gy[0]}"
@@ -283,6 +311,55 @@ def encode_e7b(page: Page) -> EncodedContext:
     )
 
 
+# -- E8 family: attacking the raster half of the hybrid ----------------------
+#
+# Cost anatomy of E7b (+3,325 tok on S2): raster ~1,878 (56%), SVG+bboxes
+# ~1,450 (44%). The evidence says the raster's job is gestalt, not precision
+# (resolution sweep: E7v512≈E7v; reading: E7≈E0 — precision lives in the
+# vector side). So: shrink the raster. Vision tokens scale ~with pixel area;
+# a half-scale render is ~4x fewer. E8 = E7b with a half-scale raster,
+# E8q = quarter-scale, E8s = quarter-scale + RDP-simplified SVG (the
+# everything-cheap hybrid). E7vS isolates the RDP effect without a raster.
+
+E8_LEGEND = (
+    E7B_LEGEND + " The attached image is a reduced-resolution overview — use "
+    "it for what things look like, and the SVG (with data-bbox) for precise "
+    "geometry and positions."
+)
+RDP_EPS_GRID = 1.0  # grid units; below quantization noise at grid 256
+
+
+def _encode_e8(arm: str, version: str, page: Page, raster_scale: float,
+               simplify: bool) -> EncodedContext:
+    from neeh.rendering.png import render_page_png
+
+    return EncodedContext(
+        arm=arm, version=version, legend=E8_LEGEND,
+        text=_compact_svg(page, with_bboxes=True,
+                          simplify_eps_grid=RDP_EPS_GRID if simplify else None),
+        image_png=render_page_png(page, scale=raster_scale),
+    )
+
+
+def encode_e8(page: Page) -> EncodedContext:
+    return _encode_e8("E8", "E8/0.1.0", page, raster_scale=0.5, simplify=False)
+
+
+def encode_e8q(page: Page) -> EncodedContext:
+    return _encode_e8("E8q", "E8q/0.1.0", page, raster_scale=0.25, simplify=False)
+
+
+def encode_e8s(page: Page) -> EncodedContext:
+    return _encode_e8("E8s", "E8s/0.1.0", page, raster_scale=0.25, simplify=True)
+
+
+def encode_e7vs(page: Page) -> EncodedContext:
+    return EncodedContext(
+        arm="E7vS", version="E7vS/0.1.0", legend=E7V_LEGEND,
+        text=_compact_svg(page, simplify_eps_grid=RDP_EPS_GRID), image_png=None,
+    )
+
+
 # Legend-variant arm (protocol §5 risk 1: prompt sensitivity). Identical
 # geometry text to E7v; only the legend differs, isolating the wording effect
 # on the winning arm.
@@ -341,7 +418,11 @@ ENCODERS: dict[str, Callable[[Page], EncodedContext]] = {
     "E7": encode_e7,
     "E7b": encode_e7b,
     "E7v": encode_e7v,
+    "E7vS": encode_e7vs,
     "E7vB": encode_e7vb,
+    "E8": encode_e8,
+    "E8q": encode_e8q,
+    "E8s": encode_e8s,
     "E7v128": encode_e7v128,
     "E7v512": encode_e7v512,
     "CTRL": encode_ctrl,

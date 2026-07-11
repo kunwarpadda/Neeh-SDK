@@ -137,6 +137,34 @@ def test_e7b_adds_page_unit_bboxes_beside_raster():
     assert "PAGE units" in encoded.legend
 
 
+def test_rdp_keeps_corners_drops_straight_runs():
+    from research.harness.encoders import _rdp
+
+    # An L shape sampled densely: only the three defining points survive.
+    leg1 = [(float(x), 0.0) for x in range(0, 101, 10)]
+    leg2 = [(100.0, float(y)) for y in range(10, 101, 10)]
+    out = _rdp(leg1 + leg2, 1.0)
+    assert out == [(0.0, 0.0), (100.0, 0.0), (100.0, 100.0)]
+
+
+def test_e8_family_shrinks_raster_and_text():
+    pytest.importorskip("PIL")
+    from research.harness.encoders import encode_e7b, encode_e7v, encode_e7vs, encode_e8, encode_e8q, encode_e8s
+
+    page = make_text_page(0, seed=3).page
+    full = encode_e7b(page)
+    half, quarter, cheap = encode_e8(page), encode_e8q(page), encode_e8s(page)
+    # Raster shrinks monotonically; the SVG side is unchanged until E8s.
+    assert len(quarter.image_png) < len(half.image_png) < len(full.image_png)
+    assert half.text == full.text and quarter.text == full.text
+    assert len(cheap.text) < len(quarter.text)
+    assert "reduced-resolution" in half.legend
+    # E7vS: same strokes as E7v, fewer characters, endpoints intact.
+    plain, simplified = encode_e7v(page), encode_e7vs(page)
+    assert simplified.text.count("<path ") == plain.text.count("<path ")
+    assert len(simplified.text) < len(plain.text)
+
+
 def test_e7vb_differs_only_in_legend():
     from research.harness.encoders import encode_e7v, encode_e7vb
 
