@@ -60,6 +60,22 @@ def _fits(lines: list[list[str]], size: float, region: BoundingBox) -> bool:
     return True
 
 
+def measure_text(text: str, size: float) -> tuple[float, float]:
+    """Width and height in page units of `text` at cap height `size`,
+    honoring explicit newlines but never word-wrapping. Uses the same glyph
+    metrics as layout_text, so a region sized from this always fits."""
+    scale = size / CAP_HEIGHT
+    space = GLYPHS[" "][0] * scale
+    lines = text.split("\n")
+    width = 0.0
+    for raw in lines:
+        words = raw.split()
+        w = sum(_word_advance(word) * scale for word in words)
+        w += max(len(words) - 1, 0) * space
+        width = max(width, w)
+    return width, size + (len(lines) - 1) * size * LINE_HEIGHT
+
+
 def layout_text(
     text: str, region: BoundingBox, size: Optional[float] = None
 ) -> tuple[list[Polyline], float]:

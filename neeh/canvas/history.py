@@ -33,6 +33,14 @@ def _pluck(layer: Layer, stroke_id: str) -> None:
             return
 
 
+def _replace(layer: Layer, stroke: Stroke) -> bool:
+    for i, current in enumerate(layer.strokes):
+        if current.id == stroke.id:
+            layer.strokes[i] = stroke
+            return True
+    return False
+
+
 @dataclass
 class StrokeEdit:
     label: str
@@ -41,16 +49,40 @@ class StrokeEdit:
     added: list[tuple[str, Stroke]] = field(default_factory=list)
 
     def apply(self, document: Document) -> None:
+        removed_keys = {(layer_id, stroke.id) for layer_id, stroke in self.removed}
+        replacements = {
+            (layer_id, stroke.id): stroke
+            for layer_id, stroke in self.added
+            if (layer_id, stroke.id) in removed_keys
+        }
         for layer_id, stroke in self.removed:
-            _pluck(_layer(document, self.page_id, layer_id), stroke.id)
+            layer = _layer(document, self.page_id, layer_id)
+            replacement = replacements.get((layer_id, stroke.id))
+            if replacement is not None:
+                _replace(layer, replacement)
+            else:
+                _pluck(layer, stroke.id)
         for layer_id, stroke in self.added:
-            _layer(document, self.page_id, layer_id).strokes.append(stroke)
+            if (layer_id, stroke.id) not in replacements:
+                _layer(document, self.page_id, layer_id).strokes.append(stroke)
 
     def revert(self, document: Document) -> None:
+        added_keys = {(layer_id, stroke.id) for layer_id, stroke in self.added}
+        originals = {
+            (layer_id, stroke.id): stroke
+            for layer_id, stroke in self.removed
+            if (layer_id, stroke.id) in added_keys
+        }
         for layer_id, stroke in self.added:
-            _pluck(_layer(document, self.page_id, layer_id), stroke.id)
+            layer = _layer(document, self.page_id, layer_id)
+            original = originals.get((layer_id, stroke.id))
+            if original is not None:
+                _replace(layer, original)
+            else:
+                _pluck(layer, stroke.id)
         for layer_id, stroke in self.removed:
-            _layer(document, self.page_id, layer_id).strokes.append(stroke)
+            if (layer_id, stroke.id) not in originals:
+                _layer(document, self.page_id, layer_id).strokes.append(stroke)
 
 
 class History:

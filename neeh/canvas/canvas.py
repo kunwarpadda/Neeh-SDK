@@ -86,6 +86,49 @@ class Canvas:
         self.history.push(edit, self.document)
         return strokes
 
+    def move_and_add_strokes(
+        self,
+        strokes_points: Iterable[Iterable[PointLike]],
+        *,
+        move_stroke_ids: Iterable[str],
+        dx: float,
+        dy: float,
+        style: Optional[StrokeStyle] = None,
+        author: Author = Author.AGENT,
+        layer: Optional[Layer] = None,
+        label: str = "move_and_add_strokes",
+    ) -> tuple[list[Stroke], list[str]]:
+        """Translate existing strokes and add new strokes as one undo step."""
+        strokes = [
+            Stroke(points=_coerce_points(pts), style=style or StrokeStyle(), author=author)
+            for pts in strokes_points
+        ]
+        if not strokes:
+            return [], []
+
+        ids = list(dict.fromkeys(move_stroke_ids))
+        removed: list[tuple[str, Stroke]] = []
+        moved: list[tuple[str, Stroke]] = []
+        for stroke_id in ids:
+            found = self.page.find(stroke_id)
+            if found is None:
+                raise ValueError(f"unknown stroke id {stroke_id!r}")
+            source_layer, stroke = found
+            if source_layer.locked:
+                raise ValueError(f"layer '{source_layer.name}' is locked")
+            removed.append((source_layer.id, stroke))
+            moved.append((source_layer.id, stroke.translated(dx, dy)))
+
+        target = layer or self._default_layer(author)
+        if target.locked:
+            raise ValueError(f"layer '{target.name}' is locked")
+        added = moved + [(target.id, stroke) for stroke in strokes]
+        self.history.push(
+            StrokeEdit(label, self.page.id, removed=removed, added=added),
+            self.document,
+        )
+        return strokes, ids
+
     def erase(
         self,
         stroke_ids: Optional[Iterable[str]] = None,

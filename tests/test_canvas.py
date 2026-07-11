@@ -42,6 +42,20 @@ class TestCanvasEditing:
         _, moved = canvas.page.find(s.id)
         assert moved.bbox == BoundingBox(100, 50, 110, 60)
 
+    def test_move_preserves_layer_order_through_undo_and_redo(self):
+        canvas = Canvas()
+        first = canvas.add_stroke([(0, 0), (10, 10)])
+        middle = canvas.add_stroke([(20, 0), (30, 10)])
+        last = canvas.add_stroke([(40, 0), (50, 10)])
+        expected = [first.id, middle.id, last.id]
+
+        canvas.move(10, 0, stroke_ids=[middle.id])
+        assert [stroke.id for stroke in canvas.page.layer("ink").strokes] == expected
+        canvas.undo()
+        assert [stroke.id for stroke in canvas.page.layer("ink").strokes] == expected
+        canvas.redo()
+        assert [stroke.id for stroke in canvas.page.layer("ink").strokes] == expected
+
     def test_locked_layer_is_protected(self):
         canvas = Canvas()
         s = canvas.add_stroke([(0, 0), (10, 10)])
@@ -51,6 +65,31 @@ class TestCanvasEditing:
         with pytest.raises(ValueError):
             canvas.add_stroke([(1, 1)])
         canvas.page.layer("ink").locked = False
+
+    def test_move_and_add_strokes_is_one_atomic_edit(self):
+        canvas = Canvas()
+        source = canvas.add_stroke([(100, 100), (120, 120)])
+
+        added, moved_ids = canvas.move_and_add_strokes(
+            [[(130, 100), (140, 110)]],
+            move_stroke_ids=[source.id],
+            dx=20,
+            dy=0,
+            author=Author.AGENT,
+            label="insert_text",
+        )
+
+        assert moved_ids == [source.id]
+        assert canvas.page.find(source.id)[1].bbox.min_x == 120
+        assert canvas.page.find(added[0].id)[1].author is Author.AGENT
+
+        assert canvas.undo() == "insert_text"
+        assert canvas.page.find(source.id)[1].bbox.min_x == 100
+        assert canvas.page.find(added[0].id) is None
+
+        assert canvas.redo() == "insert_text"
+        assert canvas.page.find(source.id)[1].bbox.min_x == 120
+        assert canvas.page.find(added[0].id) is not None
 
 
 class TestUndoRedo:

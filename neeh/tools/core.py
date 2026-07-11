@@ -15,7 +15,7 @@ from typing import Any, Optional, Sequence
 
 from neeh.canvas import Canvas
 from neeh.document import Page
-from neeh.ink import Author, BoundingBox, StrokeStyle
+from neeh.ink import Author, BoundingBox, Stroke, StrokeStyle
 from neeh.rendering import render_page_svg
 from neeh.tools.registry import tool
 
@@ -410,6 +410,276 @@ def write_text(
         "stroke_ids": [s.id for s in strokes],
         "size": used_size,
         "region": box.to_list(),
+    }
+
+
+def _anchor_bbox(canvas: Canvas, stroke_ids: Sequence[str]) -> BoundingBox:
+    """Union bbox of the named strokes; unknown ids are an error."""
+    ids = _stroke_ids(stroke_ids)
+    if not ids:
+        raise ValueError("stroke_ids must name at least one stroke")
+    wanted = set(ids)
+    boxes = [s.bbox for layer in canvas.page.layers if layer.visible
+             for s in layer.strokes if s.id in wanted]
+    if len(boxes) < len(wanted):
+        found = {s.id for layer in canvas.page.layers if layer.visible
+                 for s in layer.strokes if s.id in wanted}
+        missing = sorted(wanted - found)
+        raise ValueError(f"unknown stroke ids: {missing}")
+    return BoundingBox.union_all(boxes)
+
+
+_MARK_KINDS = ("strike", "circle", "underline", "check")
+
+
+@tool(
+    "mark",
+    "Annotate existing ink by stroke id — the geometry is computed for you "
+    "from the strokes' bounding box. Kinds: 'strike' crosses the ink out, "
+    "'underline' underlines it, 'circle' rings it, 'check' draws a check "
+    "mark beside it. Prefer this over add_stroke for corrections: no "
+    "coordinates needed.",
+    {
+        "type": "object",
+        "properties": {
+            "stroke_ids": _IDS_SCHEMA,
+            "kind": {"type": "string", "enum": list(_MARK_KINDS)},
+            "color": {"type": "string", "description": "Hex color, e.g. #1d4ed8"},
+        },
+        "required": ["stroke_ids", "kind"],
+    },
+)
+def mark(
+    canvas: Canvas,
+    stroke_ids: Sequence[str],
+    kind: str,
+    color: Optional[str] = None,
+) -> dict[str, Any]:
+    if kind not in _MARK_KINDS:
+        raise ValueError(f"kind must be one of {_MARK_KINDS}")
+    box = _anchor_bbox(canvas, stroke_ids)
+    cx, cy = box.center
+    pad = max(box.height * 0.15, 3.0)
+    if kind == "strike":
+        points = [(box.min_x - pad, cy), (box.max_x + pad, cy)]
+    elif kind == "underline":
+        y = box.max_y + pad
+        points = [(box.min_x, y), (box.max_x, y)]
+    elif kind == "circle":
+        rx = box.width / 2 + pad * 1.5
+        ry = box.height / 2 + pad * 1.5
+        points = [
+            (cx + rx * math.cos(2 * math.pi * i / 24),
+             cy + ry * math.sin(2 * math.pi * i / 24))
+            for i in range(25)
+        ]
+    else:  # check
+        h = max(box.height * 0.8, 8.0)
+        x0 = box.max_x + pad * 2
+        points = [(x0, cy), (x0 + h * 0.3, cy + h * 0.4), (x0 + h * 0.9, cy - h * 0.5)]
+    style = StrokeStyle(
+        color=color or StrokeStyle().color,
+        width=max(box.height * 0.06, 1.2),
+    )
+    stroke = canvas.add_stroke(points, style=style, author=Author.AGENT)
+    return {"stroke_id": stroke.id, "kind": kind, "anchor_bbox": box.to_list()}
+
+
+_INSERT_POSITIONS = ("before", "after", "above", "below")
+_MAX_INSERT_REFLOW = 64.0
+
+
+def _translated_box(box: BoundingBox, dx: float, dy: float) -> BoundingBox:
+    return BoundingBox(
+        box.min_x + dx,
+        box.min_y + dy,
+        box.max_x + dx,
+        box.max_y + dy,
+    )
+
+
+def _same_line_strokes(
+    canvas: Canvas,
+    anchor: BoundingBox,
+    size: float,
+) -> list[tuple[Stroke, bool]]:
+    """Visible line ink paired with whether automatic reflow may move it."""
+    vertical_pad = max(size * 0.35, 4.0)
+    min_y = anchor.min_y - vertical_pad
+    max_y = anchor.max_y + vertical_pad
+    max_stroke_height = max(size * 2.5, anchor.height * 2.5, 12.0)
+    return [
+        (stroke, not layer.locked and stroke.author is Author.USER)
+        for layer in canvas.page.layers
+        if layer.visible
+        for stroke in layer.strokes
+        if stroke.bbox.max_y >= min_y
+        and stroke.bbox.min_y <= max_y
+        and stroke.bbox.height <= max_stroke_height
+    ]
+
+
+def _horizontal_insert_reflow(
+    canvas: Canvas,
+    anchor_ids: Sequence[str],
+    anchor: BoundingBox,
+    position: str,
+    text_width: float,
+    gap: float,
+    size: float,
+) -> tuple[BoundingBox, list[str], float]:
+    """Open a bounded gap for before/after insertion by shifting trailing ink."""
+    if position not in ("before", "after"):
+        return anchor, [], 0.0
+
+    anchor_set = set(anchor_ids)
+    line_entries = _same_line_strokes(canvas, anchor, size)
+    line = [stroke for stroke, _ in line_entries]
+    movable = {stroke.id for stroke, can_move in line_entries if can_move}
+    others = [stroke for stroke in line if stroke.id not in anchor_set]
+    epsilon = 1e-6
+
+    if position == "before":
+        left = [stroke for stroke in others if stroke.bbox.max_x <= anchor.min_x + epsilon]
+        if not left:
+            return anchor, [], 0.0
+        nearest_edge = max(stroke.bbox.max_x for stroke in left)
+        desired_min_x = anchor.min_x - gap - text_width
+        shift = max(0.0, nearest_edge + gap - desired_min_x)
+        moved = [
+            stroke for stroke in line
+            if stroke.id in anchor_set or stroke.bbox.center[0] >= anchor.min_x - epsilon
+        ]
+    else:
+        right = [stroke for stroke in others if stroke.bbox.min_x >= anchor.max_x - epsilon]
+        if not right:
+            return anchor, [], 0.0
+        nearest_edge = min(stroke.bbox.min_x for stroke in right)
+        desired_max_x = anchor.max_x + gap + text_width
+        shift = max(0.0, desired_max_x + gap - nearest_edge)
+        moved = [
+            stroke for stroke in line
+            if stroke.id not in anchor_set and stroke.bbox.min_x >= nearest_edge - epsilon
+        ]
+
+    if shift <= epsilon or not moved:
+        return anchor, [], 0.0
+    blocked = [stroke.id for stroke in moved if stroke.id not in movable]
+    if blocked:
+        raise ValueError(
+            "insertion needs to move locked or non-user ink: " + ", ".join(blocked)
+        )
+    if shift > _MAX_INSERT_REFLOW:
+        raise ValueError(
+            f"insertion needs a {shift:g}-unit reflow, above the "
+            f"{_MAX_INSERT_REFLOW:g}-unit safety limit"
+        )
+    if max(stroke.bbox.max_x for stroke in moved) + shift > canvas.page.width:
+        raise ValueError("insertion reflow would move ink beyond the page")
+
+    moved_ids = [stroke.id for stroke in moved]
+    if position == "before":
+        anchor = _translated_box(anchor, shift, 0.0)
+    return anchor, moved_ids, shift
+
+
+@tool(
+    "insert_text",
+    "Write text placed relative to existing ink named by stroke id — sized "
+    "to match that ink, region computed for you, and nearby same-line ink "
+    "shifted minimally when space is tight. The precise way to insert "
+    "a missing character, word, or short correction next to what the user "
+    "wrote (e.g. a quote mark right before a word). Prefer this over "
+    "write_text when the placement is relative to existing ink.",
+    {
+        "type": "object",
+        "properties": {
+            "text": {"type": "string"},
+            "stroke_ids": {**_IDS_SCHEMA,
+                           "description": "Anchor strokes the text is placed relative to"},
+            "position": {"type": "string", "enum": list(_INSERT_POSITIONS)},
+            "color": {"type": "string", "description": "Hex color, e.g. #1d4ed8"},
+            "size": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "description": "Cap height in page units; omit to match the anchor ink",
+            },
+        },
+        "required": ["text", "stroke_ids", "position"],
+    },
+)
+def insert_text(
+    canvas: Canvas,
+    text: str,
+    stroke_ids: Sequence[str],
+    position: str,
+    color: Optional[str] = None,
+    size: Optional[float] = None,
+) -> dict[str, Any]:
+    from neeh.ink.textink import MIN_SIZE, layout_text, measure_text
+
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("text must be a non-empty string")
+    if position not in _INSERT_POSITIONS:
+        raise ValueError(f"position must be one of {_INSERT_POSITIONS}")
+    validated_ids = _stroke_ids(stroke_ids)
+    if not validated_ids:
+        raise ValueError("stroke_ids must name at least one stroke")
+    original_box = _anchor_bbox(canvas, validated_ids)
+    box = original_box
+    if size is not None:
+        size = _finite_number(size, "size")
+        if size <= 0:
+            raise ValueError("size must be positive")
+    else:
+        # Horizontal punctuation (for example a hyphen being replaced by an
+        # underscore) has a zero-height bbox. Use its width as the font-scale
+        # hint in that case, capped so long rules do not create giant text.
+        extent = box.height if box.height >= MIN_SIZE else min(box.width, 48.0)
+        size = max(extent * 0.9, MIN_SIZE)
+    w, h = measure_text(text, size)
+    w += 0.5  # epsilon so layout_text's wrap check never triggers
+    gap = max(size * 0.25, 2.0)
+    page = canvas.page
+    box, moved_ids, shift = _horizontal_insert_reflow(
+        canvas, validated_ids, box, position, w, gap, size
+    )
+    if position == "before":
+        region = BoundingBox(box.min_x - gap - w, box.min_y,
+                             box.min_x - gap, box.min_y + h)
+    elif position == "after":
+        region = BoundingBox(box.max_x + gap, box.min_y,
+                             box.max_x + gap + w, box.min_y + h)
+    elif position == "above":
+        region = BoundingBox(box.min_x, box.min_y - gap - h,
+                             box.min_x + w, box.min_y - gap)
+    else:  # below
+        region = BoundingBox(box.min_x, box.max_y + gap,
+                             box.min_x + w, box.max_y + gap + h)
+    if (region.min_x < 0 or region.min_y < 0
+            or region.max_x > page.width or region.max_y > page.height):
+        raise ValueError(
+            f"no room {position!r} the anchor at size {size:g}; "
+            f"try another position or a smaller size"
+        )
+    polylines, used_size = layout_text(text, region, size=size)
+    style = StrokeStyle(color=color or "#1a1a1a", width=max(used_size / 12.0, 0.8))
+    strokes, moved_ids = canvas.move_and_add_strokes(
+        polylines,
+        move_stroke_ids=moved_ids,
+        dx=shift,
+        dy=0.0,
+        style=style,
+        author=Author.AGENT,
+        label="insert_text",
+    )
+    return {
+        "stroke_ids": [s.id for s in strokes],
+        "size": used_size,
+        "region": region.to_list(),
+        "anchor_bbox": box.to_list(),
+        "original_anchor_bbox": original_box.to_list(),
+        "reflow": {"moved_stroke_ids": moved_ids, "dx": shift, "dy": 0.0},
     }
 
 

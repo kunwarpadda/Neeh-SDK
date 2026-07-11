@@ -2,7 +2,7 @@
 
 Protocol identifier: `neeh-tools/v1`
 
-Status: Phase 1 core surface. The eleven tools in [Core tools](#core-tools) are shipped by the
+Status: Phase 1 core surface. The fourteen tools in [Core tools](#core-tools) are shipped by the
 Python reference library. Batching, read pagination, and the event cursor are specified extension
 points and are not currently advertised.
 
@@ -143,8 +143,8 @@ Bindings SHOULD preserve a safe diagnostic in `message` and put machine-actionab
 - Locked layers MUST NOT be mutated. Erase and move MAY skip locked targets, but MUST NOT report a
   skipped target as changed.
 - Every successful mutating call is atomic and creates at most one undo-history entry. This
-  includes `write_text`, even when it creates many strokes. A failed call MUST leave document,
-  selection, and history state unchanged.
+  includes `write_text` and `insert_text`, even when they create many strokes or move existing
+  ink. A failed call MUST leave document, selection, and history state unchanged.
 - A new successful edit clears redo history. `undo` and `redo` replay an already-validated edit
   even if a layer was locked after the original edit.
 - Region selection, erase, and vector filtering use stroke bounding-box intersection in v1, not
@@ -158,6 +158,7 @@ The v1 core contains exactly these names:
 |---|---|---|---|
 | `view_page` | — | `format: svg\|png` (default `svg`) | `{page_id,width,height,format,data}` |
 | `view_region` | `region` | `format: svg\|png` (default `svg`) | `{page_id,region,format,data}` |
+| `fetch_ink_region` | `region` | — | `{page_id,region,grid,svg,bboxes,stroke_count}` |
 | `get_strokes` | — | `region`, `stroke_ids`, `author`, `since_ms`, `visible_only`, `include_points` | `{page_id,width,height,region,stroke_count,strokes}` |
 | `add_stroke` | `points` | `color`, `width`, `brush` | `{stroke_id,bbox}` |
 | `erase` | at least one of `stroke_ids`, `region` | — | `{erased}` |
@@ -165,6 +166,8 @@ The v1 core contains exactly these names:
 | `move` | `dx`, `dy` | `stroke_ids` (default current selection) | `{moved}` |
 | `highlight` | `region` | `color` | `{stroke_id,region}` |
 | `write_text` | `text`, `region` | `style`, `color`, `size` | `{stroke_ids,size,region}` |
+| `mark` | `stroke_ids`, `kind` | `color` | `{stroke_id,kind,anchor_bbox}` |
+| `insert_text` | `text`, `stroke_ids`, `position` | `color`, `size` | `{stroke_ids,size,region,anchor_bbox,original_anchor_bbox,reflow}` |
 | `undo` | — | — | `{undone}` |
 | `redo` | — | — | `{redone}` |
 
@@ -173,6 +176,10 @@ The v1 core contains exactly these names:
 `view_page` and `view_region` return SVG markup in `data` for `format=svg`. For `format=png`,
 `data` is unprefixed base64-encoded PNG bytes. PNG requires the optional renderer; an unavailable
 renderer maps to `render_unavailable`.
+
+`fetch_ink_region` returns compact SVG paths and page-space bounding boxes for visible strokes
+intersecting `region`. Its integer `grid` identifies the coordinate scale used by the SVG; path
+IDs are stable stroke IDs and drawing order follows document order.
 
 `get_strokes` applies all supplied filters conjunctively:
 
@@ -213,6 +220,14 @@ non-destructive agent ink.
 readable size unless a positive `size` is supplied. `style=print` is the only shipped style;
 `style=user_font` is reserved and maps to `capability_unavailable`. All generated glyph strokes
 form one atomic edit.
+
+`mark` adds non-destructive agent ink relative to the union bounding box of `stroke_ids`.
+`kind` is one of `strike`, `circle`, `underline`, or `check`; unknown IDs are invalid.
+
+`insert_text` places print ink `before`, `after`, `above`, or `below` the union bounding box of
+`stroke_ids`. It may shift a bounded set of unlocked user strokes horizontally to open a gap.
+The insertion and any reflow form one atomic edit; locked/non-user obstacles, unsafe shifts, and
+page overflow fail without mutation. The `reflow` result reports moved IDs and translation.
 
 `undo` and `redo` return the edit label that was applied, or `null` when the corresponding stack
 is empty. An empty stack is a successful no-op.
