@@ -66,8 +66,9 @@ How to answer:
   even when there are several fixes. Teacher-style markup is preferred over
   duplicating the user's work.
 - Use write_text only for genuinely new answer content, such as an explanation
-  or result that is not already written on the page. Put that new content in
-  an empty region near the question and leave a little margin.
+  or result that is not already written on the page. Use the handwritten style,
+  put that new content in an empty region near the question, and leave a little
+  margin.
 - insert_text owns placement: it measures the new ink and automatically shifts
   the smallest same-line group needed to open a gap. Do not call move merely
   to make room for inserted text.
@@ -100,7 +101,7 @@ _CODEX_CLI_ACTION_INPUT_SCHEMA = {
         "color": {"type": ["string", "null"]},
         "width": {"type": ["number", "null"]},
         "brush": {"type": ["string", "null"], "enum": ["pen", "marker", "highlighter", None]},
-        "style": {"type": ["string", "null"], "enum": ["print", None]},
+        "style": {"type": ["string", "null"], "enum": ["handwritten", None]},
         "size": {"type": ["number", "null"]},
         "stroke_ids": {"type": ["array", "null"], "items": {"type": "string"}},
         "kind": {"type": ["string", "null"],
@@ -294,7 +295,8 @@ def _codex_cli_tool_contract() -> list[dict[str, Any]]:
             "purpose": "write genuinely new answer content in blank space; NEVER use "
                        "this to reproduce or correct a line already on the page",
             "required": {"text": "string", "region": "[min_x,min_y,max_x,max_y]"},
-            "optional": {"color": f"hex, prefer {AGENT_INK}", "style": "print only", "size": "number"},
+            "optional": {"color": f"hex, prefer {AGENT_INK}",
+                         "style": "handwritten (applied by default)", "size": "number"},
         },
         {
             "name": "highlight",
@@ -444,7 +446,7 @@ Rules:
 - Use at most {MAX_PLANNED_ACTIONS} actions.
 - The output schema uses one shared input object; set unrelated fields to null.
 - Use write_text only for genuinely new answer content, in color {AGENT_INK}.
-- If you set write_text style, it MUST be "print"; user_font is not available.
+- Agent text uses the "handwritten" style so it looks written rather than typeset.
 - Make the SMALLEST edit that answers. When correcting the user's writing,
   mark it up in place instead of rewriting it: insert_text adds missing
   characters next to ink you name by stroke id, mark strikes/circles/
@@ -509,11 +511,10 @@ def _apply_planned_actions(
         if name not in _CODEX_CLI_TOOL_NAMES or not isinstance(arguments, dict):
             continue
         arguments = {key: value for key, value in arguments.items() if value is not None}
-        # Older prompts advertised the reserved user_font style even though
-        # write_text cannot execute it.  Treat cached/legacy planner output as
-        # the available print style instead of silently producing no ink.
-        if name == "write_text" and arguments.get("style") == "user_font":
-            arguments["style"] = "print"
+        # Model-written answer text always uses the distinct agent hand,
+        # regardless of stale planner output or an omitted style.
+        if name == "write_text":
+            arguments["style"] = "handwritten"
         try:
             if name == "move":
                 if not arguments.get("stroke_ids"):
@@ -610,6 +611,7 @@ Rules:
 - Use at most {MAX_PLANNED_ACTIONS} actions.
 - The output schema uses one shared input object; set unrelated fields to null.
 - Use write_text only for genuinely new answer content, in color {AGENT_INK}.
+- Agent text uses the "handwritten" style so it looks written rather than typeset.
 - Make the SMALLEST edit that answers. When correcting the user's writing,
   mark it up in place instead of rewriting it: insert_text adds missing
   characters next to ink you name by stroke id, mark strikes/circles/
@@ -739,6 +741,7 @@ def run_mock(
         "text": "Mock agent: I see your ink! Run codex login status if Codex CLI is unavailable.",
         "region": [60.0, top, page.width - 60.0, top + 110.0],
         "color": AGENT_INK,
+        "style": "handwritten",
     })
     return {"reply": "Mock reply: highlighted your ink and wrote a note below it.",
             "actions": actions}

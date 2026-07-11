@@ -129,6 +129,7 @@ The C interface is declared in [`cpp/include/neeh/c_api.h`](cpp/include/neeh/c_a
 
 `examples/assistant/` is a local browser demo built on the reusable adapters in `neeh.agents`.
 It can use an existing Codex CLI or Claude CLI login and includes a mock backend for offline use.
+Agent answers use blue ink with the cursive Hershey Script Complex face.
 See the [assistant example guide](examples/assistant/README.md).
 
 ## Development

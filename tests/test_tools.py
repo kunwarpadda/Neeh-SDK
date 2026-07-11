@@ -197,10 +197,14 @@ def test_non_object_arguments_are_rejected_without_executing(arguments):
     assert canvas.history.can_undo is True
 
 
-def test_write_text_prints_ink_and_user_font_is_reserved():
+def test_write_text_defaults_to_agent_hand_and_user_font_is_reserved():
     canvas = Canvas()
     result = call_tool(canvas, "write_text", {"text": "hi", "region": [0, 0, 100, 40]})
     assert result["stroke_ids"]
+    assert result["style"] == "handwritten"
+    assert get_tool("write_text").parameters["properties"]["style"]["enum"] == [
+        "print", "handwritten"
+    ]
     with pytest.raises(NotImplementedError):
         call_tool(
             canvas, "write_text",
@@ -272,6 +276,7 @@ def test_insert_text_before_and_after_hug_the_anchor():
     )
     assert after["region"][0] >= 320
     for result in (before, after):
+        assert result["style"] == "handwritten"
         for sid in result["stroke_ids"]:
             _, stroke = canvas.page.find(sid)
             assert stroke.author is Author.AGENT

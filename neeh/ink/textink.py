@@ -1,114 +1,163 @@
 """Text as ink: lay out a string as single-stroke polylines.
 
-This is the "print" style behind the `write_text` tool — a legible,
-dependency-free stroke font (Hershey Simplex) so agents can answer in ink.
-The user-font style (handwriting cloned from the user's own strokes) stays
-reserved for the Neeh app's text-layout extraction.
+Print uses Hershey Roman Simplex. Handwritten text uses Hershey Script Complex,
+a true cursive stroke face with calligraphic weight and connected letterforms.
 """
 from __future__ import annotations
 
 from typing import Optional
 
 from neeh.ink.geometry import BoundingBox
-from neeh.ink.hershey_simplex import BASELINE, CAP_HEIGHT, GLYPHS
+from neeh.ink.hershey_script_complex import GLYPHS as SCRIPT_GLYPHS
+from neeh.ink.hershey_simplex import BASELINE, CAP_HEIGHT, GLYPHS as PRINT_GLYPHS
 
 LINE_HEIGHT = 1.6  # baseline-to-baseline distance, in multiples of size
 MIN_SIZE = 4.0  # page units; below this text is unreadable anyway
 
 Polyline = list[tuple[float, float]]
+TEXT_STYLES = ("print", "handwritten")
 
 
-def _glyph(ch: str):
-    return GLYPHS.get(ch) or GLYPHS["?"]
+def _validate_style(style: str) -> None:
+    if style not in TEXT_STYLES:
+        raise ValueError(f"style must be one of {TEXT_STYLES}")
 
 
-def _word_advance(word: str) -> float:
-    """Advance width of a word in font units."""
-    return sum(_glyph(ch)[0] for ch in word)
+def _font(style: str):
+    return SCRIPT_GLYPHS if style == "handwritten" else PRINT_GLYPHS
 
 
-def _wrap(text: str, size: float, max_width: float) -> list[list[str]]:
+def _glyph(ch: str, font):
+    return font.get(ch) or font["?"]
+
+
+def _line_bounds(text: str, font) -> tuple[float, float, float, float]:
+    """Font-unit bounds including cursive side bearings and flourishes."""
+    cursor = 0.0
+    min_x = 0.0
+    max_x = 0.0
+    min_y = -12.0
+    max_y = 9.0
+    for ch in text:
+        advance, strokes = _glyph(ch, font)
+        for stroke in strokes:
+            for gx, gy in stroke:
+                min_x = min(min_x, cursor + gx)
+                max_x = max(max_x, cursor + gx)
+                min_y = min(min_y, gy)
+                max_y = max(max_y, gy)
+        cursor += advance
+        max_x = max(max_x, cursor)
+    return min_x, max_x, min_y, max_y
+
+
+def _line_width(words: list[str], font) -> float:
+    min_x, max_x, _, _ = _line_bounds(" ".join(words), font)
+    return max_x - min_x
+
+
+def _line_height(style: str) -> float:
+    return 1.85 if style == "handwritten" else LINE_HEIGHT
+
+
+def _wrap(text: str, size: float, max_width: float, style: str) -> list[list[str]]:
     """Greedy word wrap; explicit newlines are respected."""
     scale = size / CAP_HEIGHT
-    space = GLYPHS[" "][0] * scale
+    font = _font(style)
     lines: list[list[str]] = []
     for raw_line in text.split("\n"):
         current: list[str] = []
-        used = 0.0
         for word in raw_line.split():
-            w = _word_advance(word) * scale
-            needed = w if not current else space + w
-            if current and used + needed > max_width:
+            candidate = [*current, word]
+            if current and _line_width(candidate, font) * scale > max_width:
                 lines.append(current)
-                current, used = [word], w
+                current = [word]
             else:
-                current.append(word)
-                used += needed
+                current = candidate
         lines.append(current)  # may be empty: a blank line
     return lines
 
 
-def _fits(lines: list[list[str]], size: float, region: BoundingBox) -> bool:
+def _block_height(lines: list[list[str]], size: float, style: str) -> float:
+    if not lines:
+        return 0.0
+    font = _font(style)
+    _, _, first_min_y, _ = _line_bounds(" ".join(lines[0]), font)
+    _, _, _, last_max_y = _line_bounds(" ".join(lines[-1]), font)
     scale = size / CAP_HEIGHT
-    if size + (len(lines) - 1) * size * LINE_HEIGHT > region.height:
+    return ((len(lines) - 1) * size * _line_height(style)
+            + (last_max_y - first_min_y) * scale)
+
+
+def _fits(lines: list[list[str]], size: float, region: BoundingBox, style: str) -> bool:
+    scale = size / CAP_HEIGHT
+    if _block_height(lines, size, style) > region.height:
         return False
-    space = GLYPHS[" "][0] * scale
+    font = _font(style)
     for line in lines:
-        width = sum(_word_advance(w) * scale for w in line) + max(len(line) - 1, 0) * space
-        if width > region.width:
+        if _line_width(line, font) * scale > region.width:
             return False
     return True
 
 
-def measure_text(text: str, size: float) -> tuple[float, float]:
+def measure_text(text: str, size: float, style: str = "print") -> tuple[float, float]:
     """Width and height in page units of `text` at cap height `size`,
     honoring explicit newlines but never word-wrapping. Uses the same glyph
     metrics as layout_text, so a region sized from this always fits."""
+    _validate_style(style)
     scale = size / CAP_HEIGHT
-    space = GLYPHS[" "][0] * scale
-    lines = text.split("\n")
+    font = _font(style)
+    lines = [raw.split() for raw in text.split("\n")]
     width = 0.0
-    for raw in lines:
-        words = raw.split()
-        w = sum(_word_advance(word) * scale for word in words)
-        w += max(len(words) - 1, 0) * space
-        width = max(width, w)
-    return width, size + (len(lines) - 1) * size * LINE_HEIGHT
+    for words in lines:
+        width = max(width, _line_width(words, font) * scale)
+    return width, _block_height(lines, size, style)
 
 
 def layout_text(
-    text: str, region: BoundingBox, size: Optional[float] = None
+    text: str,
+    region: BoundingBox,
+    size: Optional[float] = None,
+    style: str = "print",
 ) -> tuple[list[Polyline], float]:
     """Lay `text` out inside `region`, top-left aligned.
 
     `size` is the cap height in page units; when omitted, the largest size
     that fits the region (wrapping at word boundaries) is chosen, floored at
     MIN_SIZE — long text degrades to small ink, never to an exception.
-    Alignment is by cap height: a few tall glyphs (parentheses, 't', '?')
-    and descenders may overshoot the region by up to 4/21 of the size.
+    Cursive side bearings, ascenders, descenders, and flourishes are included
+    in measurement and kept inside the region.
     Returns (polylines in page coordinates, size used).
     """
+    _validate_style(style)
     if size is None:
         size = max(region.height / (LINE_HEIGHT * 2), MIN_SIZE)  # generous start
-        while size > MIN_SIZE and not _fits(_wrap(text, size, region.width), size, region):
+        while size > MIN_SIZE and not _fits(
+            _wrap(text, size, region.width, style), size, region, style
+        ):
             size *= 0.9
         size = max(size, MIN_SIZE)
 
     scale = size / CAP_HEIGHT
-    space = GLYPHS[" "][0] * scale
+    font = _font(style)
+    space = font[" "][0] * scale
     polylines: list[Polyline] = []
-    baseline = region.min_y + size  # first baseline: cap top touches the region top
-    for line in _wrap(text, size, region.width):
-        x = region.min_x
+    lines = _wrap(text, size, region.width, style)
+    _, _, first_min_y, _ = _line_bounds(" ".join(lines[0]) if lines else "", font)
+    baseline = region.min_y + (BASELINE - first_min_y) * scale
+    for line in lines:
+        min_x, _, _, _ = _line_bounds(" ".join(line), font)
+        x = region.min_x - min_x * scale
         for i, word in enumerate(line):
             if i:
                 x += space
             for ch in word:
-                advance, strokes = _glyph(ch)
+                advance, strokes = _glyph(ch, font)
                 for stroke in strokes:
-                    polylines.append(
-                        [(x + gx * scale, baseline + (gy - BASELINE) * scale) for gx, gy in stroke]
-                    )
+                    polylines.append([
+                        (x + gx * scale, baseline + (gy - BASELINE) * scale)
+                        for gx, gy in stroke
+                    ])
                 x += advance * scale
-        baseline += size * LINE_HEIGHT
+        baseline += size * _line_height(style)
     return polylines, size

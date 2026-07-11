@@ -44,7 +44,9 @@ result = run_codex_cli(canvas, "Answer the question on the page")
 
 Planned actions are restricted to a small allowlist and bounded action count. Relative
 corrections use stroke IDs through `insert_text` and `mark`; explicit `move` calls are limited to
-small offsets. Agent-created strokes are stored on the agent layer and remain undoable.
+small offsets. Blue agent text uses the cursive Hershey Script Complex face so it remains visually
+distinct from regular print. Agent-created strokes are stored on the agent layer and remain
+undoable.
 
 ## Endpoints
 

@@ -1,8 +1,8 @@
-Hershey Simplex font data
-=========================
+Hershey font data
+=================
 
-Neeh includes a converted subset of the Hershey Fonts from the futural.jhf
-data distributed by the hershey-fonts project:
+Neeh includes converted subsets of the Hershey Fonts from the futural.jhf and
+scriptc.jhf data distributed by the hershey-fonts project:
 
 https://github.com/kamalmostafa/hershey-fonts
 

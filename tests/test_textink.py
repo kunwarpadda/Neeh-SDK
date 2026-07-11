@@ -3,6 +3,7 @@ import pytest
 
 from neeh.canvas import Canvas
 from neeh.ink import Author, BoundingBox
+from neeh.ink.hershey_simplex import GLYPHS
 from neeh.ink.textink import MIN_SIZE, layout_text
 from neeh.tools import call_tool
 
@@ -48,14 +49,41 @@ def test_unknown_chars_fall_back_instead_of_crashing():
     assert polylines
 
 
+def test_handwritten_style_is_distinct_deterministic_and_bounded():
+    box = BoundingBox(100, 200, 700, 360)
+    printed, _ = layout_text("The quick brown fox 123", box, size=36, style="print")
+    handwritten, _ = layout_text(
+        "The quick brown fox 123", box, size=36, style="handwritten"
+    )
+    repeated, _ = layout_text(
+        "The quick brown fox 123", box, size=36, style="handwritten"
+    )
+
+    assert handwritten == repeated
+    assert handwritten != printed
+    assert len(handwritten) > len(printed)  # Script Complex adds calligraphic strokes.
+    xs = [x for x, _ in flatten(handwritten)]
+    assert min(xs) >= box.min_x and max(xs) <= box.max_x
+
+
+def test_handwritten_style_keeps_all_supported_glyphs_inside_their_line():
+    box = BoundingBox(0, 0, 10000, 200)
+    text = "".join(ch for ch in GLYPHS if not ch.isspace())
+    handwritten, _ = layout_text(text, box, size=20, style="handwritten")
+    xs = [x for x, _ in flatten(handwritten)]
+    assert min(xs) >= box.min_x and max(xs) <= box.max_x
+
+
 def test_write_text_tool_is_agent_ink_and_one_undo():
     canvas = Canvas()
     result = call_tool(
         canvas,
         "write_text",
-        {"text": "6x", "region": [100, 100, 400, 200], "color": "#1d4ed8"},
+        {"text": "6x", "region": [100, 100, 400, 200], "color": "#1d4ed8",
+         "style": "handwritten"},
     )
     assert result["stroke_ids"]
+    assert result["style"] == "handwritten"
     agent_layer = canvas.page.agent_layer()
     assert {s.id for s in agent_layer.strokes} == set(result["stroke_ids"])
     assert all(s.author is Author.AGENT for s in agent_layer.strokes)

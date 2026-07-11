@@ -24,6 +24,7 @@ def test_agent_input_preview_exposes_compact_and_auditable_views():
     assert "User instruction: Explain this" in full["prompt"]
     assert "Use at most 6 actions" in full["prompt"]
     assert "NEVER use write_text to reproduce" in full["prompt"]
+    assert 'uses the "handwritten" style' in full["prompt"]
     assert {tool["name"] for tool in full["tool_schemas"]} == {
         "add_stroke", "highlight", "insert_text", "mark", "move", "write_text",
     }
@@ -77,6 +78,7 @@ def test_mock_runner_uses_the_real_undoable_agent_tool_path():
     result = run_mock(canvas)
 
     assert [action["tool"] for action in result["actions"]] == ["highlight", "write_text"]
+    assert result["actions"][1]["input"]["style"] == "handwritten"
     assert all(stroke.author == Author.AGENT for stroke in canvas.page.agent_layer().strokes)
     assert canvas.undo() == "add_strokes"
 
@@ -116,12 +118,14 @@ def test_codex_cli_runner_applies_valid_planned_actions(monkeypatch):
     assert result["reply"] == "Wrote a short answer."
     assert result["actions"][0]["tool"] == "write_text"
     assert result["actions"][0]["output"]["stroke_ids"]
+    assert result["actions"][0]["input"]["style"] == "handwritten"
+    assert result["actions"][0]["output"]["style"] == "handwritten"
     assert json.loads(result["raw_model_output"])["reply"] == "Wrote a short answer."
     assert seen[0][0] == "write_text"
     assert canvas.page.agent_layer().strokes
 
 
-def test_codex_cli_reserved_user_font_is_rendered_as_print(monkeypatch):
+def test_codex_cli_reserved_user_font_is_rendered_as_agent_hand(monkeypatch):
     from neeh.agents import assistant
 
     canvas = Canvas()
@@ -153,7 +157,8 @@ def test_codex_cli_reserved_user_font_is_rendered_as_print(monkeypatch):
     result = run_codex_cli(canvas)
 
     action = result["actions"][0]
-    assert action["input"]["style"] == "print"
+    assert action["input"]["style"] == "handwritten"
+    assert action["output"]["style"] == "handwritten"
     assert action["output"]["stroke_ids"]
     assert canvas.page.agent_layer().strokes
 
@@ -191,6 +196,8 @@ def test_claude_cli_runner_applies_valid_planned_actions(monkeypatch):
 
     assert result["reply"] == "Wrote a short answer."
     assert result["actions"][0]["tool"] == "write_text"
+    assert result["actions"][0]["input"]["style"] == "handwritten"
+    assert result["actions"][0]["output"]["style"] == "handwritten"
     assert json.loads(result["raw_model_output"])["structured_output"]["reply"] == "Wrote a short answer."
     assert seen[0][0] == "write_text"
     assert canvas.page.agent_layer().strokes

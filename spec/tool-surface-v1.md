@@ -125,9 +125,9 @@ than truncate it silently.
 | `select` | — | `stroke_ids` or `region` | `{selected,bounds}` |
 | `move` | `dx`, `dy` | `stroke_ids` | `{moved}` |
 | `highlight` | `region` | `color` | `{stroke_id,region}` |
-| `write_text` | `text`, `region` | `style`, `color`, `size` | `{stroke_ids,size,region}` |
+| `write_text` | `text`, `region` | `style`, `color`, `size` | `{stroke_ids,size,region,style}` |
 | `mark` | `stroke_ids`, `kind` | `color` | `{stroke_id,kind,anchor_bbox}` |
-| `insert_text` | `text`, `stroke_ids`, `position` | `color`, `size` | `{stroke_ids,size,region,anchor_bbox,original_anchor_bbox,reflow}` |
+| `insert_text` | `text`, `stroke_ids`, `position` | `color`, `size` | `{stroke_ids,size,region,anchor_bbox,original_anchor_bbox,reflow,style}` |
 | `undo` | — | — | `{undone}` |
 | `redo` | — | — | `{redone}` |
 
@@ -171,14 +171,15 @@ preserves IDs, author, style, capture time, and layer, and returns the number mo
 
 `highlight` adds one non-destructive highlighter stroke through the center of `region`.
 
-`write_text` lays out print glyph strokes inside `region`, wrapping and auto-sizing unless a
-positive `size` is supplied. `style=print` is the only advertised style. All glyph strokes form
-one undoable edit.
+`write_text` lays out glyph strokes inside `region`, wrapping and auto-sizing unless a positive
+`size` is supplied. `style=print` provides regular single-stroke lettering;
+`style=handwritten` uses the cursive Hershey Script Complex face and is the default. All glyph
+strokes form one undoable edit.
 
 `mark` adds non-destructive agent ink relative to the union bounding box of `stroke_ids`. `kind`
 MUST be `strike`, `circle`, `underline`, or `check`. Unknown IDs are invalid.
 
-`insert_text` places print ink `before`, `after`, `above`, or `below` the union bounding box of
+`insert_text` places handwritten ink `before`, `after`, `above`, or `below` the union bounding box of
 `stroke_ids`. It MAY shift a bounded set of unlocked user strokes horizontally to open a gap. The
 insertion and reflow MUST form one atomic edit. Locked or non-user obstacles, unsafe shifts, and
 page overflow MUST fail without mutation. `reflow` reports moved IDs and translation.

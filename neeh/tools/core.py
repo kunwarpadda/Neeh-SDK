@@ -358,17 +358,18 @@ def highlight(canvas: Canvas, region: Sequence[float], color: str = "#ffe066") -
     "write_text",
     "Write text into a region as ink strokes on the agent layer. The text is laid out "
     "top-left in the region, word-wrapped, auto-sized to fit (largest readable size). "
-    "Style 'print' is a clean single-stroke font; 'user_font' is reserved.",
+    "Style 'print' is a clean single-stroke font; 'handwritten' uses the "
+    "calligraphic Hershey Script Complex face. 'user_font' is reserved.",
     {
         "type": "object",
         "properties": {
             "text": {"type": "string"},
             "region": _REGION_SCHEMA,
-            # Do not advertise reserved implementations to agents.  The
-            # function still rejects user_font explicitly for callers that
-            # send it, but generated tool calls must only choose a style that
-            # can actually be executed.
-            "style": {"type": "string", "enum": ["print"]},
+            "style": {
+                "type": "string",
+                "enum": ["print", "handwritten"],
+                "default": "handwritten",
+            },
             "color": {"type": "string", "description": "Hex color, e.g. #1d4ed8"},
             "size": {
                 "type": "number",
@@ -383,18 +384,19 @@ def write_text(
     canvas: Canvas,
     text: str,
     region: Sequence[float],
-    style: str = "print",
+    style: str = "handwritten",
     color: Optional[str] = None,
     size: Optional[float] = None,
 ) -> dict[str, Any]:
-    if style not in ("print", "user_font"):
-        raise ValueError("style must be 'print' or 'user_font'")
     if style == "user_font":
         raise NotImplementedError(
-            "the user_font style ships with the handwriting extraction from the Neeh app "
-            "(NEEH_SDK_PLAN §3); use style='print' for now"
+            "user_font requires a host-provided handwriting model; use "
+            "style='handwritten' or style='print'"
         )
-    from neeh.ink.textink import layout_text
+    from neeh.ink.textink import TEXT_STYLES, layout_text
+
+    if style not in TEXT_STYLES:
+        raise ValueError(f"style must be one of {TEXT_STYLES}")
 
     if not isinstance(text, str):
         raise ValueError("text must be a string")
@@ -403,13 +405,14 @@ def write_text(
         if size <= 0:
             raise ValueError("size must be positive")
     box = _region(region)
-    polylines, used_size = layout_text(text, box, size=size)
+    polylines, used_size = layout_text(text, box, size=size, style=style)
     stroke_style = StrokeStyle(color=color or "#1a1a1a", width=max(used_size / 12.0, 0.8))
     strokes = canvas.add_strokes(polylines, style=stroke_style, author=Author.AGENT)
     return {
         "stroke_ids": [s.id for s in strokes],
         "size": used_size,
         "region": box.to_list(),
+        "style": style,
     }
 
 
@@ -637,7 +640,8 @@ def insert_text(
         # hint in that case, capped so long rules do not create giant text.
         extent = box.height if box.height >= MIN_SIZE else min(box.width, 48.0)
         size = max(extent * 0.9, MIN_SIZE)
-    w, h = measure_text(text, size)
+    text_style = "handwritten"
+    w, h = measure_text(text, size, style=text_style)
     w += 0.5  # epsilon so layout_text's wrap check never triggers
     gap = max(size * 0.25, 2.0)
     page = canvas.page
@@ -662,7 +666,7 @@ def insert_text(
             f"no room {position!r} the anchor at size {size:g}; "
             f"try another position or a smaller size"
         )
-    polylines, used_size = layout_text(text, region, size=size)
+    polylines, used_size = layout_text(text, region, size=size, style=text_style)
     style = StrokeStyle(color=color or "#1a1a1a", width=max(used_size / 12.0, 0.8))
     strokes, moved_ids = canvas.move_and_add_strokes(
         polylines,
@@ -680,6 +684,7 @@ def insert_text(
         "anchor_bbox": box.to_list(),
         "original_anchor_bbox": original_box.to_list(),
         "reflow": {"moved_stroke_ids": moved_ids, "dx": shift, "dy": 0.0},
+        "style": text_style,
     }
 
 
