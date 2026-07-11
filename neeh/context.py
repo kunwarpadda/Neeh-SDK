@@ -7,6 +7,7 @@ image bytes are embedded in the returned mapping.
 """
 from __future__ import annotations
 
+import json
 import math
 import re
 from collections.abc import Iterable, Mapping, Sequence
@@ -545,11 +546,40 @@ def _select_strokes_v1(
     return matches, stroke_count
 
 
+def _rdp_polyline(
+    points: list[tuple[float, float]], eps: float
+) -> list[tuple[float, float]]:
+    """Ramer-Douglas-Peucker: drop points within `eps` of the chord.
+
+    Simplification measurably *improves* model comprehension of the paths in
+    addition to shrinking them (research/results/real-ink-findings.md, E7vS).
+    """
+    if len(points) < 3:
+        return list(points)
+    (x0, y0), (x1, y1) = points[0], points[-1]
+    dx, dy = x1 - x0, y1 - y0
+    norm = math.hypot(dx, dy)
+    dmax, idx = 0.0, 0
+    for i in range(1, len(points) - 1):
+        px, py = points[i]
+        if norm:
+            d = abs(dy * (px - x0) - dx * (py - y0)) / norm
+        else:
+            d = math.hypot(px - x0, py - y0)
+        if d > dmax:
+            dmax, idx = d, i
+    if dmax <= eps:
+        return [points[0], points[-1]]
+    left = _rdp_polyline(points[: idx + 1], eps)
+    return left[:-1] + _rdp_polyline(points[idx:], eps)
+
+
 def _paths_svg(
     page: Page,
     strokes: list[Stroke],
     grid_long_edge: int,
     resample_grid_step: float,
+    simplify_eps_grid: Optional[float] = None,
 ) -> tuple[str, int, int]:
     scale = grid_long_edge / max(page.width, page.height)
     grid_w = round(page.width * scale)
@@ -563,6 +593,8 @@ def _paths_svg(
         resampled = _resample_polyline(
             [(p.x, p.y) for p in stroke.points], step_page
         )
+        if simplify_eps_grid is not None:
+            resampled = _rdp_polyline(resampled, simplify_eps_grid / scale)
         gx = [round(x * scale) for x, _ in resampled]
         gy = [round(y * scale) for _, y in resampled]
         d = f"M{gx[0]} {gy[0]}"
@@ -620,6 +652,8 @@ def build_ink_context_v1(
     resample_grid_step: float = DEFAULT_RESAMPLE_GRID_STEP,
     raster: str = "none",
     stroke_bboxes: bool = False,
+    simplify_eps_grid: Optional[float] = None,
+    char_budget: Optional[int] = None,
     semantics: Optional[Iterable[Union[SemanticItem, Mapping[str, Any]]]] = None,
 ) -> dict[str, Any]:
     """Build a deterministic ``ink-context/v1-draft`` snapshot.
@@ -635,9 +669,40 @@ def build_ink_context_v1(
     (research/results/real-ink-findings.md). Bboxes are page units, never grid
     units: coordinates a consumer might echo into tool calls must not need a
     frame conversion.
+
+    ``simplify_eps_grid`` runs RDP simplification (tolerance in grid units)
+    on each path — measured to *improve* structure-task comprehension while
+    cutting characters (E7vS result). ``char_budget`` enables rate control:
+    the builder walks a fidelity ladder (finer grids first) and returns the
+    highest-fidelity payload whose serialized JSON fits the budget; the
+    chosen operating point is recorded in ``ink.rate_point``. Explicit
+    ``grid_long_edge``/``simplify_eps_grid`` are ignored in budget mode.
     """
     if raster not in ("none", "attached_image"):
         raise InkContextError("raster must be 'none' or 'attached_image'")
+    if char_budget is not None:
+        char_budget = _integer(char_budget, "char_budget", minimum=1)
+        common = dict(
+            page=page, region=region, visible_only=visible_only,
+            max_strokes=max_strokes, resample_grid_step=resample_grid_step,
+            raster=raster, stroke_bboxes=stroke_bboxes, semantics=semantics,
+        )
+        # Fidelity ladder, best first (grid, simplify_eps_grid); measured
+        # rate-distortion points — see results/embedded-coding-exhibit.md.
+        ladder = [(512, None), (256, None), (256, 1.0), (128, 1.0), (128, 2.0)]
+        chosen = None
+        for grid, eps in ladder:
+            candidate = build_ink_context_v1(
+                source, grid_long_edge=grid, simplify_eps_grid=eps, **common
+            )
+            candidate["ink"]["rate_point"] = {
+                "grid_long_edge": grid, "simplify_eps_grid": eps,
+                "char_budget": char_budget,
+            }
+            chosen = candidate
+            if len(json.dumps(candidate, separators=(",", ":"))) <= char_budget:
+                return candidate
+        return chosen  # budget unreachable: coarsest point, honestly labeled
 
     selected_page = _resolve_page(source, page)
     selected_region = None if region is None else _box(region, "region")
@@ -662,8 +727,13 @@ def build_ink_context_v1(
     included, stroke_count = _select_strokes_v1(
         selected_page, selected_region, visible_only, max_strokes
     )
+    if simplify_eps_grid is not None:
+        simplify_eps_grid = _finite_number(simplify_eps_grid, "simplify_eps_grid")
+        if simplify_eps_grid <= 0:
+            raise InkContextError("simplify_eps_grid must be positive")
     svg, grid_w, grid_h = _paths_svg(
-        selected_page, included, grid_long_edge, resample_grid_step
+        selected_page, included, grid_long_edge, resample_grid_step,
+        simplify_eps_grid,
     )
     included_ids = {stroke.id for stroke in included}
     if len(included_ids) != len(included):

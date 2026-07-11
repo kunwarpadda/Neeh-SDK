@@ -1,5 +1,7 @@
 """ink-context/v1-draft builder: golden output, envelope invariants, and
 byte-identity with the evaluated harness arm E7v/0.1.0."""
+import json
+
 import pytest
 
 from neeh import (
@@ -105,6 +107,33 @@ def test_raster_tier_and_validation():
         build_ink_context_v1(page, raster="inline_base64")
     with pytest.raises(InkContextError):
         build_ink_paths(page, resample_grid_step=0)
+
+
+def test_simplify_eps_grid_shrinks_svg_keeps_ids():
+    page = _page_with([_stroke("st_a", [(100.0 + i * 10, 100.0 + (i % 2)) for i in range(40)])])
+    plain = build_ink_context_v1(page)
+    simplified = build_ink_context_v1(page, simplify_eps_grid=1.0)
+    assert len(simplified["ink"]["svg"]) < len(plain["ink"]["svg"])
+    assert 'id="st_a"' in simplified["ink"]["svg"]
+
+
+def test_char_budget_rate_control():
+    strokes = [
+        _stroke(f"st_{i}", [(50.0 + i * 20 + j * 4.0, 200.0 + (j % 3)) for j in range(30)])
+        for i in range(8)
+    ]
+    page = _page_with(strokes)
+    generous = build_ink_context_v1(page, char_budget=100_000)
+    assert generous["ink"]["rate_point"]["grid_long_edge"] == 512  # best fits
+    tight_budget = 1200
+    tight = build_ink_context_v1(page, char_budget=tight_budget)
+    assert tight["ink"]["rate_point"]["grid_long_edge"] <= 256
+    assert len(json.dumps(tight, separators=(",", ":"))) <= tight_budget
+    # Unreachable budget: coarsest point returned, honestly labeled.
+    floor = build_ink_context_v1(page, char_budget=1)
+    assert floor["ink"]["rate_point"] == {
+        "grid_long_edge": 128, "simplify_eps_grid": 2.0, "char_budget": 1,
+    }
 
 
 def test_stroke_bboxes_are_page_units():

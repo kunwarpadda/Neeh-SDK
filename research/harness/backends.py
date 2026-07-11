@@ -49,6 +49,11 @@ def _which(binary: str, env_var: str) -> str:
     return path
 
 
+def _image_media_type(data: bytes) -> str:
+    """Sniff the attachment format — E8j ships JPEG through the same field."""
+    return "image/jpeg" if data[:3] == b"\xff\xd8\xff" else "image/png"
+
+
 class ClaudeCliBackend:
     """One-shot `claude -p` calls with a pinned model."""
 
@@ -66,7 +71,7 @@ class ClaudeCliBackend:
                 "type": "image",
                 "source": {
                     "type": "base64",
-                    "media_type": "image/png",
+                    "media_type": _image_media_type(image_png),
                     "data": base64.b64encode(image_png).decode("ascii"),
                 },
             })
@@ -163,7 +168,8 @@ class CodexCliBackend:
                 "--output-last-message", str(output_path),
             ]
             if image_png is not None:
-                image_path = tmp / "page.png"
+                suffix = "jpg" if _image_media_type(image_png) == "image/jpeg" else "png"
+                image_path = tmp / f"page.{suffix}"
                 image_path.write_bytes(image_png)
                 command.extend(["--image", str(image_path)])
             if self._cli_model != "default":

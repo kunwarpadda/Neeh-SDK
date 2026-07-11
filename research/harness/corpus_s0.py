@@ -163,6 +163,43 @@ def make_text_page(index: int, seed: int, jitter: float = 0.0) -> CorpusPage:
     )
 
 
+def make_dense_text_page(index: int, seed: int, jitter: float = 0.0) -> CorpusPage:
+    """3x8 grid of words (~200+ strokes): the H7 foveated-context corpus (S0d).
+
+    Dense enough that full static context is genuinely expensive, so the
+    pull-vs-push comparison has something to save."""
+    tag = f"s0d{seed}_{index:02d}"
+    rng = random.Random(f"{seed}:dense:{index}")
+    factory = _StrokeFactory(tag, random.Random(f"{seed}:dense:{index}:jitter:{jitter}"), jitter)
+    document, page, layer = _make_page(tag)
+
+    n_words = 24
+    words = rng.sample(WORDS, min(n_words, len(WORDS)))
+    truth: list[dict[str, Any]] = []
+    cells = [(col, row) for row in range(8) for col in range(3)]  # row-major
+    for order, word in enumerate(words):
+        col, row = cells[order]
+        x0 = 40.0 + col * 320.0
+        y0 = 80.0 + row * 165.0
+        box = BoundingBox(x0, y0, x0 + 290.0, y0 + 70.0)
+        polylines, _ = layout_text(word, box, size=30.0)
+        stroke_ids = []
+        for polyline in polylines:
+            stroke = layer.add(factory.make(polyline))
+            stroke_ids.append(stroke.id)
+        bbox = BoundingBox.union_all(layer.get(sid).bbox for sid in stroke_ids)
+        truth.append({
+            "word": word,
+            "order": order,
+            "stroke_ids": stroke_ids,
+            "bbox": bbox.to_list(),
+        })
+    return CorpusPage(
+        document=document, page=page, kind="text", seed=seed, jitter=jitter,
+        words=tuple(truth),
+    )
+
+
 def make_shape_page(index: int, seed: int, jitter: float = 0.0) -> CorpusPage:
     """3-4 distinct shapes, each fully inside its own quadrant."""
     tag = f"s0s{seed}_{index:02d}"

@@ -353,6 +353,32 @@ def encode_e8s(page: Page) -> EncodedContext:
     return _encode_e8("E8s", "E8s/0.1.0", page, raster_scale=0.25, simplify=True)
 
 
+def _jpeg_bytes(png_bytes: bytes, quality: int = 40) -> bytes:
+    import io
+
+    from PIL import Image
+
+    img = Image.open(io.BytesIO(png_bytes)).convert("RGB")
+    out = io.BytesIO()
+    img.save(out, "JPEG", quality=quality)
+    return out.getvalue()
+
+
+def encode_e8j(page: Page) -> EncodedContext:
+    """E8 (half-scale raster) but JPEG q40 instead of PNG — the byte-metering
+    probe. If providers charge by pixel dimensions, E8j costs the same tokens
+    as E8 and the JPEG only saves upload bytes; if bytes matter anywhere in
+    the chain, this measures it. Artifacts may also tax legibility — that is
+    part of what the arm tests."""
+    from neeh.rendering.png import render_page_png
+
+    return EncodedContext(
+        arm="E8j", version="E8j/0.1.0", legend=E8_LEGEND,
+        text=_compact_svg(page, with_bboxes=True),
+        image_png=_jpeg_bytes(render_page_png(page, scale=0.5)),
+    )
+
+
 def encode_e7vs(page: Page) -> EncodedContext:
     return EncodedContext(
         arm="E7vS", version="E7vS/0.1.0", legend=E7V_LEGEND,
@@ -423,6 +449,7 @@ ENCODERS: dict[str, Callable[[Page], EncodedContext]] = {
     "E8": encode_e8,
     "E8q": encode_e8q,
     "E8s": encode_e8s,
+    "E8j": encode_e8j,
     "E7v128": encode_e7v128,
     "E7v512": encode_e7v512,
     "CTRL": encode_ctrl,
