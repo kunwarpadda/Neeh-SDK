@@ -364,7 +364,11 @@ def highlight(canvas: Canvas, region: Sequence[float], color: str = "#ffe066") -
         "properties": {
             "text": {"type": "string"},
             "region": _REGION_SCHEMA,
-            "style": {"type": "string", "enum": ["print", "user_font"]},
+            # Do not advertise reserved implementations to agents.  The
+            # function still rejects user_font explicitly for callers that
+            # send it, but generated tool calls must only choose a style that
+            # can actually be executed.
+            "style": {"type": "string", "enum": ["print"]},
             "color": {"type": "string", "description": "Hex color, e.g. #1d4ed8"},
             "size": {
                 "type": "number",
