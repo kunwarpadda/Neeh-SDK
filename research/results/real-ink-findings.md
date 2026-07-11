@@ -96,9 +96,10 @@ and everything raster does plus the things raster cannot.
   the effort split, so the true wording effect is at most marginal. The
   encoding, not the prompt wording, carries the results (protocol §5
   risk 1 addressed).
-- Repeats for variance bars: 29 clean rows landed before a quota gate;
-  the remaining ~294 cells retry next window
-  (`--repeats 3 --retry-failed`, queued in the README).
+- Repeats for variance bars: stopped by decision at 210 clean rows of the
+  323-cell N=3 grid — enough for spot variance checks on the frontier
+  arms (the ±sd(rep) column in summary.md fills where coverage exists);
+  full bars were judged not worth further quota given the effect sizes.
 
 ## E8 family: the raster is elastic, and the ladder is measured
 

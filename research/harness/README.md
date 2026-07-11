@@ -41,15 +41,13 @@ python -m research.harness.run_m1 --backend codex --workers 4 \
 
 ## Next quota window — queued commands, in priority order
 
-All milestone sweeps (M1, M2 matrix, E7/E7b, S1, S2, legend variant) are
-complete — see results/*.md. Remaining:
+All milestone sweeps are complete (M1, M2 matrix, E7/E7b/E8 families, S1,
+S2, legend variant, H7 pull-context, E8j) — see results/*.md. Repeats were
+intentionally stopped at 210/323 clean rows: the effect sizes made full
+variance bars unnecessary. Remaining, optional:
 
 ```bash
-# 1. finish the N=3 repeats for variance bars (~294 failed cells retry)
-python -m research.harness.run_m1 --backend codex --workers 4 --repeats 3 \
-  --retry-failed --arms E0 E1a E7 E7v E7b --families T1 T3 T4
-
-# 2. second model (run from a normal terminal, NOT a nested agent session)
+# second model (run from a normal terminal, NOT a nested agent session)
 python -m research.harness.run_m1 --backend claude --model claude-haiku-4-5-20251001
 
 python -m research.harness.run_m1 --report
