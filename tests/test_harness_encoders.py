@@ -165,6 +165,21 @@ def test_e8_family_shrinks_raster_and_text():
     assert len(simplified.text) < len(plain.text)
 
 
+def test_embedded_coding_sections_and_monotone_error():
+    from research.harness.embedded import build_embedded, rate_distortion_curve
+    from research.harness.encoders import _page_strokes
+
+    page = make_shape_page(0, seed=3).page
+    embedded = build_embedded(page)
+    assert len(embedded.coarse) == sum(1 for _ in _page_strokes(page))
+    assert embedded.text_at(0).startswith("<svg ")
+    curve = rate_distortion_curve(page)
+    chars = [c for c, _ in curve]
+    errs = [e for _, e in curve]
+    assert chars == sorted(chars)  # more sections, more characters
+    assert all(a >= b - 1e-9 for a, b in zip(errs, errs[1:]))  # error never rises
+
+
 def test_e7vb_differs_only_in_legend():
     from research.harness.encoders import encode_e7v, encode_e7vb
 
