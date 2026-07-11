@@ -1,6 +1,6 @@
 # M1 summary
 
-Ledger cells: 1913 (latest row per key). Context token cost = model-reported
+Ledger cells: 1979 (latest row per key). Context token cost = model-reported
 input tokens minus the
 model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 
@@ -12,13 +12,13 @@ model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 | default | CTRL | T4 | 24 | 0.000 | — | 12214 | +4 | 0 | 0% |
 | default | CTRL | T5 | 24 | 0.000 | — | 12236 | +26 | 0 | 0% |
 | default | CTRL | T6 | 18 | 0.444 | — | 12222 | +12 | 0 | 0% |
-| default | E0 | T1 | 48 | 0.924 | 0.000 | 14052 | +1842 | 0 | 21% |
+| default | E0 | T1 | 48 | 0.877 | 0.000 | 14048 | +1838 | 0 | 0% |
 | default | E0 | T2 | 6 | 0.833 | — | 14018 | +1808 | 0 | 0% |
-| default | E0 | T3 | 48 | 1.000 | — | 14029 | +1819 | 0 | 75% |
-| default | E0 | T4 | 60 | 0.000 | 0.000 | 25147 | +12937 | 0 | 70% |
+| default | E0 | T3 | 48 | 1.000 | 0.000 | 14030 | +1820 | 0 | 0% |
+| default | E0 | T4 | 60 | 0.000 | 0.000 | 25758 | +13548 | 0 | 0% |
 | default | E0 | T5 | 6 | 0.833 | — | 14042 | +1832 | 0 | 0% |
 | default | E0 | T6 | 6 | 0.333 | — | 14032 | +1822 | 0 | 0% |
-| default | E1a | T1 | 48 | 0.845 | — | 21416 | +9206 | 16061 | 73% |
+| default | E1a | T1 | 48 | 0.941 | 0.000 | 25364 | +13154 | 16061 | 29% |
 | default | E1a | T2 | 6 | 0.833 | — | 17917 | +5707 | 7553 | 0% |
 | default | E1a | T3 | 48 | 1.000 | — | 17562 | +5352 | 3803 | 71% |
 | default | E1a | T4 | 60 | 1.000 | — | 19907 | +7697 | 20802 | 88% |
@@ -70,6 +70,12 @@ model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 | default | E7vB | T1 | 12 | 0.903 | — | 13815 | +1605 | 2373 | 0% |
 | default | E7vB | T3 | 12 | 1.000 | — | 12799 | +589 | 722 | 0% |
 | default | E7vB | T4 | 18 | 0.944 | — | 14117 | +1907 | 2924 | 0% |
+| default | E7vS | T1 | 12 | 0.434 | — | 13153 | +943 | 1279 | 0% |
+| default | E7vS | T3 | 12 | 1.000 | — | 12961 | +751 | 1058 | 0% |
+| default | E7vS | T4 | 6 | 1.000 | — | 12954 | +744 | 1058 | 0% |
+| default | E8 | T1 | 12 | 0.769 | — | 14303 | +2093 | 2242 | 0% |
+| default | E8q | T1 | 12 | 0.740 | — | 13925 | +1715 | 2242 | 0% |
+| default | E8s | T1 | 12 | 0.724 | — | 13597 | +1387 | 1882 | 0% |
 | default-high | CTRL | T1 | 12 | 0.000 | — | 15702 | +16 | 0 | 50% |
 | default-high | CTRL | T3 | 12 | 0.500 | — | 15690 | +5 | 0 | 0% |
 | default-high | CTRL | T4 | 18 | 0.000 | — | 15686 | +0 | 0 | 28% |
@@ -121,16 +127,20 @@ model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 
 **default — T1**
 - E5: score 0.205 at +771 tok  ← frontier
-- E7v: score 0.425 at +1148 tok  ← frontier
+- E7vS: score 0.434 at +943 tok  ← frontier
+- E7v: score 0.425 at +1148 tok
 - E2: score 0.333 at +1196 tok
+- E8s: score 0.724 at +1387 tok  ← frontier
 - E7v512: score 0.402 at +1577 tok
 - E7vB: score 0.903 at +1605 tok  ← frontier
-- E0: score 0.924 at +1842 tok  ← frontier
+- E8q: score 0.740 at +1715 tok
+- E0: score 0.877 at +1838 tok
 - E6: score 1.000 at +1862 tok  ← frontier
+- E8: score 0.769 at +2093 tok
 - E7: score 0.758 at +2990 tok
 - E7b: score 0.833 at +3337 tok
-- E1a: score 0.845 at +9206 tok
 - E1b: score 0.354 at +9514 tok
+- E1a: score 0.941 at +13154 tok
 
 **default — T2**
 - E5: score 0.917 at +364 tok  ← frontier
@@ -145,25 +155,27 @@ model's CTRL (empty-context) arm mean, which removes CLI scaffolding overhead.
 **default — T3**
 - E5: score 0.625 at +375 tok  ← frontier
 - E7vB: score 1.000 at +589 tok  ← frontier
+- E7vS: score 1.000 at +751 tok
 - E7v: score 0.917 at +1189 tok
 - E2: score 0.500 at +1195 tok
-- E0: score 1.000 at +1819 tok
+- E0: score 1.000 at +1820 tok
 - E6: score 1.000 at +1858 tok
 - E7: score 1.000 at +2999 tok
 - E7b: score 1.000 at +3224 tok
 - E1a: score 1.000 at +5352 tok
 
 **default — T4**
-- E5: score 0.667 at +988 tok  ← frontier
+- E7vS: score 1.000 at +744 tok  ← frontier
+- E5: score 0.667 at +988 tok
 - E2: score 0.667 at +1187 tok
-- E3: score 0.800 at +1226 tok  ← frontier
-- E7v: score 0.810 at +1333 tok  ← frontier
-- E7vB: score 0.944 at +1907 tok  ← frontier
-- E7: score 1.000 at +3086 tok  ← frontier
+- E3: score 0.800 at +1226 tok
+- E7v: score 0.810 at +1333 tok
+- E7vB: score 0.944 at +1907 tok
+- E7: score 1.000 at +3086 tok
 - E7b: score 1.000 at +3216 tok
 - E1a: score 1.000 at +7697 tok
 - E6: score 0.000 at +10731 tok
-- E0: score 0.000 at +12937 tok
+- E0: score 0.000 at +13548 tok
 
 **default — T5**
 - E5: score 0.750 at +1002 tok  ← frontier

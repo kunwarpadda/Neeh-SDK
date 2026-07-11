@@ -100,6 +100,37 @@ and everything raster does plus the things raster cannot.
   the remaining ~294 cells retry next window
   (`--repeats 3 --retry-failed`, queued in the README).
 
+## E8 family: the raster is elastic, and the ladder is measured
+
+The thumbnail-raster hypothesis (raster carries gestalt, not precision)
+resolved cleanly into a task-dependent rate-control ladder:
+
+| arm | raster | S1 classify | S2 read | Δtok (S1) |
+|---|---|---|---|---|
+| E8s | quarter + RDP svg | **1.000** | 0.447 | **+1,211** |
+| E8q | quarter-scale | **1.000** | 0.481 | +1,648 |
+| E8 | half-scale | **1.000** | 0.538 | +2,079 |
+| E7b | full-scale | 1.000 | **0.672** | ~+2,990 |
+
+- **Classification survives a quarter-scale raster perfectly** — gestalt is
+  cheap. E8s does everything the perception tier does except read, at 40%
+  of E7b's cost.
+- **Reading pays linearly for resolution** (0.672 → 0.538 → 0.481): E8q
+  reads *worse than a full-res PNG alone* (0.517). Handwriting legibility
+  is the one consumer of full-resolution pixels.
+- Rate control has its table: reading task → full raster (E7b); anything
+  else → E8s.
+
+## E7vS: simplification IMPROVES comprehension (sleeper headline)
+
+RDP simplification didn't just cut cost — it *raised scores* on structure
+tasks: S1 addressing 0.778 → **1.000** and layout 0.917 → **1.000** at ~38%
+fewer tokens than E7v. Fewer path points = clearer stroke identity for the
+model, independently corroborated by SVGenius's finding that LLM SVG
+competence degrades with path complexity. Reading dips slightly (0.368 vs
+0.421) — detail still matters there. RDP becomes the recommended default
+for the structure tier.
+
 ## ICF v1 draft: state of the open questions
 
 1. Style/author metadata — still open (no S1/S2 task needed them).
