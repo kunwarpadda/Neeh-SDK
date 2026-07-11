@@ -105,28 +105,38 @@ with the next quota window if desired. Addressing was unaffected (0.985).
   legends should say what the coarse tier is reliably good for (ours
   hedged with "may not be legible", inviting the fetch).
 
-## H9 hierarchical graph (T9): validated — the largest effect in the program
+## H9 hierarchical graph (T9): validated, with a corrected effect size
 
-24/24 clean (4 argument pages × 3 questions × 2 arms; identical SVG, the
-semantics block is the only variable). One earlier retry wave of 24 rows
-failed on an invalid backend/model pairing and is excluded as failures.
+**Correction first.** The initial T9/0.1.0 run (G0 0.000 / G1 1.000)
+measured a broken corpus: `make_argument_page` created the arrow strokes
+but never added them to the layer, so the flat arm faced pages where
+support was *unknowable*, not hard to trace. The bug was caught by the
+offline recognizer eval (a dividend of building it), the 0.1.0 rows are
+retired, and T9/0.2.0 draws the arrows. Corrected results, 36/36 clean,
+plus a new arm — **G1r**, the graph produced by the SDK's geometric
+recognizer (`neeh.semantics`, no oracle, no word labels):
 
-| arm | attribute (stroke→claim) | erase evidence (set-F1) | support count | mean tok |
+| arm | attribute | erase (set-F1) | count | mean tok |
 |---|---|---|---|---|
-| G0 flat clusters | 0.000 | 0.564 | 0.000 | 17,125 |
-| G1 oracle graph | **1.000** | **1.000** | **1.000** | 17,540 |
+| G0 flat clusters | 0.750 | 1.000 | 0.750 | 18,400 |
+| G1 oracle graph (edges + labels) | **1.000** | **1.000** | **1.000** | 18,780 |
+| G1r recognized graph (edges, no labels) | 0.750 | 1.000 | 0.500 | 19,272 |
 
-- The crossing-arrow design did its job: when support contradicts spatial
-  proximity, the flat arm has nothing to fall back on — it cannot trace an
-  arrow through 256-grid geometry. Attribution and counting collapse to
-  0.000 (not degraded: *zero*), and erasure survives only partially (0.564)
-  because some evidence happens to sit near its claim.
-- The graph premium is ~415 tokens (+2.4%) for a 0→1 capability jump —
-  by far the best accuracy-per-token trade measured in this program.
-- Caveat as pre-registered: oracle graphs test the *format*, not the
-  recognizer (same policy as E5). The result says: if you can compute
-  support edges, shipping them is nearly free and unlocks level-crossing
-  tasks flat clusters cannot do at all.
+- **The honest graph effect is 0.75 → 1.00**, not 0 → 1: with arrows on
+  the page, the model traces raw 256-grid geometry surprisingly well and
+  flat clusters recover most answers. Oracle edges+labels still buy the
+  last quarter — and perfection — for ~380 tokens (+2.1%).
+- **Edges without labels don't help (G1r ≤ G0).** The recognizer's links
+  are perfect on this corpus (offline F1 1.000), yet G1r matches flat on
+  attribution and *loses* on counting: questions name claims by word, so
+  an unlabeled graph adds an id-mapping indirection the model must bridge
+  by reading geometry anyway. **The G1 win is the conjunction of edges
+  and labels** — structure alone is friction.
+- Recognizer reality check (offline, 20 pages): link precision/recall
+  1.000, cluster recovery 0.969 (`eval_recognizer.py`). Computing edges
+  from clean geometry is essentially solved; the open problem is
+  *labeling* clusters, i.e. handwriting transcription — which the v1
+  results already locate in the perception tier (pixels).
 
 ## Program verdict (all four v2 pieces measured)
 
@@ -135,13 +145,15 @@ failed on an invalid backend/model pairing and is excluded as failures.
 | delta | H6 | **validated** | O(change) turns match full resend; raster can't track state at all |
 | pull | H7/H7-S | **validated, priced** | −86% content; wins in tool loops & cached sessions, loses one-shot |
 | multiresolution | H8 | **falsified** | geometry fidelity is not ink's binding constraint; no gap to close |
-| graph | H9 | **validated** | hierarchy edges: +2.4% tokens, 0→1 on level-crossing tasks |
+| graph | H9 | **validated, corrected** | edges+labels: 0.75→1.00 at +2.1% tokens; edges alone don't help |
 
 ICF v2 should therefore be **base + pull + delta + graph** — and *not*
-grow a fidelity ladder. The wavelet/progressive intuition survives only as
-"never resend what the receiver has" (delta, pull), not as resolution
-tiers (H8). The graph piece is the priority: largest effect, smallest
-cost, and it composes with delta (support edges ride the same stable ids).
+grow a fidelity ladder. The wavelet/progressive intuition survives only
+as "never resend what the receiver has" (delta, pull), not as resolution
+tiers (H8). The graph piece needs *labeled* nodes to pay: the geometric
+recognizer supplies edges (F1 1.000 synthetic); cluster transcription is
+the frontier, and it composes with the perception tier (crop each cluster,
+read it once, cache the label — a pull + delta workload).
 
 **Push/pull pricing note:** push/pull is not a binary — it's priced by transport.
 Ranked by pull-friendliness: in-turn tool loop (demo) > cached resume >
