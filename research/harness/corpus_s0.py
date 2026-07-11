@@ -300,12 +300,12 @@ def make_argument_page(index: int, seed: int) -> CorpusPage:
         norm = max((dx * dx + dy * dy) ** 0.5, 1.0)
         ux, uy = dx / norm, dy / norm
         # shaft + head, drawn like the shape-page arrows
-        shaft = factory.make([start, end])
-        head = factory.make([
+        shaft = layer.add(factory.make([start, end]))
+        head = layer.add(factory.make([
             (end[0] - 40 * ux + 18 * uy, end[1] - 40 * uy - 18 * ux),
             end,
             (end[0] - 40 * ux - 18 * uy, end[1] - 40 * uy + 18 * ux),
-        ])
+        ]))
         statements.append({
             "id": f"st_{tag}_{slot_i}", "word": word, "stroke_ids": ids,
             "bbox": bbox.to_list(), "supports": claim["id"],

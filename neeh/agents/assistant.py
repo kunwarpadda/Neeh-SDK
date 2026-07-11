@@ -26,6 +26,7 @@ from neeh.canvas import Canvas
 from neeh.ink import BoundingBox
 from neeh.context import build_ink_context, build_ink_context_v1
 from neeh.rendering.png import render_page_png
+from neeh.semantics import build_semantics
 from neeh.tools import call_tool, tool_schemas
 
 AGENT_INK = "#1d4ed8"  # agent ink is blue; user ink defaults to near-black
@@ -150,6 +151,22 @@ def _page_raster(canvas: Canvas) -> bytes:
     return render_page_png(canvas.page, region=_ink_crop(canvas))
 
 
+def _recognized_semantics(canvas: Canvas) -> list[dict[str, Any]]:
+    """Geometric recognizer output, filtered to strokes the payload keeps.
+
+    The v1 builder truncates to the newest MAX_CONTEXT_STROKES strokes and
+    rejects semantics that reference dropped ink, so items (and links whose
+    endpoints vanished) are filtered against the same newest-tail rule."""
+    strokes = [s for layer in canvas.page.layers if layer.visible
+               for s in layer.strokes]
+    kept = {s.id for s in strokes[-MAX_CONTEXT_STROKES:]}
+    items = [item for item in build_semantics(canvas.page)
+             if all(sid in kept for sid in item["stroke_ids"])]
+    ids = {item["id"] for item in items}
+    return [item for item in items
+            if all(t in ids for t in (item.get("edges") or {}).values())]
+
+
 def _ink_context(canvas: Canvas) -> dict[str, Any]:
     if CONTEXT_VERSION == "v0":
         return build_ink_context(
@@ -163,6 +180,7 @@ def _ink_context(canvas: Canvas) -> dict[str, Any]:
         raster="attached_image",
         region=_ink_crop(canvas),
         stroke_bboxes=(CONTEXT_VERSION == "pull"),
+        semantics=_recognized_semantics(canvas),
     )
     if CONTEXT_VERSION == "pull":
         # H7 foveated protocol: ship the index (page-unit bboxes), let the

@@ -36,8 +36,12 @@ from research.harness.encoders import _compact_svg
 from research.harness.ledger import DEFAULT_LEDGER, Ledger, row_key
 from research.harness.scorers import score
 
-ARMS = ("G0", "G1")
-VERSION = "T9/0.1.0"
+ARMS = ("G0", "G1", "G1r")
+# 0.1.0 pages omitted the arrow strokes entirely (corpus bug caught by the
+# recognizer eval): G0 had no information channel and its 0.000 was
+# structural. 0.2.0 draws the arrows; G1r is the recognized (non-oracle)
+# graph from neeh.semantics — clusters + directed links, no word text.
+VERSION = "T9/0.2.0"
 
 PROMPT = """\
 You are working with a page of digital ink. Page size: 1000 x 1414 page
@@ -59,6 +63,11 @@ explanation.
 def _semantics(cpage: CorpusPage, arm: str) -> str:
     arg = cpage.argument
     items: list[dict[str, Any]] = []
+    if arm == "G1r":
+        from neeh.semantics import build_semantics
+
+        items = build_semantics(cpage.page)
+        return "\n".join(json.dumps(i, separators=(",", ":")) for i in items)
     if arm == "G0":
         for entry in arg["claims"] + arg["statements"]:
             items.append({"id": entry["id"], "kind": "cluster",

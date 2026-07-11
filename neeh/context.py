@@ -107,7 +107,10 @@ class SemanticItem:
     An item must have a stable id and kind, and must be anchored by a region,
     one or more stroke ids, or both.  Optional text, confidence, and source
     fields cover the v0 recognizer-result shape without admitting arbitrary
-    non-serializable payloads.
+    non-serializable payloads.  ``edges`` (ICF v2 draft: the graph piece,
+    measured 0->1 on level-crossing tasks in H9) names directed relations to
+    other semantic items, e.g. ``{"from": "cl_0", "to": "cl_3"}`` or
+    ``{"supports": "cl_1"}``.
     """
 
     id: str
@@ -117,6 +120,7 @@ class SemanticItem:
     text: Optional[str] = None
     confidence: Optional[float] = None
     source: Optional[str] = None
+    edges: Optional[Mapping[str, str]] = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "id", _non_empty_string(self.id, "semantic id"))
@@ -140,6 +144,15 @@ class SemanticItem:
             object.__setattr__(self, "confidence", confidence)
         if self.source is not None:
             object.__setattr__(self, "source", _non_empty_string(self.source, "semantic source"))
+        if self.edges is not None:
+            if not isinstance(self.edges, Mapping) or not self.edges:
+                raise InkContextError("semantic edges must be a non-empty mapping")
+            normalized_edges = {
+                _non_empty_string(k, "semantic edge kind"):
+                    _non_empty_string(v, f"semantic edge target ({k})")
+                for k, v in self.edges.items()
+            }
+            object.__setattr__(self, "edges", normalized_edges)
 
     @classmethod
     def from_mapping(cls, value: Mapping[str, Any]) -> "SemanticItem":
@@ -147,7 +160,7 @@ class SemanticItem:
 
         if not isinstance(value, Mapping):
             raise InkContextError("semantic item must be a mapping")
-        supported = {"id", "kind", "region", "stroke_ids", "text", "confidence", "source"}
+        supported = {"id", "kind", "region", "stroke_ids", "text", "confidence", "source", "edges"}
         unknown = sorted(set(value) - supported, key=str)
         if unknown:
             raise InkContextError(
@@ -166,6 +179,7 @@ class SemanticItem:
             text=value.get("text"),
             confidence=value.get("confidence"),
             source=value.get("source"),
+            edges=value.get("edges"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -182,6 +196,8 @@ class SemanticItem:
             result["confidence"] = self.confidence
         if self.source is not None:
             result["source"] = self.source
+        if self.edges is not None:
+            result["edges"] = dict(self.edges)
         return result
 
 
@@ -361,6 +377,16 @@ def _semantic_items(
                 + ", ".join(repr(stroke_id) for stroke_id in missing)
             )
         result.append(item.to_dict())
+
+    # Edge targets are references between items in the same list; a dangling
+    # target is the same class of bug as a dangling stroke id.
+    for index, item_dict in enumerate(result):
+        for edge_kind, target in (item_dict.get("edges") or {}).items():
+            if target not in semantic_ids:
+                raise InkContextError(
+                    f"semantics[{index}]: edge {edge_kind!r} references unknown "
+                    f"semantic id {target!r}"
+                )
     return result
 
 
@@ -494,9 +520,9 @@ def build_ink_context(
     }
 
 
-# -- ink-context/v1-draft (research/icf-v1-draft.md) --------------------------
+# -- ink-context/v1 (spec/ink-context-format-v1.md) ---------------------------
 #
-# The v1 draft replaces JSON point arrays with grid-quantized SVG paths — the
+# ICF v1 replaces JSON point arrays with grid-quantized SVG paths — the
 # encoding that won the M1/E7 evaluation (harness arm E7v/0.1.0). The builder
 # below must stay byte-identical to that arm's `svg` output for the same page;
 # a cross-check test enforces it.
@@ -617,7 +643,7 @@ def build_ink_paths(
     grid_long_edge: int = DEFAULT_GRID_LONG_EDGE,
     resample_grid_step: float = DEFAULT_RESAMPLE_GRID_STEP,
 ) -> str:
-    """Return the bare compact-SVG ink block of the ``ink-context/v1-draft``.
+    """Return the bare compact-SVG ink block used by ``ink-context/v1``.
 
     One ``<path id=…>`` per stroke in drawn order; coordinates on an integer
     grid whose long edge is ``grid_long_edge``. This is the model-facing text
@@ -656,7 +682,7 @@ def build_ink_context_v1(
     char_budget: Optional[int] = None,
     semantics: Optional[Iterable[Union[SemanticItem, Mapping[str, Any]]]] = None,
 ) -> dict[str, Any]:
-    """Build a deterministic ``ink-context/v1-draft`` snapshot.
+    """Build a deterministic ``ink-context/v1`` snapshot.
 
     Geometry rides as grid-quantized SVG paths (``ink.svg``) instead of v0's
     JSON point arrays; strokes appear in drawn order, which carries the
