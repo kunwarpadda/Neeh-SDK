@@ -72,6 +72,39 @@ leaving question recall to a low-effort model. Fixed in the runner
 (follow-up now restates the question verbatim, ~30 tokens); re-measure
 with the next quota window if desired. Addressing was unaffected (0.985).
 
+## H8 progressive refinement (T8p): falsified on this corpus — no gap to close
+
+32/32 clean, real sessions, S0d dense pages:
+
+| arm | read | layout | uncached input |
+|---|---|---|---|
+| R64 static coarse | **1.000** | 1.000 | ~12.5k |
+| R128 static | 0.708 | 1.000 | ~13.1k |
+| R512 static fine | 1.000 | 0.750 | ~15.2k |
+| RP 64-base + refine | 1.000 | 1.000 | 27.8k read / 12.9k layout |
+
+- **The premise failed, informatively: 64-grid is not a floor.** Synthetic
+  Hershey words remain perfectly readable at 64 cells, so there was no
+  accuracy gap for refinement to close — and the refinement turn (a session
+  resume, ~27.8k uncached) costs nearly double static-fine for nothing.
+  This was predictable from the v1 resolution sweep (E7v512 ≈ E7v:
+  "resolution is not the transcription bottleneck") and we should have
+  connected the two at pre-registration. On S2 real handwriting, vector
+  reading fails for *style* reasons, not resolution — refinement wouldn't
+  close that gap either. Verdict: **for ink, geometry fidelity is rarely
+  the binding constraint; multiresolution transport solves a problem ink
+  doesn't have.** The wavelet analogy earns its keep in the delta/pull
+  pieces (never resend what the receiver has), not in fidelity laddering.
+- **Two fresh non-monotonicities** reinforce the RDP finding that more
+  detail can hurt: R128 read 0.708 < R64's 1.000, and R512 *layout* 0.750
+  < everyone's 1.000. Fidelity is not a safety axis you can only ascend.
+- **Self-triage is conservative:** RP requested refinement on every reading
+  question (avg 10.2 strokes) even though the coarse base sufficed — the
+  model can't know detail is unnecessary without trying. In pull protocols
+  the consumer's uncertainty, not the task's true need, drives cost; gist
+  legends should say what the coarse tier is reliably good for (ours
+  hedged with "may not be legible", inviting the fetch).
+
 **Program verdict:** push/pull is not a binary — it's priced by transport.
 Ranked by pull-friendliness: in-turn tool loop (demo) > cached resume >
 cold resume > stateless two-shot. ICF v2's pull extension should say
