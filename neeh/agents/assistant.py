@@ -36,11 +36,8 @@ MAX_AGENT_NUDGE = 40.0
 MAX_PLANNED_ACTIONS = 6
 MAX_CONTEXT_STROKES = int(os.getenv("NEEH_CONTEXT_MAX_STROKES", "80"))
 MAX_CONTEXT_POINTS = int(os.getenv("NEEH_CONTEXT_MAX_POINTS", "12"))
-# "v1" = ink-context/v1 (compact SVG geometry, ~9x fewer context chars — see
-# research/results/m1-findings.md); "pull" = v1 gist only (bboxes, no
-# geometry) plus the fetch_ink_region tool for on-demand detail (the H7
-# foveated protocol — needs a tool-loop agent, i.e. --agent claude); "v0" =
-# the original Phase 0 payload.
+# "v1" sends compact SVG geometry. "pull" sends bounding boxes and exposes
+# fetch_ink_region for on-demand detail. "v0" is retained for compatibility.
 CONTEXT_VERSION = os.getenv("NEEH_CONTEXT_VERSION", "v1")
 PROMPT_PREVIEW_CHARS = int(os.getenv("NEEH_PROMPT_PREVIEW_CHARS", "5000"))
 
@@ -173,10 +170,9 @@ def _tool_result_content(result: dict[str, Any]) -> Any:
 def _ink_crop(canvas: Canvas) -> Optional[BoundingBox]:
     """The inked part of the page, padded — or None for a blank page.
 
-    Raster cost is pixel-metered (research: E8j), so blank page area is pure
-    token waste. All strokes intersect their own union bbox, so cropping the
-    snapshot to it changes nothing in the vector payload; the region is
-    declared in the context (ink.region == raster.region) per the frame rule.
+    Cropping blank page area reduces image size. All strokes intersect their
+    own union box, and the crop is declared in both ``ink.region`` and
+    ``raster.region`` so coordinates remain in page space.
     """
     boxes = [s.bbox for layer in canvas.page.layers if layer.visible
              for s in layer.strokes]
@@ -227,8 +223,7 @@ def _ink_context(canvas: Canvas) -> dict[str, Any]:
         semantics=_recognized_semantics(canvas),
     )
     if CONTEXT_VERSION == "pull":
-        # H7 foveated protocol: ship the index (page-unit bboxes), let the
-        # agent pull geometry through the fetch_ink_region tool.
+        # Send the page-space index and retrieve detailed geometry on demand.
         payload["ink"]["svg"] = (
             "(geometry omitted — call fetch_ink_region with a page-unit "
             "region to get compact SVG paths with stable stroke ids)"
@@ -237,10 +232,7 @@ def _ink_context(canvas: Canvas) -> dict[str, Any]:
 
 
 def _context_note(context: dict[str, Any]) -> str:
-    """v1 payloads carry grid coordinates; tool calls must stay in page units.
-
-    Stated explicitly because the M2 sweep showed models answering regions in
-    grid units when a raster is attached (results/m2-findings.md)."""
+    """v1 path data uses a grid; tool calls must stay in page units."""
     if "ink" not in context:
         return ""
     grid_w, grid_h = context["ink"]["grid"]

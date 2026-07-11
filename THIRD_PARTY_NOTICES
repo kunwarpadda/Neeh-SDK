@@ -1,0 +1,18 @@
+Hershey Simplex font data
+=========================
+
+Neeh includes a converted subset of the Hershey Fonts from the futural.jhf
+data distributed by the hershey-fonts project:
+
+https://github.com/kamalmostafa/hershey-fonts
+
+Required acknowledgements:
+
+- The Hershey Fonts were created by Dr. A. V. Hershey while working at the
+  United States National Bureau of Standards.
+- The distribution format for the font data was created by James Hurt,
+  Cognition, Inc., 900 Technology Park Drive, Billerica, MA 01821, USA.
+
+The Hershey font data may be used for commercial and non-commercial purposes.
+It must not be converted into the proprietary font-data format distributed by
+the United States National Technical Information Service (NTIS).

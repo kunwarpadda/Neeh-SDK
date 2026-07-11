@@ -4,7 +4,7 @@ Profile identifier: `neeh-uim/v1`
 
 Base format: Universal Ink Model (UIM) serialization 3.1.0
 
-Status: Phase 1 persistence and interchange profile.
+Status: supported persistence and interchange profile.
 
 This specification defines the loss model and canonical mapping between a Neeh `Document` and
 one UIM `InkModel`. Neeh does not define or use a bespoke `.neeh` file format. Conforming files
@@ -31,8 +31,9 @@ Three version domains are independent:
 - Neeh profile `neeh-uim/v1` defines this mapping; and
 - the `neeh` library package follows its own release version.
 
-A change in one does not imply the same version number in another. See
-[Versioning](../ARCHITECTURE.md#versioning).
+A change in one does not imply the same version number in another. Callers should discover the
+profile identifier with `neeh.protocol.protocol_versions()` rather than deriving it from the
+package or UIM serialization version.
 
 ## Canonical model structure
 

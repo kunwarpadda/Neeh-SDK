@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "neeh"
 version = "0.1.0.dev0"
-description = "A common foundation for building AI-powered notebook, whiteboard, and handwriting applications."
+description = "A structured digital-ink SDK for notebook, whiteboard, and handwriting applications."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
@@ -16,17 +16,23 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries",
 ]
 
 [project.optional-dependencies]
 uim = ["universal-ink-library>=2.1,<3"]
 png = ["Pillow>=10"]
-agents = ["openai>=1.100", "anthropic>=0.60", "Pillow>=10"]
-dev = ["pytest>=7", "universal-ink-library>=2.1,<3", "Pillow>=10", "openai>=1.100", "anthropic>=0.60"]
+agents = ["Pillow>=10"]
+dev = ["pytest>=7", "universal-ink-library>=2.1,<3", "Pillow>=10"]
 
 [tool.setuptools.packages.find]
 include = ["neeh*"]
+
+[tool.setuptools]
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

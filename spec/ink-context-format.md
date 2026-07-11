@@ -2,8 +2,8 @@
 
 Protocol identifier: `ink-context/v0`
 
-Status: Phase 1 specification. Version 0 is experimental, but payloads that claim this exact
-identifier MUST follow this document.
+Status: supported legacy specification. Payloads that claim this exact identifier MUST follow
+this document.
 
 Ink Context Format (ICF) is a bounded, model-facing snapshot of one page. It combines raster
 perception metadata, compact vector ink, and optional recognized semantics. Image bytes travel
@@ -198,7 +198,7 @@ closed shape; kind-specific data beyond `text` requires a later ICF version.
 - `confidence`, when present, MUST be in `[0, 1]`. Absence means unknown, not zero or one.
 - Semantic assertions MUST NOT mutate, replace, or duplicate the underlying ink.
 
-An empty list is valid and is the Phase 1 default.
+An empty list is valid and is the default.
 
 ## Validation and conformance
 
@@ -217,7 +217,7 @@ perception as unavailable.
 
 Objects in v0 are closed: producers MUST NOT add fields not defined here. A future compatible or
 breaking shape receives a new protocol identifier. Library releases and ICF versions are
-independent; see [Versioning](../ARCHITECTURE.md#versioning).
+independent; callers should use `neeh.protocol.protocol_versions()` to discover support.
 
 ## Security and size handling
 

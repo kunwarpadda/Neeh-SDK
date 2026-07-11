@@ -1,7 +1,6 @@
 """Universal Ink Model (UIM) persistence: the Neeh profile of UIM 3.1.
 
-UIM is the on-disk and interchange format (see ARCHITECTURE.md); this module
-defines how a Neeh `Document` maps onto one `InkModel`:
+This module defines how a Neeh `Document` maps onto one UIM 3.1 `InkModel`:
 
 - pages and layers are ink-tree groups (root -> page groups -> layer groups
   -> stroke nodes), in document order; node UUIDs are uuid5 hashes of the

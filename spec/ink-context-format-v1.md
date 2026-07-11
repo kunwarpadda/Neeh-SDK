@@ -2,95 +2,142 @@
 
 Protocol identifier: `ink-context/v1`
 
-Status: promoted 2026-07-10 from `ink-context/v1-draft`. Every normative rule
-in this document traces to a measured result in `research/results/` (evidence
-pointers inline); the evaluation protocol is `research/protocol-m0.md`. The
-key words MUST, MUST NOT, SHOULD, and MAY are normative.
+Ink Context Format (ICF) is a bounded, model-facing snapshot of one page. Version 1 encodes
+stroke geometry as compact SVG paths on an integer grid while preserving stable stroke IDs and
+page-space coordinates for actions.
 
-ICF v1 is the model-facing snapshot of one ink page. It replaces v0's JSON
-point arrays with grid-quantized SVG paths at roughly 1/6th to 1/9th the
-context cost, at equal or better task accuracy (m1-findings.md,
-real-ink-findings.md). ICF is not a persistence format ([UIM profile
-v1](uim-profile-v1.md)) and not a tool schema ([tool surface
-v1](tool-surface-v1.md)).
+ICF is not a persistence format. Use the [UIM Profile v1](uim-profile-v1.md) for interchange.
+ICF is also separate from the [Tool Surface v1](tool-surface-v1.md), which defines reads and
+mutations.
+
+The key words MUST, MUST NOT, REQUIRED, SHOULD, SHOULD NOT, and MAY are normative requirements.
 
 ## Envelope
 
 A v1 payload is a UTF-8 JSON object with exactly these top-level members:
 
-| member | requirement |
+| Member | Requirement |
 |---|---|
-| `schema` | MUST be `"ink-context/v1"` |
-| `page` | MUST hold `id`, `width`, `height`, `background` (page units, hex color) |
-| `raster` | MUST describe the raster tier (see *Tiers*); no image bytes in the JSON |
-| `ink` | MUST hold the geometry block (below) |
-| `semantics` | MUST be an array (possibly empty) of semantic items (v0 item shape) |
+| `schema` | MUST be `"ink-context/v1"`. |
+| `page` | MUST contain `id`, `width`, `height`, and `background`. |
+| `raster` | MUST describe the optional raster transported beside the JSON. |
+| `ink` | MUST contain the geometry block described below. |
+| `semantics` | MUST be an array; it MAY be empty. |
 
-## The `ink` block
+All numeric values MUST be finite JSON numbers. IDs MUST be non-empty strings.
 
-| field | rule |
+## Coordinate systems
+
+Page coordinates use logical page units with `(0, 0)` at the top left, x increasing right, and y
+increasing down. Regions and bounding boxes use
+`[min_x, min_y, max_x, max_y]` in page units.
+
+The SVG path data uses the integer grid declared by `ink.grid`. Grid coordinates MUST NOT appear
+in fields that a consumer may pass to a tool call. In particular, `ink.region`, `ink.bboxes`,
+semantic regions, and raster regions MUST use page units.
+
+## Page record
+
+`page.id` is the stable page ID. `page.width` and `page.height` MUST be positive. `page.background`
+MUST be a CSS hex color in `#rgb` or `#rrggbb` form.
+
+## Raster record
+
+The raster record has this shape:
+
+```json
+{
+  "format": "png",
+  "transport": "none",
+  "coordinate_space": "page",
+  "region": null
+}
+```
+
+- `format` MUST be `png`.
+- `transport` MUST be `none` or `attached_image`.
+- `coordinate_space` MUST be `page`.
+- `region` MUST be `null` for the full page or a page-space box for a crop.
+
+When `transport` is `attached_image`, the transport MUST provide exactly one PNG beside the JSON.
+The image MUST depict `raster.region`, or the full page when the region is `null`. Image bytes,
+URLs, and provider-specific image objects MUST NOT be embedded in the ICF JSON.
+
+## Ink record
+
+| Field | Requirement |
 |---|---|
-| `encoding` | MUST be `"svg-paths/grid"` |
-| `grid` | `[grid_w, grid_h]`, integer grid covering the page; long edge SHOULD be 256 (evidence: resolution is not the transcription bottleneck — E7v512 ≈ E7v, real-ink-findings.md) |
-| `svg` | one `<path>` per stroke; `id` attribute MUST be the stable stroke id; `d` MUST be absolute `M x y` + relative `l dx dy …` on integer grid cells; paths MUST appear in drawn order (drawn order carries the temporal signal: T6 1.000 vs raster chance) |
-| `drawn_order` | MUST be `true` |
-| `bboxes` | OPTIONAL map stroke id → `[min_x, min_y, max_x, max_y]` in **page units** — the segmentation cue that recovers full-vector reading accuracy at ~30% of its cost (E7b) |
-| `rate_point` | present when the builder ran rate control: the chosen `grid_long_edge` and `simplify_eps_grid` |
-| `stroke_count` / `included_stroke_count` / `omitted_older_stroke_count` / `truncated` | stroke budget accounting; when capped, producers MUST keep the newest strokes |
-| `region` | the page-unit region this snapshot covers, or `null` for the whole page |
+| `encoding` | MUST be `"svg-paths/grid"`. |
+| `grid` | MUST be `[width, height]` with positive integer dimensions. |
+| `drawn_order` | MUST be `true`. |
+| `region` | MUST be `null` or a page-space box. |
+| `stroke_count` | Number of eligible strokes before the stroke limit. |
+| `included_stroke_count` | Number of paths included in this payload. |
+| `omitted_older_stroke_count` | Number excluded by the stroke limit. |
+| `truncated` | MUST equal `omitted_older_stroke_count > 0`. |
+| `svg` | Compact SVG containing the included stroke paths. |
+| `bboxes` | OPTIONAL map from included stroke ID to page-space bounding box. |
+| `rate_point` | OPTIONAL rate-control settings selected by the producer. |
 
-Producers SHOULD apply polyline simplification (RDP, tolerance ~1 grid unit)
-before quantization: it cuts characters ~38% and *raises* structure-task
-scores (E7vS: addressing 0.778 → 1.000; corroborated by SVGenius's
-complexity finding).
+When a producer applies a stroke limit, it MUST retain the newest eligible strokes and preserve
+their relative document order.
 
-## The frame rule (normative)
+### SVG encoding
 
-Path geometry is grid-quantized; **every coordinate a consumer might echo
-back — `ink.bboxes`, `semantics` regions, `ink.region` — MUST be page
-units.** A model must never need a frame conversion to act. Violations are
-measured, not hypothetical: grid-unit bboxes collapsed action grounding to
-0.167; page-unit bboxes restored 0.833 (real-ink-findings.md). Any prose
-legend accompanying the payload SHOULD state the grid→page scale factor.
+`ink.svg` MUST contain an `<svg>` element whose `viewBox` is `0 0 grid_width grid_height`.
+Each included stroke MUST appear exactly once as a self-closing `<path>`:
 
-## Tiers
+```xml
+<path id="st_..." d="M18 18l4 1 3 -2"/>
+```
 
-| tier | composition | measured profile |
-|---|---|---|
-| **structure** (default) | `ink.svg` only, `raster.transport: "none"` | layout/addressing/temporal at or near 1.000; cannot classify drawings or read handwriting |
-| **perception** | `ink.svg` + `ink.bboxes` + attached full-scale PNG | everything, incl. reading at full-vector parity (0.672 ≈ 0.664) at 30% of v0's cost |
-| **gestalt raster** | perception tier with a quarter-scale raster | classification/layout/addressing 1.000 at ~40% of perception cost; reading degrades with resolution (0.672 → 0.481) |
-| **archive** | ICF v0 payload | provenance/replay only; 6–9× cost |
+The `id` attribute MUST be the stable stroke ID. The path MUST begin with an absolute integer
+`M x y` command followed by zero or more relative integer `l dx dy` pairs. Paths MUST appear in
+document drawing order. Duplicate IDs are invalid.
 
-Raster cost is pixel-metered by current providers, not byte-metered (E8j:
-JPEG q40 = identical tokens, half the bytes, small legibility tax). Producers
-SHOULD choose raster scale, not compression codec, to control cost.
+Producers MAY resample or simplify a stroke before quantization. Such processing MUST NOT change
+the stroke ID or path order.
 
-Rate control: `build_ink_context_v1(char_budget=…)` walks the fidelity
-ladder (512 grid → 256 → 256+RDP → 128+RDP) and returns the best payload
-that fits, recording the operating point in `ink.rate_point`.
+## Semantic items
 
-## The pull extension (foveated context)
+Semantic items use the same shape as ICF v0. Every item MUST contain a stable `id` and `kind`,
+and MUST be anchored by a page-space `region`, one or more included `stroke_ids`, or both.
+Optional fields are `text`, `confidence`, `source`, and `edges`.
 
-For dense pages, a producer MAY send only an index — `ink.bboxes` (and
-optionally cluster `semantics`) with `ink.svg` omitted — and expose the
-`fetch_ink_region` tool (tool surface v1): region in page units → compact
-SVG + bboxes for the strokes intersecting it. Measured (H7, T8 episodes):
-accuracy holds (addressing 1.000), ink content read drops ~86%, and the
-vector fetch is strictly more capable than a raster crop, which cannot
-address (0.000). The pull regime pays off in persistent sessions; one-shot
-transports pay per-call scaffolding twice and SHOULD push instead.
+`confidence`, when present, MUST be between 0 and 1. `edges`, when present, MUST map non-empty
+relation names to non-empty semantic item IDs. A semantic item MUST NOT reference a stroke omitted
+from the payload.
 
-## Consumption guidance (informative)
+## Rate control
 
-- Counting/gist: attach cluster items in `semantics` (E5: counting 1.000 at
-  +260 tokens where flat listings over-count).
-- Reading handwriting: use the perception tier; text-only geometry reads
-  poorly regardless of fidelity (E1b 0.354, E7v 0.421 vs E1a 0.664).
-- Legend wording is not load-bearing (E7vB ≈ E7v); the encoding is.
+A producer MAY choose grid size and path simplification to satisfy a character budget. When it
+does, it MUST include:
 
-## Changelog
+```json
+{
+  "rate_point": {
+    "grid_long_edge": 256,
+    "simplify_eps_grid": 1.0
+  }
+}
+```
 
-- v1 (2026-07-10): promoted from v1-draft. Evidence chain:
-  results/m1-findings.md → m2-findings.md → real-ink-findings.md →
-  geometry-fidelity.md → embedded-coding-exhibit.md; 2,292-row ledger.
+`grid_long_edge` MUST be a positive integer and `simplify_eps_grid` MUST be a positive number or
+`null`. If no available operating point fits the requested budget, a producer MAY return its
+smallest supported representation; callers MUST compare the serialized size with their hard
+transport limit.
+
+## Regional retrieval
+
+A host MAY send a lightweight page index and expose `fetch_ink_region` from Tool Surface v1.
+The tool accepts a page-space region and returns compact SVG, the grid dimensions, page-space
+bounding boxes, and stroke count for intersecting visible strokes.
+
+Clients MUST use the returned grid to interpret SVG geometry and MUST use page-space boxes for
+subsequent tool calls.
+
+## Compatibility
+
+Consumers MUST compare the complete `schema` identifier. Additive optional fields are permitted.
+Changing a required field, coordinate rule, path grammar, or field meaning requires a new protocol
+identifier.

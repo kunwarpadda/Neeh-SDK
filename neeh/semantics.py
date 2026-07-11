@@ -1,8 +1,4 @@
-"""First-party ink structure recognizer: strokes -> clusters -> links.
-
-H9 (research/results/transport-findings.md) showed hierarchy edges are a
-0->1 capability at ~2% token cost — measured with *oracle* graphs. This
-module is the honest first rung of that ladder: pure geometry, no ML.
+"""Geometry-based ink structure recognizer: strokes -> clusters -> links.
 
 Pipeline:
   1. connectors — long, straight strokes that span between ink groups
@@ -15,8 +11,7 @@ Pipeline:
 Every output item is a valid ICF ``semantics`` entry: page-unit
 coordinates, resolvable stroke ids, ``confidence``, and
 ``source="neeh-geometric/0.1"``. Links carry the relation in ``edges``
-(``{"from": <cluster id>, "to": <cluster id>}``) — the ICF v2 draft's
-graph piece.
+(``{"from": <cluster id>, "to": <cluster id>}``).
 """
 from __future__ import annotations
 
@@ -29,7 +24,7 @@ from neeh.ink.stroke import Stroke
 
 RECOGNIZER_SOURCE = "neeh-geometric/0.1"
 
-CLUSTER_MARGIN = 14.0        # page units; same constant E5 validated for counting
+CLUSTER_MARGIN = 14.0        # page units
 CONNECTOR_MIN_SPAN = 150.0   # endpoints at least this far apart
 CONNECTOR_STRAIGHTNESS = 0.92  # chord / path length
 HEAD_MAX_DIAG = 80.0         # arrowheads are small ...

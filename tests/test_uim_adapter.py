@@ -67,7 +67,7 @@ def make_document() -> Document:
     )
     return Document(
         id="doc_000000001",
-        title="UIM spike ✎",
+        title="UIM round trip ✎",
         created_at_ms=1751234560000,
         pages=[page_one, page_two],
     )
@@ -188,7 +188,7 @@ def test_initial_numeric_profile_remains_readable():
 
 def test_save_and_load_file(tmp_path):
     doc = make_document()
-    path = tmp_path / "spike.uim"
+    path = tmp_path / "roundtrip.uim"
     save_uim(doc, path)
     assert path.read_bytes()[:4] == b"RIFF"
     out = load_uim(path)

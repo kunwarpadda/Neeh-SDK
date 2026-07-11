@@ -1,8 +1,8 @@
 """Tool registry: the agent-facing surface, described by JSON Schema.
 
 Every tool is registered with a name, description, and parameter schema so
-the future MCP server (and any LLM tool-use integration) can expose the
-surface mechanically — the registry IS the tool manifest.
+MCP and model integrations can expose the surface mechanically. The registry
+is the authoritative tool manifest.
 """
 from __future__ import annotations
 

@@ -1,182 +1,145 @@
 # Neeh SDK
 
-**Digital ink should be as programmable as source code.**
+Neeh is a structured digital-ink SDK for notebook, whiteboard, and handwriting applications.
+It represents ink as ordered strokes with stable IDs, timing, authorship, and style so clients
+can render, query, edit, persist, and expose ink to tools without flattening it into an image.
 
-Neeh SDK is a common foundation for notebook, whiteboard, and handwriting applications that
-treat ink as structured, addressable data rather than pictures of pen movement. Strokes have
-stable IDs, timestamps, and authors; edits are reversible commands; and the surface is exposed
-through typed, versioned tools. Scripts, test harnesses, and agents can inspect and modify ink
-without flattening away its structure or context.
+> Neeh is pre-alpha. The protocol specifications are versioned, but the Python and native APIs
+> may change before the first stable release.
 
-> **Status: pre-alpha; Phase 1 complete, Phase 2 baseline present.** The reference Python model,
-> canvas, renderer, UIM adapter, research-backed ICF v1 builder, reusable agent adapters, v1
-> tools, and public contracts are in place. A
-> host-tested C++17 core and versioned C ABI now provide the portable substrate; app dogfooding,
-> consumption, and extraction of the broader app algorithm set are still Phase 2 follow-through.
-> Package APIs may evolve, but protocol compatibility follows the identifiers below rather than
-> the package version.
+## Features
 
-## What is here
+- Immutable points and strokes with pressure, tilt, timestamps, style, and stable IDs.
+- Ordered documents, pages, and layers with visibility and lock state.
+- A canvas session with selection, atomic edits, undo, and redo.
+- SVG and optional PNG rendering in a shared page coordinate system.
+- A discoverable, JSON Schema-based tool surface for model and automation integrations.
+- Compact Ink Context Format snapshots with addressable stroke geometry.
+- Optional Universal Ink Model 3.1 import and export.
+- A C++17 core and versioned C ABI for native hosts.
 
-```text
-neeh/
-├── ink/         Point, Stroke, StrokeStyle, BoundingBox — the L0 substrate
-├── document/    Layer, Page, Document + internal JSON snapshots
-├── canvas/      Canvas, Viewport, Selection, History — the editing session
-├── rendering/   Renderer protocol + reference SVG and optional PNG renderers
-├── tools/       Registry and the versioned agent tool surface
-├── agents/      Optional Codex CLI, Claude CLI, and mock model loops
-├── adapters/    Optional UIM 3.1 persistence/interchange adapter
-├── context.py   Ink Context Format v0 and research-backed v1 builders
-└── protocol.py  Independently versioned public protocol identifiers
+## Install from a checkout
 
-spec/
-├── ink-context-format-v1.md  Model-facing compact SVG ICF v1 contract
-├── tool-surface-v1.md     Tool schemas, errors, batching, limits, and cursor design
-└── uim-profile-v1.md      Canonical Neeh-to-UIM 3.1 mapping and fidelity contract
+The Python core has no runtime dependencies:
 
-research/
-├── protocol-m0.md         Research protocol: hypotheses, encodings, tasks, decision rules
-└── prior-art-digest.md    Prior art, datasets, and token-economics evidence base
-
-cpp/
-├── include/neeh/core.hpp   Portable C++17 ink/document substrate
-├── include/neeh/render.hpp Reference SVG and CPU RGBA rendering
-└── include/neeh/c_api.h    ABI v1 opaque-handle C boundary
+```bash
+python -m pip install -e .
 ```
 
-## Quickstart
+Install optional features as needed:
+
+```bash
+python -m pip install -e ".[png]"      # PNG rendering
+python -m pip install -e ".[uim]"      # UIM 3.1 persistence
+python -m pip install -e ".[agents]"   # local model adapters
+python -m pip install -e ".[dev]"      # complete development environment
+```
+
+Python 3.10 or newer is required.
+
+## Python quickstart
 
 ```python
-from neeh import Canvas
+from neeh import Canvas, StrokeStyle
+from neeh.tools import call_tool
+
+canvas = Canvas()
+stroke = canvas.add_stroke(
+    [(100, 100), (180, 140), (260, 100)],
+    style=StrokeStyle(color="#1d4ed8", width=3),
+)
+
+canvas.select(stroke_ids=[stroke.id])
+canvas.move(20, 10)
+canvas.undo()
+
+svg = call_tool(canvas, "view_page", {"format": "svg"})["data"]
+```
+
+See [`examples/quickstart.py`](examples/quickstart.py) for a complete executable example.
+
+## Context and tools
+
+Neeh keeps model-facing context separate from the mutation API:
+
+```python
 from neeh.context import build_ink_context_v1
 from neeh.protocol import protocol_versions
 from neeh.tools import call_tool, tool_manifest
 
-canvas = Canvas()
-
-# Direct Python calls return result objects; remote bindings add the v1 result envelope.
-page_view = call_tool(canvas, "view_page", {"format": "svg"})
-strokes = call_tool(canvas, "get_strokes")
-stroke = call_tool(
+context = build_ink_context_v1(
     canvas,
-    "add_stroke",
-    {"points": [[100, 100], [200, 140], [300, 100]]},
+    raster="attached_image",
+    stroke_bboxes=True,
 )
-call_tool(canvas, "highlight", {"region": [80, 80, 320, 160]})
-call_tool(canvas, "undo")
 
-context = build_ink_context_v1(canvas, raster="attached_image", stroke_bboxes=True)
+result = call_tool(
+    canvas,
+    "mark",
+    {"stroke_ids": [stroke.id], "kind": "circle"},
+)
+
 print(protocol_versions())
 print(tool_manifest())
 ```
 
-Model adapters are optional: install `neeh[agents]`. PNG rendering is available through
-`neeh[png]`. UIM persistence is also optional:
-`pip install "neeh[uim]"`. The core Python package remains dependency-free on Python 3.10+.
-
-## The research program
-
-The research program established where stroke-native structured context complements raster
-perception. A PNG tells a model what a page looks like; ink-native
-context carries what a raster destroys — stroke order, direction, authorship, and stable stroke
-identity that makes ink *addressable*, not just visible. ICF v1 is the evidence-backed compact
-SVG format; attach a raster when the task requires reading or visual classification.
-
-[research/protocol-m0.md](research/protocol-m0.md) pre-registers the hypotheses, encoding arms,
-task families, corpora, and decision rules; [research/prior-art-digest.md](research/prior-art-digest.md)
-collects the supporting literature, datasets, and token economics. The v1 tool surface and the
-UIM persistence profile are the stable substrate this research stands on.
-
-## Public contracts
-
-The package and its three public data/protocol surfaces have independent compatibility clocks:
+The current public contracts are:
 
 | Surface | Identifier | Specification |
 |---|---|---|
-| Model context snapshot | `ink-context/v1` | [Ink Context Format v1](spec/ink-context-format-v1.md) |
-| Tool calls | `neeh-tools/v1` | [Neeh Tool Surface v1](spec/tool-surface-v1.md) |
-| Persistence/interchange profile | `neeh-uim/v1` over UIM 3.1 | [Neeh UIM Profile v1](spec/uim-profile-v1.md) |
+| Compact model context | `ink-context/v1` | [Ink Context Format v1](spec/ink-context-format-v1.md) |
+| Legacy model context | `ink-context/v0` | [Ink Context Format v0](spec/ink-context-format.md) |
+| Tool calls | `neeh-tools/v1` | [Tool Surface v1](spec/tool-surface-v1.md) |
+| UIM mapping | `neeh-uim/v1` | [UIM Profile v1](spec/uim-profile-v1.md) |
 
-Use `neeh.protocol.protocol_versions()` to discover all three and
-`neeh.tools.tool_manifest()` to discover the exact v1 tool schemas. Do not infer wire support from
-the Python distribution version. Compatibility rules and the layer boundaries are documented in
-[Architecture](ARCHITECTURE.md).
+Applications should discover protocol identifiers and tool schemas at runtime instead of deriving
+them from the Python package version.
 
-## Design invariants
+## Persistence
 
-- **Stable IDs everywhere.** `st_…`, `ly_…`, and `pg_…` survive moves, style edits, and
-  serialization. References do not drift when geometry changes.
-- **Time is a first-class axis.** Every point carries a stroke-relative `t_ms`; every stroke has
-  epoch `created_at_ms`. Temporal queries are substrate behavior, not recognition metadata.
-- **Agent ink is never user ink.** Tool-created strokes have `author=agent` on a dedicated agent
-  layer. User ink is not silently mutated or relabeled.
-- **Strokes are immutable; edits are atomic commands.** Transforms produce replacement values
-  with the same ID. Every successful mutation is one undoable history entry, including actions
-  that create or erase several strokes.
-- **Coordinates agree.** Raster, vector, tool, and semantic regions use top-left page space with x
-  right and y down.
+UIM 3.1 is the supported interchange format. The adapter preserves Neeh page/layer structure,
+stable IDs, authorship, style, and capture metadata within the limits documented by the profile.
 
-## Persistence is UIM
+```python
+from neeh.adapters.uim import load_uim, save_uim
 
-There is no bespoke `.neeh` format. Documents persist and interchange as Universal Ink Model
-(UIM) 3.1 through `neeh.adapters.uim`. Pages and layers map to ordered UIM ink-tree groups;
-Neeh-only structure and authorship use knowledge-graph triples; geometry, brushes, style, time,
-pressure, and tilt use native UIM fields.
-
-UIM normalization quantizes some numeric values, so the [profile](spec/uim-profile-v1.md)
-specifies exact fields, tolerances, compatibility, and semantic idempotence. Built-in
-`Document.to_json()` is an internal snapshot for debugging and fixtures and carries no
-interchange compatibility promise.
-
-## Phase 1 completion
-
-Phase 1 establishes the contract that later runtimes and transports implement:
-
-- immutable ink primitives, document/page/layer structure, stable IDs, and millisecond time;
-- editing session state with selection, viewport, locked-layer safety, and undo/redo;
-- reference SVG/PNG rendering and fourteen schema-registered v1 tools;
-- deterministic, bounded ICF v0 and v1 page context with rate control and optional semantics;
-- UIM 3.1 persistence under the formal `neeh-uim/v1` profile;
-- independently discoverable protocol versions and a versioned tool manifest; and
-- normative errors plus capability-gated designs for pagination, batching, limits, and the future
-  event cursor.
-
-The Phase 2 portable baseline now implements the substrate and render boundary in C++17 and
-exposes ABI version 1 for Swift, Kotlin/JNI, Rust, and other host integrations. It is a shipped,
-host-tested baseline, not a declaration that Phase 2 is complete; app consumption and broader
-algorithm extraction remain.
-
-The proven assistant loop now ships in `neeh.agents`: it sends a PNG plus ICF v1 context to Codex
-CLI or Claude CLI and applies returned actions as agent ink. `examples/assistant/` is its localhost
-HTTP/UI shell.
-
-## Deliberately not shipped yet
-
-Recognition/OCR, diagram understanding, embeddings, semantic search, durable anchors, and
-user-handwriting extraction remain pluggable future layers. `describe_page`, `search_ink`,
-`get_events`, `anchor`, and `draw_shape` are reserved capabilities, not callable v1 core tools.
-The event cursor is designed in the tool specification but intentionally unadvertised until an
-atomic snapshot-plus-cursor handoff and retention policy exist. Raw stylus telemetry remains a
-separate local data plane rather than being forced through tool calls.
-
-See [Architecture](ARCHITECTURE.md) for the full layer map and deferred boundaries.
-
-## Development
-
-Python reference:
-
-```bash
-pip install -e ".[dev]"
-pytest
+save_uim(canvas.document, "notes.uim")
+document = load_uim("notes.uim")
 ```
 
-Portable core:
+`Document.to_json()` is intended for internal snapshots and fixtures. It is not a stable file
+format.
+
+## Native core
+
+The native library exposes the ink/document substrate and SVG/RGBA rendering through C++17 and
+ABI version 1 of the C interface.
 
 ```bash
 cmake -S . -B build -DNEEH_BUILD_TESTS=ON
-cmake --build build
-ctest --test-dir build --output-on-failure
+cmake --build build --config Release
+ctest --test-dir build --build-config Release --output-on-failure
+cmake --install build --prefix /path/to/prefix
 ```
 
-Licensed under the [Apache License 2.0](LICENSE).
+CMake consumers can use `find_package(NeehSDK CONFIG REQUIRED)` and link `Neeh::Core`.
+The C interface is declared in [`cpp/include/neeh/c_api.h`](cpp/include/neeh/c_api.h).
+
+## Assistant example
+
+`examples/assistant/` is a local browser demo built on the reusable adapters in `neeh.agents`.
+It can use an existing Codex CLI or Claude CLI login and includes a mock backend for offline use.
+See the [assistant example guide](examples/assistant/README.md).
+
+## Development
+
+```bash
+python -m pip install -e ".[dev]"
+python -m pytest -q
+```
+
+CI tests Python 3.10 and 3.12, builds the native core on Linux and macOS, runs the C and C++ test
+suites, and verifies the installed CMake package.
+
+Licensed under the [Apache License 2.0](LICENSE). Vendored data attribution is listed in
+[`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).

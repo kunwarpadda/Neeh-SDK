@@ -2,7 +2,7 @@
 
 `to_dict()` is an internal JSON snapshot — versioned for ourselves, no
 compatibility promise. Persistence and interchange target the Universal Ink
-Model (UIM) via `neeh/adapters` (see ARCHITECTURE.md).
+Model (UIM) via `neeh.adapters.uim`.
 """
 from __future__ import annotations
 

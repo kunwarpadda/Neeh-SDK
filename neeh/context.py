@@ -24,8 +24,8 @@ from neeh.protocol import INK_CONTEXT_V1_VERSION, INK_CONTEXT_VERSION
 
 DEFAULT_MAX_STROKES = 80
 DEFAULT_MAX_POINTS_PER_STROKE = 12
-DEFAULT_GRID_LONG_EDGE = 256  # v1 draft: grid resolution across the longer page edge
-DEFAULT_RESAMPLE_GRID_STEP = 4.0  # v1 draft: arc-length step between path points, grid units
+DEFAULT_GRID_LONG_EDGE = 256
+DEFAULT_RESAMPLE_GRID_STEP = 4.0  # arc-length step between path points, in grid units
 _HEX_COLOR = re.compile(r"#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?\Z")
 
 PageSelector = Union[int, str, Page]
@@ -107,9 +107,8 @@ class SemanticItem:
     An item must have a stable id and kind, and must be anchored by a region,
     one or more stroke ids, or both.  Optional text, confidence, and source
     fields cover the v0 recognizer-result shape without admitting arbitrary
-    non-serializable payloads.  ``edges`` (ICF v2 draft: the graph piece,
-    measured 0->1 on level-crossing tasks in H9) names directed relations to
-    other semantic items, e.g. ``{"from": "cl_0", "to": "cl_3"}`` or
+    non-serializable payloads. ``edges`` names directed relations to other
+    semantic items, for example ``{"from": "cl_0", "to": "cl_3"}`` or
     ``{"supports": "cl_1"}``.
     """
 
@@ -284,9 +283,7 @@ def _sample_points(
     if limit is None or len(points) <= limit:
         indexes = range(len(points))
     else:
-        # Equal-distance index sampling matches the Phase 0 spike.  The first
-        # and last samples are exact endpoints; intermediate choices depend
-        # only on point count and limit, so repeated builds are identical.
+        # Keep exact endpoints and choose intermediate indexes deterministically.
         indexes = [round(index * (len(points) - 1) / (limit - 1)) for index in range(limit)]
     return [points[index] for index in indexes]
 
@@ -410,9 +407,8 @@ def build_ink_context(
     input block that should accompany this mapping.
 
     Matching strokes retain document/layer order.  When ``max_strokes`` is
-    exceeded, the newest tail is retained in that same order, matching the
-    established Phase 0 prompt behavior.  Point compaction is deterministic
-    and always retains both endpoints.
+    exceeded, the newest tail is retained in that same order. Point compaction
+    is deterministic and always retains both endpoints.
     """
 
     selected_page = _resolve_page(source, page)
@@ -522,10 +518,7 @@ def build_ink_context(
 
 # -- ink-context/v1 (spec/ink-context-format-v1.md) ---------------------------
 #
-# ICF v1 replaces JSON point arrays with grid-quantized SVG paths — the
-# encoding that won the M1/E7 evaluation (harness arm E7v/0.1.0). The builder
-# below must stay byte-identical to that arm's `svg` output for the same page;
-# a cross-check test enforces it.
+# ICF v1 replaces JSON point arrays with grid-quantized SVG paths.
 
 
 def _resample_polyline(
@@ -575,11 +568,7 @@ def _select_strokes_v1(
 def _rdp_polyline(
     points: list[tuple[float, float]], eps: float
 ) -> list[tuple[float, float]]:
-    """Ramer-Douglas-Peucker: drop points within `eps` of the chord.
-
-    Simplification measurably *improves* model comprehension of the paths in
-    addition to shrinking them (research/results/real-ink-findings.md, E7vS).
-    """
+    """Ramer-Douglas-Peucker: drop points within `eps` of the chord."""
     if len(points) < 3:
         return list(points)
     (x0, y0), (x1, y1) = points[0], points[-1]
@@ -690,15 +679,12 @@ def build_ink_context_v1(
     ``"attached_image"`` (perception tier — the transport must then attach one
     page PNG beside the JSON, exactly as in v0).
 
-    ``stroke_bboxes`` adds ``ink.bboxes`` (stroke id → page-unit box) — the
-    segmentation cue that recovers full-ICF reading accuracy at compact cost
-    (research/results/real-ink-findings.md). Bboxes are page units, never grid
-    units: coordinates a consumer might echo into tool calls must not need a
-    frame conversion.
+    ``stroke_bboxes`` adds ``ink.bboxes`` (stroke id → page-unit box). Bboxes
+    are page units, never grid units, so consumers can pass them to tools
+    without a coordinate conversion.
 
     ``simplify_eps_grid`` runs RDP simplification (tolerance in grid units)
-    on each path — measured to *improve* structure-task comprehension while
-    cutting characters (E7vS result). ``char_budget`` enables rate control:
+    on each path. ``char_budget`` enables rate control:
     the builder walks a fidelity ladder (finer grids first) and returns the
     highest-fidelity payload whose serialized JSON fits the budget; the
     chosen operating point is recorded in ``ink.rate_point``. Explicit
@@ -713,8 +699,7 @@ def build_ink_context_v1(
             max_strokes=max_strokes, resample_grid_step=resample_grid_step,
             raster=raster, stroke_bboxes=stroke_bboxes, semantics=semantics,
         )
-        # Fidelity ladder, best first (grid, simplify_eps_grid); measured
-        # rate-distortion points — see results/embedded-coding-exhibit.md.
+        # Fidelity ladder, highest-resolution representation first.
         ladder = [(512, None), (256, None), (256, 1.0), (128, 1.0), (128, 2.0)]
         chosen = None
         for grid, eps in ladder:

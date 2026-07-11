@@ -34,9 +34,10 @@ print(f"agent drew {mark['stroke_id']} and a highlight (both on the agent layer)
 erased = call_tool(canvas, "erase", {"stroke_ids": [dot.id]})
 print(f"agent erased {erased['erased']}; undo -> {call_tool(canvas, 'undo')}")
 
-# --- persistence + a look at the tool manifest ------------------------------
-out = Path(__file__).parent
-canvas.document.save(out / "quickstart.neeh")
+# --- internal snapshot + a look at the tool manifest ------------------------
+out = Path("build/quickstart")
+out.mkdir(parents=True, exist_ok=True)
+canvas.document.save(out / "quickstart.snapshot.json")
 (out / "quickstart.svg").write_text(call_tool(canvas, "view_page")["data"])
-print(f"saved quickstart.neeh and quickstart.svg next to this script")
+print(f"saved quickstart.snapshot.json and quickstart.svg under {out}")
 print(f"tool manifest: {[t['name'] for t in tool_schemas()]}")

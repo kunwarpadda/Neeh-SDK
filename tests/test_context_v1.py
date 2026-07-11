@@ -1,5 +1,4 @@
-"""ink-context/v1 builder: golden output, envelope invariants, and
-byte-identity with the evaluated harness arm E7v/0.1.0."""
+"""ink-context/v1 builder golden output and envelope invariants."""
 import json
 
 import pytest
@@ -177,12 +176,3 @@ def test_parse_ink_paths_rejects_malformed_input():
         parse_ink_paths(good + '<path id="a" d="M1 1l2"/>\n</svg>')
     with pytest.raises(InkContextError):  # one page dimension without the other
         parse_ink_paths(good + "</svg>", page_width=100)
-
-
-def test_svg_matches_evaluated_harness_arm_byte_for_byte():
-    """The SDK builder IS the evaluated encoding (E7v/0.1.0) — keep them locked."""
-    harness = pytest.importorskip("research.harness.encoders")
-    corpus = pytest.importorskip("research.harness.corpus_s0")
-    for maker in (corpus.make_text_page, corpus.make_shape_page):
-        page = maker(0, seed=7).page
-        assert build_ink_paths(page) == harness.encode_e7v(page).text

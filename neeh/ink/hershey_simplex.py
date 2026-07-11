@@ -1,8 +1,7 @@
 """Hershey Simplex (futural) single-stroke font data.
 
-Vendored from the classic Hershey fonts (Dr. A. V. Hershey, U.S. National
-Bureau of Standards; distribution per the historical USE RESTRICTION notice,
-via github.com/kamalmostafa/hershey-fonts, futural.jhf).
+Converted from the classic Hershey fonts. See THIRD_PARTY_NOTICES for source,
+attribution, and redistribution terms.
 
 GLYPHS maps ASCII char -> (advance_width, polylines). Coordinates are font
 units: y grows downward, baseline at y=+9, cap top at y=-12. Pen-up breaks
