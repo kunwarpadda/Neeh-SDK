@@ -131,6 +131,44 @@ competence degrades with path complexity. Reading dips slightly (0.368 vs
 0.421) — detail still matters there. RDP becomes the recommended default
 for the structure tier.
 
+## H7 first data: pull works on accuracy; the CLI scaffold hides the win
+
+T8 (dense 24-word pages, locate-and-read + locate-and-address), 32 episodes,
+0 failures:
+
+| arm | address | read | raw tok | Δcontext tok* |
+|---|---|---|---|---|
+| F0 push (full page) | 1.000 | 1.000 | 22,530 | ~10,200 |
+| F1 pull (vector fetch) | **1.000** | 0.850 | 25,990 | **~1,400** |
+| F2 pull (raster fetch) | 0.000 | 1.000 | ~29,000 | ~2,500 + image |
+| F3 gist only | 0.000 | 0.000 | 12,740 | ~450 |
+
+*Δcontext = raw minus ~12.3k CLI scaffolding *per call*; F1/F2 make two calls.
+
+- **H7a holds on accuracy**: vector pull matches push on addressing (1.000)
+  and nearly on reading (0.850, one episode missed a region).
+- **H7b fails in raw CLI tokens but holds in content**: the model reads
+  ~1,400 tokens of actual ink content under pull vs ~10,200 under push —
+  an 86% content reduction — but our stateless CLI harness pays the
+  ~12.3k scaffold tax twice, swamping it. In a real agent session (one
+  conversation, gist cached, fetches appended — the assistant demo's
+  regime) only the content cost recurs. Pull is a *deployment* win the
+  harness can only see through the Δcontext lens.
+- **H7c confirmed exactly**: the raster fovea reads perfectly (1.000) and
+  cannot address at all (0.000 — no ids in pixels); the vector fovea does
+  both. Only ink can pull addressable detail.
+- F3's floor (0.000 everywhere) proves the tasks genuinely require detail —
+  the gist alone answers nothing.
+
+## E8j: JPEG saves bytes, not tokens
+
+Same half-scale raster as E8, JPEG q40: input tokens identical (14.2k vs
+14.3k — **image cost is pixel-metered, not byte-metered**), upload halved
+again (22KB → 11KB), reading dips 0.538 → 0.479 (q40 artifacts tax
+legibility), classification stays 1.000. Verdict: JPEG is a
+latency/bandwidth knob only; keep PNG for reading tiers, JPEG acceptable
+for gestalt tiers if transport matters.
+
 ## ICF v1 draft: state of the open questions
 
 1. Style/author metadata — still open (no S1/S2 task needed them).
