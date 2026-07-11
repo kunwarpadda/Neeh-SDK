@@ -31,9 +31,10 @@
 </header>
 <div class="bar">
   <input id="instruction" type="text" placeholder="Optional extra instruction for the agent&hellip;">
-  <button id="ask" class="primary">Ask ✨</button>
+  <button id="ask" class="primary">Ask</button>
   <button id="inspect">Inspect</button>
   <button id="inspectRaw">Raw</button>
+  <button id="modelRaw" disabled>Model Raw</button>
   <button id="undo">Undo</button>
   <button id="clear">Clear</button>
 </div>
@@ -51,6 +52,7 @@ const status = document.getElementById("status");
 const askBtn = document.getElementById("ask");
 const inspectBtn = document.getElementById("inspect");
 const inspectRawBtn = document.getElementById("inspectRaw");
+const modelRawBtn = document.getElementById("modelRaw");
 const agentInput = document.getElementById("agentInput");
 const ctx = overlay.getContext("2d");
 
@@ -74,6 +76,7 @@ function toPage(e) {
 }
 
 let stroke = null, t0 = 0;
+let lastRawModelOutput = null;
 
 overlay.addEventListener("pointerdown", e => {
   overlay.setPointerCapture(e.pointerId);
@@ -148,7 +151,8 @@ async function inspectAgent(full) {
     agentInput.style.display = "block";
     const label = full ? "raw agent input" : "agent input preview";
     const raw = data.prompt ? "" : " · raw prompt hidden";
-    setStatus(`${label}: ${data.prompt_chars} prompt chars · ${data.context_chars} context chars · ${data.context.vector.stroke_count} strokes${raw}`);
+    const strokeCount = data.context?.ink?.stroke_count ?? data.context?.vector?.stroke_count ?? 0;
+    setStatus(`${label}: ${data.prompt_chars} prompt chars · ${data.context_chars} context chars · ${strokeCount} strokes${raw}`);
   } catch (err) {
     setStatus("inspect failed: " + err.message);
   } finally {
@@ -159,15 +163,25 @@ async function inspectAgent(full) {
 
 inspectBtn.addEventListener("click", () => inspectAgent(false));
 inspectRawBtn.addEventListener("click", () => inspectAgent(true));
+modelRawBtn.addEventListener("click", () => {
+  if (!lastRawModelOutput) return;
+  agentInput.textContent = lastRawModelOutput;
+  agentInput.style.display = "block";
+  setStatus(`raw model output: ${lastRawModelOutput.length} chars · shown exactly as returned by the CLI`);
+});
 
 askBtn.addEventListener("click", async () => {
   askBtn.disabled = true;
+  lastRawModelOutput = null;
+  modelRawBtn.disabled = true;
   setStatus("Thinking… (the agent is looking at the page)");
   try {
     const instruction = document.getElementById("instruction").value.trim();
     const result = await post("/ask", instruction ? { instruction } : {});
+    lastRawModelOutput = result.raw_model_output || null;
+    modelRawBtn.disabled = !lastRawModelOutput;
     refreshPage();
-    const acts = result.actions.map(a => a.tool).join(", ") || "no tools used";
+    const acts = result.actions.map(a => a.error ? `${a.tool} failed: ${a.error}` : a.tool).join(", ") || "no tools used";
     const model = result.model ? `${result.mode}:${result.model}` : result.mode;
     const fallback = result.fallback_reason ? `\nfallback: ${result.fallback_reason}` : "";
     setStatus(`[${model}] ${result.reply}\ntools: ${acts}${fallback}`);
@@ -182,7 +196,13 @@ document.getElementById("undo").addEventListener("click", async () => {
   try { await post("/undo"); refreshPage(); } catch (err) { setStatus(err.message); }
 });
 document.getElementById("clear").addEventListener("click", async () => {
-  try { await post("/clear"); refreshPage(); setStatus("Cleared."); } catch (err) { setStatus(err.message); }
+  try {
+    await post("/clear");
+    lastRawModelOutput = null;
+    modelRawBtn.disabled = true;
+    refreshPage();
+    setStatus("Cleared.");
+  } catch (err) { setStatus(err.message); }
 });
 </script>
 </body>

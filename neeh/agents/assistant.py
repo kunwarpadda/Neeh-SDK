@@ -15,6 +15,7 @@ model/context/tool orchestration without importing demo server code.
 from __future__ import annotations
 
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -31,6 +32,8 @@ from neeh.tools import call_tool, tool_schemas
 
 AGENT_INK = "#1d4ed8"  # agent ink is blue; user ink defaults to near-black
 MAX_TURNS = 12
+MAX_AGENT_NUDGE = 40.0
+MAX_PLANNED_ACTIONS = 6
 MAX_CONTEXT_STROKES = int(os.getenv("NEEH_CONTEXT_MAX_STROKES", "80"))
 MAX_CONTEXT_POINTS = int(os.getenv("NEEH_CONTEXT_MAX_POINTS", "12"))
 # "v1" = ink-context/v1 (compact SVG geometry, ~9x fewer context chars — see
@@ -56,16 +59,21 @@ How to answer:
 - Read the user's handwriting or drawing from the image.
 - Make the SMALLEST edit that answers. When correcting something the user
   wrote, mark it up in place like a teacher would instead of rewriting it:
-  insert just the missing characters with a tiny write_text placed exactly
-  where they belong (the context's stroke coordinates tell you where the
-  user's words are), cross out or circle what is wrong with add_stroke, and
-  add at most a short note. Example: if the fix is missing quotes, write a
-  small " right before and right after the user's own words — do not
-  transcribe their code again.
-- Rewrite in full only when the fix is too extensive to mark up legibly.
-  Then write with write_text in an empty region near the question (usually
-  below it). Choose region [min_x, min_y, max_x, max_y] so it does not
-  overlap existing ink; leave a little margin.
+  use insert_text to add just the missing characters next to the user's own
+  ink, and mark to strike/circle/underline/check it. Both take stroke ids
+  from the context and compute the geometry for you — no coordinates needed.
+  Example: missing quotes -> insert_text " before and after the word's
+  strokes; do not transcribe their code again.
+- For every correction request, edit the existing ink in place. NEVER use
+  write_text to reproduce a corrected copy of a line already on the page,
+  even when there are several fixes. Teacher-style markup is preferred over
+  duplicating the user's work.
+- Use write_text only for genuinely new answer content, such as an explanation
+  or result that is not already written on the page. Put that new content in
+  an empty region near the question and leave a little margin.
+- insert_text owns placement: it measures the new ink and automatically shifts
+  the smallest same-line group needed to open a gap. Do not call move merely
+  to make room for inserted text.
 - Use add_stroke for arrows, shapes, and diagrams; use highlight to emphasize
   part of the user's ink. Write in {agent_ink} so your ink is visibly yours.
 - Keep written answers short: a sentence or two, or one worked step. This is a
@@ -79,7 +87,9 @@ When you are done, reply with one sentence summarizing what you wrote.
 
 OnAction = Callable[[str, dict[str, Any]], None]
 
-_CODEX_CLI_TOOL_NAMES = {"add_stroke", "highlight", "write_text"}
+_CODEX_CLI_TOOL_NAMES = {
+    "add_stroke", "highlight", "insert_text", "mark", "move", "write_text",
+}
 _CODEX_CLI_ACTION_INPUT_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
@@ -95,8 +105,18 @@ _CODEX_CLI_ACTION_INPUT_SCHEMA = {
         "brush": {"type": ["string", "null"], "enum": ["pen", "marker", "highlighter", None]},
         "style": {"type": ["string", "null"], "enum": ["print", None]},
         "size": {"type": ["number", "null"]},
+        "stroke_ids": {"type": ["array", "null"], "items": {"type": "string"}},
+        "kind": {"type": ["string", "null"],
+                 "enum": ["strike", "circle", "underline", "check", None]},
+        "position": {"type": ["string", "null"],
+                     "enum": ["before", "after", "above", "below", None]},
+        "dx": {"type": ["number", "null"],
+               "minimum": -MAX_AGENT_NUDGE, "maximum": MAX_AGENT_NUDGE},
+        "dy": {"type": ["number", "null"],
+               "minimum": -MAX_AGENT_NUDGE, "maximum": MAX_AGENT_NUDGE},
     },
-    "required": ["points", "region", "text", "color", "width", "brush", "style", "size"],
+    "required": ["points", "region", "text", "color", "width", "brush", "style",
+                 "size", "stroke_ids", "kind", "position", "dx", "dy"],
 }
 _CODEX_CLI_RESPONSE_SCHEMA = {
     "type": "object",
@@ -105,6 +125,7 @@ _CODEX_CLI_RESPONSE_SCHEMA = {
         "reply": {"type": "string"},
         "actions": {
             "type": "array",
+            "maxItems": MAX_PLANNED_ACTIONS,
             "items": {
                 "type": "object",
                 "additionalProperties": False,
@@ -122,6 +143,19 @@ _CODEX_CLI_RESPONSE_SCHEMA = {
 
 class ModelUnavailableError(RuntimeError):
     """Raised when an external model backend is not configured or reachable."""
+
+
+def _finite_agent_nudge(value: Any, axis: str) -> float:
+    if (isinstance(value, bool) or not isinstance(value, (int, float))
+            or not math.isfinite(value)):
+        raise ValueError(f"agent move {axis} must be a finite number")
+    result = float(value)
+    if abs(result) > MAX_AGENT_NUDGE:
+        raise ValueError(
+            f"agent move {axis} must be between {-MAX_AGENT_NUDGE:g} "
+            f"and {MAX_AGENT_NUDGE:g} page units"
+        )
+    return result
 
 
 def _tool_result_content(result: dict[str, Any]) -> Any:
@@ -265,7 +299,8 @@ def _codex_cli_tool_contract() -> list[dict[str, Any]]:
     return [
         {
             "name": "write_text",
-            "purpose": "write short answer text as agent ink",
+            "purpose": "write genuinely new answer content in blank space; NEVER use "
+                       "this to reproduce or correct a line already on the page",
             "required": {"text": "string", "region": "[min_x,min_y,max_x,max_y]"},
             "optional": {"color": f"hex, prefer {AGENT_INK}", "style": "print only", "size": "number"},
         },
@@ -280,6 +315,32 @@ def _codex_cli_tool_contract() -> list[dict[str, Any]]:
             "purpose": "draw arrows, marks, or simple diagram strokes",
             "required": {"points": "[[x,y,t_ms,pressure,tilt_x,tilt_y],...]"},
             "optional": {"color": "hex", "width": "number", "brush": "pen|marker|highlighter"},
+        },
+        {
+            "name": "mark",
+            "purpose": "annotate existing ink by stroke id; geometry is computed "
+                       "for you (strike = cross out, underline, circle, check)",
+            "required": {"stroke_ids": "ids from the context", "kind": "strike|circle|underline|check"},
+            "optional": {"color": f"hex, prefer {AGENT_INK}"},
+        },
+        {
+            "name": "insert_text",
+            "purpose": "write text placed relative to existing ink, auto-sized to "
+                       "match it, with collision-free space created automatically; "
+                       "the precise way to insert a missing character or word next "
+                       "to what the user wrote — no coordinates or move needed",
+            "required": {"text": "string", "stroke_ids": "anchor ids from the context",
+                         "position": "before|after|above|below"},
+            "optional": {"color": f"hex, prefer {AGENT_INK}", "size": "number"},
+        },
+        {
+            "name": "move",
+            "purpose": "rearrange named strokes only when the user explicitly asks "
+                       "to move content; insert_text already handles spacing",
+            "required": {"stroke_ids": "ids from the context", "dx": "page-unit offset",
+                         "dy": "page-unit offset"},
+            "limits": {"dx": [-MAX_AGENT_NUDGE, MAX_AGENT_NUDGE],
+                       "dy": [-MAX_AGENT_NUDGE, MAX_AGENT_NUDGE]},
         },
     ]
 
@@ -317,7 +378,7 @@ def agent_input_preview(
         "prompt_chars": len(prompt),
         "prompt_preview": _prompt_preview(prompt),
         "tools": _codex_cli_tool_contract(),
-        "output_schema": "JSON object with reply plus up to three write_text/highlight/add_stroke actions",
+        "output_schema": f"JSON object with reply plus up to {MAX_PLANNED_ACTIONS} Neeh tool actions",
         "raw_prompt_available": True,
     }
     if full:
@@ -388,19 +449,20 @@ Available Neeh action tools:
 {json.dumps(_codex_cli_tool_contract(), separators=(",", ":"))}
 
 Rules:
-- Use at most three actions.
+- Use at most {MAX_PLANNED_ACTIONS} actions.
 - The output schema uses one shared input object; set unrelated fields to null.
-- Prefer write_text for the answer, in color {AGENT_INK}.
+- Use write_text only for genuinely new answer content, in color {AGENT_INK}.
 - If you set write_text style, it MUST be "print"; user_font is not available.
 - Make the SMALLEST edit that answers. When correcting the user's writing,
-  mark it up in place instead of rewriting it: insert just the missing
-  characters with a tiny write_text region placed exactly where they belong
-  (the context's stroke coordinates locate the user's words), cross out
-  what is wrong with add_stroke. E.g. missing quotes -> write a small "
-  just before and just after the user's own words; never transcribe their
-  text again.
-- Rewrite in full only when markup would be illegible; then put the answer
-  in an empty region near the user's ink, usually below it.
+  mark it up in place instead of rewriting it: insert_text adds missing
+  characters next to ink you name by stroke id, mark strikes/circles/
+  underlines/checks it — both compute geometry for you, no coordinates
+  needed. E.g. missing quotes -> insert_text " with position "before" and
+  "after" on the word's stroke ids; never transcribe their text again.
+- For ANY correction of existing writing, NEVER use write_text to reproduce a
+  corrected copy elsewhere. Use in-place insert_text and mark actions, even if
+  the markup is imperfect. insert_text automatically makes collision-free room;
+  do not call move for insertion spacing.
 - Use highlight only when it helps connect your answer to existing ink.
 - Use add_stroke for arrows, marks, or simple diagram strokes.
 - Coordinates are page units. The page is {page.width:g} x {page.height:g}.
@@ -447,7 +509,7 @@ def _apply_planned_actions(
     on_action: Optional[OnAction],
 ) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
-    for item in planned[:3]:
+    for item in planned[:MAX_PLANNED_ACTIONS]:
         if not isinstance(item, dict):
             continue
         name = item.get("tool")
@@ -461,6 +523,12 @@ def _apply_planned_actions(
         if name == "write_text" and arguments.get("style") == "user_font":
             arguments["style"] = "print"
         try:
+            if name == "move":
+                if not arguments.get("stroke_ids"):
+                    raise ValueError("agent move requires explicit stroke_ids")
+                for axis in ("dx", "dy"):
+                    value = _finite_agent_nudge(arguments.get(axis), axis)
+                    arguments[axis] = value
             output = call_tool(canvas, name, arguments)
         except Exception as exc:
             actions.append({"tool": name, "input": arguments, "error": str(exc)})
@@ -524,6 +592,7 @@ def run_codex_cli(
         "reply": reply,
         "actions": actions,
         "model": os.getenv("NEEH_CODEX_CLI_MODEL", "default-profile"),
+        "raw_model_output": raw,
     }
 
 
@@ -546,18 +615,19 @@ Available Neeh action tools:
 {json.dumps(_codex_cli_tool_contract(), separators=(",", ":"))}
 
 Rules:
-- Use at most three actions.
+- Use at most {MAX_PLANNED_ACTIONS} actions.
 - The output schema uses one shared input object; set unrelated fields to null.
-- Prefer write_text for the answer, in color {AGENT_INK}.
+- Use write_text only for genuinely new answer content, in color {AGENT_INK}.
 - Make the SMALLEST edit that answers. When correcting the user's writing,
-  mark it up in place instead of rewriting it: insert just the missing
-  characters with a tiny write_text region placed exactly where they belong
-  (the context's stroke coordinates locate the user's words), cross out
-  what is wrong with add_stroke. E.g. missing quotes -> write a small "
-  just before and just after the user's own words; never transcribe their
-  text again.
-- Rewrite in full only when markup would be illegible; then put the answer
-  in an empty region near the user's ink, usually below it.
+  mark it up in place instead of rewriting it: insert_text adds missing
+  characters next to ink you name by stroke id, mark strikes/circles/
+  underlines/checks it — both compute geometry for you, no coordinates
+  needed. E.g. missing quotes -> insert_text " with position "before" and
+  "after" on the word's stroke ids; never transcribe their text again.
+- For ANY correction of existing writing, NEVER use write_text to reproduce a
+  corrected copy elsewhere. Use in-place insert_text and mark actions, even if
+  the markup is imperfect. insert_text automatically makes collision-free room;
+  do not call move for insertion spacing.
 - Use highlight only when it helps connect your answer to existing ink.
 - Use add_stroke for arrows, marks, or simple diagram strokes.
 - Coordinates are page units. The page is {page.width:g} x {page.height:g}.
@@ -633,7 +703,8 @@ def run_claude(
 
         if completed.returncode != 0:
             raise ModelUnavailableError(_claude_cli_error(completed))
-        payload = _cli_result_payload(completed.stdout)
+        raw = completed.stdout
+        payload = _cli_result_payload(raw)
 
     planned = payload.get("actions") or []
     if not isinstance(planned, list):
@@ -642,6 +713,7 @@ def run_claude(
         "reply": str(payload.get("reply") or "Claude planned an ink response."),
         "actions": _apply_planned_actions(canvas, planned, on_action),
         "model": os.getenv("NEEH_CLAUDE_CLI_MODEL", "default-profile"),
+        "raw_model_output": raw,
     }
 
 

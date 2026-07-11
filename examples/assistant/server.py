@@ -9,9 +9,9 @@ Stdlib-only HTTP server around one shared Canvas:
     POST /undo       undo the last edit
     POST /clear      fresh page
 
-Run:  python examples/assistant/server.py [--port 8787] [--agent codex|codex-api|claude|mock|auto]
-The default uses the local Codex CLI login. Missing CLIs, SDKs, or credentials
-fall back to the canned mock agent.
+Run:  python examples/assistant/server.py [--port 8787] [--agent codex|claude|mock|auto]
+The default uses the local Codex CLI login. Missing CLIs or credentials fall
+back to the canned mock agent.
 """
 from __future__ import annotations
 
@@ -25,12 +25,11 @@ from neeh.canvas import Canvas
 from neeh.ink import Author
 from neeh.rendering import render_page_svg
 
-import agent
-from agent import (
+from neeh.agents import assistant as agent
+from neeh.agents import (
     ModelUnavailableError,
     agent_input_preview,
     run_claude,
-    run_codex_api,
     run_codex_cli,
     run_mock,
 )
@@ -53,10 +52,9 @@ def _recoverable_model_error(exc: Exception) -> bool:
 def ask(instruction: str | None) -> dict:
     runners = {
         "codex": [("codex-cli", run_codex_cli)],
-        "codex-api": [("codex-api", run_codex_api)],
-        "claude": [("claude", run_claude)],
+        "claude": [("claude-cli", run_claude)],
         "mock": [("mock", run_mock)],
-        "auto": [("codex-cli", run_codex_cli), ("codex-api", run_codex_api), ("claude", run_claude)],
+        "auto": [("codex-cli", run_codex_cli), ("claude-cli", run_claude)],
     }[agent_mode]
 
     fallback_reason = None
@@ -148,7 +146,7 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8787)
     parser.add_argument(
         "--agent",
-        choices=["codex", "codex-api", "claude", "mock", "auto"],
+        choices=["codex", "claude", "mock", "auto"],
         default="codex",
         help="model backend to use for /ask",
     )
@@ -158,7 +156,7 @@ def main() -> None:
         choices=["v1", "pull", "v0"],
         default=agent.CONTEXT_VERSION,
         help="ink context payload: v1 (compact SVG, default), pull (v1 gist "
-             "+ fetch_ink_region tool — use with --agent claude/codex-api), "
+             "+ fetch_ink_region tool — use with --agent claude), "
              "or the original v0 JSON",
     )
     args = parser.parse_args()
@@ -166,8 +164,11 @@ def main() -> None:
     agent.CONTEXT_VERSION = args.context
 
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
-    label = "codex-cli" if agent_mode == "codex" else agent_mode
-    mode = label if agent_mode == "mock" else f"{label} (mock fallback)"
+    label = "codex-cli" if agent_mode == "codex" else "claude-cli" if agent_mode == "claude" else agent_mode
+    if agent_mode == "auto":
+        mode = f"{label} (codex-cli, claude-cli, then mock fallback)"
+    else:
+        mode = label
     print(f"Neeh ink assistant on http://127.0.0.1:{args.port}  "
           f"[agent: {mode}] [context: {args.context}]")
     server.serve_forever()

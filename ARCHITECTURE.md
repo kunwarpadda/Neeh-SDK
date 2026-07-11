@@ -11,7 +11,8 @@ the Phase 2 host-integration baseline without changing the public protocol clock
 | L0 — ink substrate | Points, immutable strokes, styles, IDs, pages, layers, documents, time | `neeh/ink`, `neeh/document`; `cpp/include/neeh/core.hpp` |
 | L1 — geometry/rendering | Bounds, region queries, hit testing, raster/vector output | `neeh/rendering`; `cpp/include/neeh/render.hpp` |
 | Session | Current page, viewport, selection, atomic edit history | `neeh/canvas` (Python reference) |
-| Context | Bounded raster + vector + semantic snapshot for models | `neeh/context.py`; [ICF v0](spec/ink-context-format.md) |
+| Context | Bounded raster + vector + semantic snapshot for models | `neeh/context.py`; [ICF v1](spec/ink-context-format-v1.md) |
+| Agent loop | Optional model adapters that apply planned/called v1 tools | `neeh/agents`; `examples/assistant` host shell |
 | L2 — understanding | Recognition, HWR, segmentation, semantic scene graph | deferred plugin boundary |
 | L3 — agent surface | Versioned schemas, reads, selection, edits, undo/redo | `neeh/tools`; [Tool Surface v1](spec/tool-surface-v1.md) |
 | L4 — higher actions | Ink writing, highlighting, future shapes/anchors | shipped primitives in `neeh/tools/core.py`; higher actions reserved |
@@ -31,7 +32,8 @@ The Python packages define the complete Phase 1 behavior:
 - ordered documents, pages, layers, and strokes;
 - current-page canvas state, selection, viewport, and reversible `StrokeEdit` history;
 - SVG/PNG rendering and bounding-box region queries;
-- deterministic ICF v0 snapshot construction;
+- deterministic ICF v0 and research-backed v1 snapshot construction;
+- optional Codex CLI, OpenAI, Claude, and mock agent orchestration;
 - UIM 3.1 profile import/export; and
 - the schema-registered v1 tool surface.
 
@@ -135,7 +137,7 @@ Package, protocol, and persistence versions advance independently:
 |---|---|---|
 | Python distribution | `0.1.0.dev0` | Python API/package release |
 | Native C ABI | `NEEH_ABI_VERSION == 1` | C symbol, ownership, layout, or semantic ABI break |
-| Model context | `ink-context/v0` | ICF JSON shape or field-semantic break |
+| Model context | `ink-context/v1` (`v0` retained) | ICF JSON shape or field-semantic break |
 | Tool surface | `neeh-tools/v1` | Tool name/schema/result/invariant break |
 | UIM profile | `neeh-uim/v1` | Persistence mapping or fidelity break |
 | Base UIM serialization | `3.1.0` | Upstream container/model revision |
@@ -151,8 +153,8 @@ new identifier. A library release may implement more than one protocol version d
 
 | Phase | Status | Exit condition / remaining work |
 |---|---|---|
-| Phase 0 — assistant spike | complete | PNG + vector context drives model actions in `examples/assistant`. |
-| Phase 1 — reference contracts | complete | Python substrate/session/rendering/tools, ICF v0, tool v1, UIM profile v1, discovery, and conformance docs/tests. |
+| Phase 0 — assistant loop | complete | Reusable PNG + ICF v1 model/tool loop in `neeh.agents`; localhost shell in `examples/assistant`. |
+| Phase 1 — reference contracts | complete | Python substrate/session/rendering/tools, ICF v0/v1, tool v1, UIM profile v1, discovery, and conformance docs/tests. |
 | Phase 2 — portable substrate | baseline present, integration pending | C++17/C ABI and host tests exist; app dogfooding, consumption, and broader algorithm extraction remain. |
 | Phase 3 — host/control integration | not started | MCP/host binding, pagination storage, batch transaction adapter, and atomic event-cursor handoff. |
 | Phase 4 — understanding/actions | not started | Recognition providers, confidence-gated semantics, search, anchors, user handwriting, and higher drawing actions. |

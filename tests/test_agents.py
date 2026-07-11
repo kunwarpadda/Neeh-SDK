@@ -3,6 +3,7 @@
 import json
 
 from neeh import Canvas
+from neeh.agents import assistant
 from neeh.agents import agent_input_preview, run_claude, run_codex_cli, run_mock
 from neeh.ink import Author
 
@@ -16,14 +17,57 @@ def test_agent_input_preview_exposes_compact_and_auditable_views():
     assert "prompt" not in compact
     assert "tool_schemas" not in compact
     assert {tool["name"] for tool in compact["tools"]} == {
-        "add_stroke", "highlight", "write_text",
+        "add_stroke", "highlight", "insert_text", "mark", "move", "write_text",
     }
 
     full = agent_input_preview(canvas, "Explain this", full=True)
     assert "User instruction: Explain this" in full["prompt"]
+    assert "Use at most 6 actions" in full["prompt"]
+    assert "NEVER use write_text to reproduce" in full["prompt"]
     assert {tool["name"] for tool in full["tool_schemas"]} == {
-        "add_stroke", "highlight", "write_text",
+        "add_stroke", "highlight", "insert_text", "mark", "move", "write_text",
     }
+    move = next(tool for tool in compact["tools"] if tool["name"] == "move")
+    assert move["limits"] == {"dx": [-40.0, 40.0], "dy": [-40.0, 40.0]}
+    assert compact["output_schema"].endswith("up to 6 Neeh tool actions")
+    assert assistant._CODEX_CLI_RESPONSE_SCHEMA["properties"]["actions"]["maxItems"] == 6
+
+
+def test_planned_move_opens_room_before_insert_text_and_preserves_anchor_ids():
+    from neeh.agents import assistant
+
+    canvas = Canvas()
+    anchor = canvas.add_stroke([[200, 300], [320, 340]], author=Author.USER)
+    actions = assistant._apply_planned_actions(canvas, [
+        {"tool": "move", "input": {
+            "stroke_ids": [anchor.id], "dx": 20, "dy": 0,
+        }},
+        {"tool": "insert_text", "input": {
+            "text": '"', "stroke_ids": [anchor.id], "position": "before",
+            "color": "#1d4ed8",
+        }},
+    ], None)
+
+    assert all("error" not in action for action in actions)
+    _, moved = canvas.page.find(anchor.id)
+    assert moved.bbox.min_x == 220
+    assert actions[1]["output"]["anchor_bbox"][0] == 220
+    assert actions[1]["output"]["region"][2] < 220
+
+
+def test_planned_move_requires_ids_and_rejects_large_offsets():
+    from neeh.agents import assistant
+
+    canvas = Canvas()
+    anchor = canvas.add_stroke([[200, 300], [320, 340]], author=Author.USER)
+    actions = assistant._apply_planned_actions(canvas, [
+        {"tool": "move", "input": {"stroke_ids": [anchor.id], "dx": 41, "dy": 0}},
+        {"tool": "move", "input": {"stroke_ids": None, "dx": 5, "dy": 0}},
+    ], None)
+
+    assert all("error" in action for action in actions)
+    _, unchanged = canvas.page.find(anchor.id)
+    assert unchanged.bbox.min_x == 200
 
 
 def test_mock_runner_uses_the_real_undoable_agent_tool_path():
@@ -72,6 +116,7 @@ def test_codex_cli_runner_applies_valid_planned_actions(monkeypatch):
     assert result["reply"] == "Wrote a short answer."
     assert result["actions"][0]["tool"] == "write_text"
     assert result["actions"][0]["output"]["stroke_ids"]
+    assert json.loads(result["raw_model_output"])["reply"] == "Wrote a short answer."
     assert seen[0][0] == "write_text"
     assert canvas.page.agent_layer().strokes
 
@@ -146,5 +191,6 @@ def test_claude_cli_runner_applies_valid_planned_actions(monkeypatch):
 
     assert result["reply"] == "Wrote a short answer."
     assert result["actions"][0]["tool"] == "write_text"
+    assert json.loads(result["raw_model_output"])["structured_output"]["reply"] == "Wrote a short answer."
     assert seen[0][0] == "write_text"
     assert canvas.page.agent_layer().strokes

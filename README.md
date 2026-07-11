@@ -9,7 +9,8 @@ through typed, versioned tools. Scripts, test harnesses, and agents can inspect 
 without flattening away its structure or context.
 
 > **Status: pre-alpha; Phase 1 complete, Phase 2 baseline present.** The reference Python model,
-> canvas, renderer, UIM adapter, ICF builder, v1 tools, and public contracts are in place. A
+> canvas, renderer, UIM adapter, research-backed ICF v1 builder, reusable agent adapters, v1
+> tools, and public contracts are in place. A
 > host-tested C++17 core and versioned C ABI now provide the portable substrate; app dogfooding,
 > consumption, and extraction of the broader app algorithm set are still Phase 2 follow-through.
 > Package APIs may evolve, but protocol compatibility follows the identifiers below rather than
@@ -24,12 +25,13 @@ neeh/
 ├── canvas/      Canvas, Viewport, Selection, History — the editing session
 ├── rendering/   Renderer protocol + reference SVG and optional PNG renderers
 ├── tools/       Registry and the versioned agent tool surface
+├── agents/      Optional Codex CLI, Claude CLI, and mock model loops
 ├── adapters/    Optional UIM 3.1 persistence/interchange adapter
-├── context.py   Reference Ink Context Format v0 snapshot builder
+├── context.py   Ink Context Format v0 and research-backed v1 builders
 └── protocol.py  Independently versioned public protocol identifiers
 
 spec/
-├── ink-context-format.md  Model-facing ICF v0 snapshot contract
+├── ink-context-format-v1.md  Model-facing compact SVG ICF v1 contract
 ├── tool-surface-v1.md     Tool schemas, errors, batching, limits, and cursor design
 └── uim-profile-v1.md      Canonical Neeh-to-UIM 3.1 mapping and fidelity contract
 
@@ -47,7 +49,7 @@ cpp/
 
 ```python
 from neeh import Canvas
-from neeh.context import build_ink_context
+from neeh.context import build_ink_context_v1
 from neeh.protocol import protocol_versions
 from neeh.tools import call_tool, tool_manifest
 
@@ -56,7 +58,7 @@ canvas = Canvas()
 # Direct Python calls return result objects; remote bindings add the v1 result envelope.
 page_view = call_tool(canvas, "view_page", {"format": "svg"})
 strokes = call_tool(canvas, "get_strokes")
-mark = call_tool(
+stroke = call_tool(
     canvas,
     "add_stroke",
     {"points": [[100, 100], [200, 140], [300, 100]]},
@@ -64,21 +66,22 @@ mark = call_tool(
 call_tool(canvas, "highlight", {"region": [80, 80, 320, 160]})
 call_tool(canvas, "undo")
 
-context = build_ink_context(canvas)  # JSON metadata; attach its PNG separately
+context = build_ink_context_v1(canvas, raster="attached_image", stroke_bboxes=True)
 print(protocol_versions())
 print(tool_manifest())
 ```
 
-PNG rendering is optional: install `neeh[png]`. UIM persistence is also optional:
+Model adapters are optional: install `neeh[agents]`. PNG rendering is available through
+`neeh[png]`. UIM persistence is also optional:
 `pip install "neeh[uim]"`. The core Python package remains dependency-free on Python 3.10+.
 
 ## The research program
 
-The heart of Neeh is a research question: **can stroke-native structured context replace raster
-rendering as the way models perceive ink?** A PNG tells a model what a page looks like; ink-native
-context can carry what a raster destroys — stroke order, direction, velocity, authorship, and
-stable stroke identity that makes ink *addressable*, not just visible. ICF v0 below is the
-raster-first baseline; the research program exists to design its successor from evidence.
+The research program established where stroke-native structured context complements raster
+perception. A PNG tells a model what a page looks like; ink-native
+context carries what a raster destroys — stroke order, direction, authorship, and stable stroke
+identity that makes ink *addressable*, not just visible. ICF v1 is the evidence-backed compact
+SVG format; attach a raster when the task requires reading or visual classification.
 
 [research/protocol-m0.md](research/protocol-m0.md) pre-registers the hypotheses, encoding arms,
 task families, corpora, and decision rules; [research/prior-art-digest.md](research/prior-art-digest.md)
@@ -91,7 +94,7 @@ The package and its three public data/protocol surfaces have independent compati
 
 | Surface | Identifier | Specification |
 |---|---|---|
-| Model context snapshot | `ink-context/v0` | [Ink Context Format v0](spec/ink-context-format.md) |
+| Model context snapshot | `ink-context/v1` | [Ink Context Format v1](spec/ink-context-format-v1.md) |
 | Tool calls | `neeh-tools/v1` | [Neeh Tool Surface v1](spec/tool-surface-v1.md) |
 | Persistence/interchange profile | `neeh-uim/v1` over UIM 3.1 | [Neeh UIM Profile v1](spec/uim-profile-v1.md) |
 
@@ -132,8 +135,8 @@ Phase 1 establishes the contract that later runtimes and transports implement:
 
 - immutable ink primitives, document/page/layer structure, stable IDs, and millisecond time;
 - editing session state with selection, viewport, locked-layer safety, and undo/redo;
-- reference SVG/PNG rendering and eleven schema-registered v1 tools;
-- deterministic, bounded ICF v0 page context with optional semantic assertions;
+- reference SVG/PNG rendering and fourteen schema-registered v1 tools;
+- deterministic, bounded ICF v0 and v1 page context with rate control and optional semantics;
 - UIM 3.1 persistence under the formal `neeh-uim/v1` profile;
 - independently discoverable protocol versions and a versioned tool manifest; and
 - normative errors plus capability-gated designs for pagination, batching, limits, and the future
@@ -144,8 +147,9 @@ exposes ABI version 1 for Swift, Kotlin/JNI, Rust, and other host integrations. 
 host-tested baseline, not a declaration that Phase 2 is complete; app consumption and broader
 algorithm extraction remain.
 
-The Phase 0 assistant spike remains in `examples/assistant/`: it sends a PNG plus ICF vector
-context to a model and applies returned actions as agent ink.
+The proven assistant loop now ships in `neeh.agents`: it sends a PNG plus ICF v1 context to Codex
+CLI or Claude CLI and applies returned actions as agent ink. `examples/assistant/` is its localhost
+HTTP/UI shell.
 
 ## Deliberately not shipped yet
 
