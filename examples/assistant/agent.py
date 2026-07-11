@@ -32,8 +32,11 @@ AGENT_INK = "#1d4ed8"  # agent ink is blue; user ink defaults to near-black
 MAX_TURNS = 12
 MAX_CONTEXT_STROKES = int(os.getenv("NEEH_CONTEXT_MAX_STROKES", "80"))
 MAX_CONTEXT_POINTS = int(os.getenv("NEEH_CONTEXT_MAX_POINTS", "12"))
-# "v1" = ink-context/v1-draft (compact SVG geometry, ~9x fewer context chars —
-# see research/results/m1-findings.md); "v0" = the original Phase 0 payload.
+# "v1" = ink-context/v1 (compact SVG geometry, ~9x fewer context chars — see
+# research/results/m1-findings.md); "pull" = v1 gist only (bboxes, no
+# geometry) plus the fetch_ink_region tool for on-demand detail (the H7
+# foveated protocol — needs a tool-loop agent, i.e. --agent claude or
+# codex-api); "v0" = the original Phase 0 payload.
 CONTEXT_VERSION = os.getenv("NEEH_CONTEXT_VERSION", "v1")
 PROMPT_PREVIEW_CHARS = int(os.getenv("NEEH_PROMPT_PREVIEW_CHARS", "5000"))
 
@@ -142,9 +145,18 @@ def _ink_context(canvas: Canvas) -> dict[str, Any]:
             max_strokes=MAX_CONTEXT_STROKES,
             max_points_per_stroke=MAX_CONTEXT_POINTS,
         )
-    return build_ink_context_v1(
+    payload = build_ink_context_v1(
         canvas, max_strokes=MAX_CONTEXT_STROKES, raster="attached_image",
+        stroke_bboxes=(CONTEXT_VERSION == "pull"),
     )
+    if CONTEXT_VERSION == "pull":
+        # H7 foveated protocol: ship the index (page-unit bboxes), let the
+        # agent pull geometry through the fetch_ink_region tool.
+        payload["ink"]["svg"] = (
+            "(geometry omitted — call fetch_ink_region with a page-unit "
+            "region to get compact SVG paths with stable stroke ids)"
+        )
+    return payload
 
 
 def _context_note(context: dict[str, Any]) -> str:
@@ -165,7 +177,9 @@ def _context_note(context: dict[str, Any]) -> str:
 
 def _ink_context_text(canvas: Canvas) -> str:
     context = _ink_context(canvas)
-    label = "v0" if context["schema"] == "ink-context/v0" else "v1 draft"
+    label = "v0" if context["schema"] == "ink-context/v0" else "v1"
+    if CONTEXT_VERSION == "pull":
+        label = "v1 (pull mode — geometry via fetch_ink_region)"
     return (
         f"Current Ink Context Format {label} payload:\n"
         + json.dumps(context, separators=(",", ":"))

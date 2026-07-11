@@ -2,12 +2,11 @@
 
 Proposed protocol identifier: `ink-context/v1-draft`
 
-Status: **draft under evaluation** — composed 2026-07-10 from the M1/E7 live results
-([m1-findings.md](results/m1-findings.md)); open questions below are gated on the
-completed M2 matrix and the S1 real-ink run. Promoted to `spec/` (as `ink-context/v1`)
-only after those gates and the protocol §8/§9 criteria pass. ICF v0
-([spec/ink-context-format.md](../spec/ink-context-format.md)) remains the shipped format
-until then.
+Status: **PROMOTED 2026-07-10** → [spec/ink-context-format-v1.md](../spec/ink-context-format-v1.md)
+(`ink-context/v1`) after the M2 matrix, S1/S2 real-ink gates, E7b/E8/H7
+follow-ups, and the protocol §8/§9 criteria passed. This document is kept as
+the design-history record — each decision below traces to the measurement
+that forced it. The normative text lives in spec/.
 
 ## What the evidence established
 

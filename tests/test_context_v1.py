@@ -1,4 +1,4 @@
-"""ink-context/v1-draft builder: golden output, envelope invariants, and
+"""ink-context/v1 builder: golden output, envelope invariants, and
 byte-identity with the evaluated harness arm E7v/0.1.0."""
 import json
 
@@ -50,7 +50,7 @@ def test_envelope_invariants_and_defaults():
         _stroke("st_b", [(500, 500), (600, 600)], t0=100),
     ])
     payload = build_ink_context_v1(page)
-    assert payload["schema"] == "ink-context/v1-draft"
+    assert payload["schema"] == "ink-context/v1"
     assert payload["raster"]["transport"] == "none"  # structure tier by default
     ink = payload["ink"]
     assert ink["encoding"] == "svg-paths/grid"
@@ -125,14 +125,15 @@ def test_char_budget_rate_control():
     page = _page_with(strokes)
     generous = build_ink_context_v1(page, char_budget=100_000)
     assert generous["ink"]["rate_point"]["grid_long_edge"] == 512  # best fits
-    tight_budget = 1200
+    # A budget just below the best payload forces a step down the ladder.
+    tight_budget = len(json.dumps(generous, separators=(",", ":"))) - 1
     tight = build_ink_context_v1(page, char_budget=tight_budget)
     assert tight["ink"]["rate_point"]["grid_long_edge"] <= 256
     assert len(json.dumps(tight, separators=(",", ":"))) <= tight_budget
     # Unreachable budget: coarsest point returned, honestly labeled.
     floor = build_ink_context_v1(page, char_budget=1)
     assert floor["ink"]["rate_point"] == {
-        "grid_long_edge": 128, "simplify_eps_grid": 2.0, "char_budget": 1,
+        "grid_long_edge": 128, "simplify_eps_grid": 2.0,
     }
 
 

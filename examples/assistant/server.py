@@ -155,10 +155,11 @@ def main() -> None:
     parser.add_argument("--mock", action="store_true", help="shortcut for --agent mock")
     parser.add_argument(
         "--context",
-        choices=["v1", "v0"],
+        choices=["v1", "pull", "v0"],
         default=agent.CONTEXT_VERSION,
-        help="ink context payload: v1 draft (compact SVG, default) or the "
-             "original v0 JSON",
+        help="ink context payload: v1 (compact SVG, default), pull (v1 gist "
+             "+ fetch_ink_region tool — use with --agent claude/codex-api), "
+             "or the original v0 JSON",
     )
     args = parser.parse_args()
     agent_mode = "mock" if args.mock else args.agent

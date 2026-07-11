@@ -20,7 +20,7 @@ from neeh.document.layer import Layer
 from neeh.document.page import Page
 from neeh.ink.geometry import BoundingBox, Point
 from neeh.ink.stroke import Author, Stroke
-from neeh.protocol import INK_CONTEXT_V1_DRAFT_VERSION, INK_CONTEXT_VERSION
+from neeh.protocol import INK_CONTEXT_V1_VERSION, INK_CONTEXT_VERSION
 
 DEFAULT_MAX_STROKES = 80
 DEFAULT_MAX_POINTS_PER_STROKE = 12
@@ -697,7 +697,6 @@ def build_ink_context_v1(
             )
             candidate["ink"]["rate_point"] = {
                 "grid_long_edge": grid, "simplify_eps_grid": eps,
-                "char_budget": char_budget,
             }
             chosen = candidate
             if len(json.dumps(candidate, separators=(",", ":"))) <= char_budget:
@@ -755,7 +754,7 @@ def build_ink_context_v1(
     if stroke_bboxes:
         ink["bboxes"] = {stroke.id: _box_list(stroke.bbox) for stroke in included}
     return {
-        "schema": INK_CONTEXT_V1_DRAFT_VERSION,
+        "schema": INK_CONTEXT_V1_VERSION,
         "page": {
             "id": page_id,
             "width": page_width,

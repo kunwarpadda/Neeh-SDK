@@ -12,6 +12,7 @@ from neeh.tools import tool_manifest
 def test_protocol_identifiers_are_independently_versioned() -> None:
     assert protocol_versions() == {
         "ink_context": "ink-context/v0",
+        "ink_context_v1": "ink-context/v1",
         "tool_surface": "neeh-tools/v1",
         "persistence_profile": "neeh-uim/v1",
     }

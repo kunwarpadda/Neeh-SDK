@@ -127,6 +127,34 @@ def view_region(canvas: Canvas, region: Sequence[float], format: str = "svg") ->
 
 
 @tool(
+    "fetch_ink_region",
+    "Fetch compact vector ink for a region: one SVG <path> per stroke on an "
+    "integer grid (the id attribute is the stable stroke id, drawn order "
+    "preserved) plus per-stroke bounding boxes in page units. The cheapest "
+    "way to read exact, addressable geometry for part of the page.",
+    {
+        "type": "object",
+        "properties": {"region": _REGION_SCHEMA},
+        "required": ["region"],
+    },
+)
+def fetch_ink_region(canvas: Canvas, region: Sequence[float]) -> dict[str, Any]:
+    from neeh.context import build_ink_context_v1
+
+    box = _region(region)
+    payload = build_ink_context_v1(canvas, region=box, stroke_bboxes=True)
+    ink = payload["ink"]
+    return {
+        "page_id": canvas.page.id,
+        "region": box.to_list(),
+        "grid": ink["grid"],
+        "svg": ink["svg"],
+        "bboxes": ink.get("bboxes", {}),
+        "stroke_count": ink["included_stroke_count"],
+    }
+
+
+@tool(
     "get_strokes",
     "Return vector ink records by region, ids, author, or time. Use this with view_page for "
     "precise coordinates, timestamps, authorship, and stable stroke ids.",

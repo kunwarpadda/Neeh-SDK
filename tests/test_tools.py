@@ -9,6 +9,7 @@ from neeh.tools import all_tools, call_tool, get_tool, tool_schemas
 EXPECTED_TOOLS = {
     "view_page",
     "view_region",
+    "fetch_ink_region",
     "get_strokes",
     "add_stroke",
     "erase",
