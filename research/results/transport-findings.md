@@ -105,7 +105,45 @@ with the next quota window if desired. Addressing was unaffected (0.985).
   legends should say what the coarse tier is reliably good for (ours
   hedged with "may not be legible", inviting the fetch).
 
-**Program verdict:** push/pull is not a binary — it's priced by transport.
+## H9 hierarchical graph (T9): validated — the largest effect in the program
+
+24/24 clean (4 argument pages × 3 questions × 2 arms; identical SVG, the
+semantics block is the only variable). One earlier retry wave of 24 rows
+failed on an invalid backend/model pairing and is excluded as failures.
+
+| arm | attribute (stroke→claim) | erase evidence (set-F1) | support count | mean tok |
+|---|---|---|---|---|
+| G0 flat clusters | 0.000 | 0.564 | 0.000 | 17,125 |
+| G1 oracle graph | **1.000** | **1.000** | **1.000** | 17,540 |
+
+- The crossing-arrow design did its job: when support contradicts spatial
+  proximity, the flat arm has nothing to fall back on — it cannot trace an
+  arrow through 256-grid geometry. Attribution and counting collapse to
+  0.000 (not degraded: *zero*), and erasure survives only partially (0.564)
+  because some evidence happens to sit near its claim.
+- The graph premium is ~415 tokens (+2.4%) for a 0→1 capability jump —
+  by far the best accuracy-per-token trade measured in this program.
+- Caveat as pre-registered: oracle graphs test the *format*, not the
+  recognizer (same policy as E5). The result says: if you can compute
+  support edges, shipping them is nearly free and unlocks level-crossing
+  tasks flat clusters cannot do at all.
+
+## Program verdict (all four v2 pieces measured)
+
+| piece | hypothesis | verdict | one line |
+|---|---|---|---|
+| delta | H6 | **validated** | O(change) turns match full resend; raster can't track state at all |
+| pull | H7/H7-S | **validated, priced** | −86% content; wins in tool loops & cached sessions, loses one-shot |
+| multiresolution | H8 | **falsified** | geometry fidelity is not ink's binding constraint; no gap to close |
+| graph | H9 | **validated** | hierarchy edges: +2.4% tokens, 0→1 on level-crossing tasks |
+
+ICF v2 should therefore be **base + pull + delta + graph** — and *not*
+grow a fidelity ladder. The wavelet/progressive intuition survives only as
+"never resend what the receiver has" (delta, pull), not as resolution
+tiers (H8). The graph piece is the priority: largest effect, smallest
+cost, and it composes with delta (support edges ride the same stable ids).
+
+**Push/pull pricing note:** push/pull is not a binary — it's priced by transport.
 Ranked by pull-friendliness: in-turn tool loop (demo) > cached resume >
 cold resume > stateless two-shot. ICF v2's pull extension should say
 exactly this: pull pays off in agentic loops and cached sessions; push
