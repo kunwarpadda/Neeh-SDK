@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from neeh.canvas import Canvas
-from neeh.ink import BoundingBox
+from neeh.ink import Author, BoundingBox
 from neeh.context import build_ink_context, build_ink_context_v1
 from neeh.rendering.png import render_page_png
 from neeh.semantics import build_semantics
@@ -208,6 +208,36 @@ def _context_note(context: dict[str, Any]) -> str:
     )
 
 
+def _focus_note(canvas: Canvas) -> str:
+    """Tell the model which ink is NEW since its own last reply.
+
+    Provider prompt caching dedupes cost, not behavior: the model still
+    attends to the whole page and will re-answer old questions. The turn
+    boundary is computable from ink itself — agent strokes are
+    author=AGENT with timestamps — so we state it instead of hoping."""
+    strokes = [s for layer in canvas.page.layers if layer.visible
+               for s in layer.strokes]
+    agent_ts = [s.created_at_ms for s in strokes if s.author is Author.AGENT]
+    if not agent_ts:
+        return ""
+    last = max(agent_ts)
+    new = [s.id for s in strokes
+           if s.author is not Author.AGENT and s.created_at_ms > last]
+    if new:
+        return (
+            "\nFocus note: you have already answered on this page (your ink is "
+            f"author=agent, drawn in {AGENT_INK}). New user ink since your last "
+            f"reply: {json.dumps(new)}. Respond ONLY to that new ink; treat all "
+            "older ink as answered context — do not answer it again or rewrite "
+            "prior answers."
+        )
+    return (
+        "\nFocus note: you have already answered on this page and there is no "
+        "new user ink. Do not repeat prior answers; act only on what the "
+        "instruction explicitly asks."
+    )
+
+
 def _ink_context_text(canvas: Canvas) -> str:
     context = _ink_context(canvas)
     label = "v0" if context["schema"] == "ink-context/v0" else "v1"
@@ -217,6 +247,7 @@ def _ink_context_text(canvas: Canvas) -> str:
         f"Current Ink Context Format {label} payload:\n"
         + json.dumps(context, separators=(",", ":"))
         + _context_note(context)
+        + _focus_note(canvas)
     )
 
 
@@ -341,7 +372,7 @@ tool actions that should be applied, and return only JSON matching the provided
 output schema.
 
 Current ink context:
-{json.dumps(context, separators=(",", ":"))}{_context_note(context)}
+{json.dumps(context, separators=(",", ":"))}{_context_note(context)}{_focus_note(canvas)}
 
 Available Neeh action tools:
 {json.dumps(_codex_cli_tool_contract(), separators=(",", ":"))}
@@ -491,7 +522,7 @@ Read on the file at {page_path}. Choose the Neeh tool actions that should be
 applied, and return only JSON matching the provided output schema.
 
 Current ink context:
-{json.dumps(context, separators=(",", ":"))}{_context_note(context)}
+{json.dumps(context, separators=(",", ":"))}{_context_note(context)}{_focus_note(canvas)}
 
 Available Neeh action tools:
 {json.dumps(_codex_cli_tool_contract(), separators=(",", ":"))}
