@@ -54,13 +54,23 @@ for your answer.
 
 How to answer:
 - Read the user's handwriting or drawing from the image.
-- Write your answer with write_text in an empty region near the question
-  (usually below it). Choose region [min_x, min_y, max_x, max_y] so it does not
+- Make the SMALLEST edit that answers. When correcting something the user
+  wrote, mark it up in place like a teacher would instead of rewriting it:
+  insert just the missing characters with a tiny write_text placed exactly
+  where they belong (the context's stroke coordinates tell you where the
+  user's words are), cross out or circle what is wrong with add_stroke, and
+  add at most a short note. Example: if the fix is missing quotes, write a
+  small " right before and right after the user's own words — do not
+  transcribe their code again.
+- Rewrite in full only when the fix is too extensive to mark up legibly.
+  Then write with write_text in an empty region near the question (usually
+  below it). Choose region [min_x, min_y, max_x, max_y] so it does not
   overlap existing ink; leave a little margin.
 - Use add_stroke for arrows, shapes, and diagrams; use highlight to emphasize
   part of the user's ink. Write in {agent_ink} so your ink is visibly yours.
 - Keep written answers short: a sentence or two, or one worked step. This is a
-  notebook page, not a chat window.
+  notebook page, not a chat window. Every stroke you add is re-sent on every
+  future turn — sparse answers keep the page cheap.
 - After writing, call view_page with format "png" to check placement and
   legibility. If your ink overlaps something, undo and place it again.
 
@@ -382,7 +392,15 @@ Rules:
 - The output schema uses one shared input object; set unrelated fields to null.
 - Prefer write_text for the answer, in color {AGENT_INK}.
 - If you set write_text style, it MUST be "print"; user_font is not available.
-- Put the answer in an empty region near the user's ink, usually below it.
+- Make the SMALLEST edit that answers. When correcting the user's writing,
+  mark it up in place instead of rewriting it: insert just the missing
+  characters with a tiny write_text region placed exactly where they belong
+  (the context's stroke coordinates locate the user's words), cross out
+  what is wrong with add_stroke. E.g. missing quotes -> write a small "
+  just before and just after the user's own words; never transcribe their
+  text again.
+- Rewrite in full only when markup would be illegible; then put the answer
+  in an empty region near the user's ink, usually below it.
 - Use highlight only when it helps connect your answer to existing ink.
 - Use add_stroke for arrows, marks, or simple diagram strokes.
 - Coordinates are page units. The page is {page.width:g} x {page.height:g}.
@@ -531,7 +549,15 @@ Rules:
 - Use at most three actions.
 - The output schema uses one shared input object; set unrelated fields to null.
 - Prefer write_text for the answer, in color {AGENT_INK}.
-- Put the answer in an empty region near the user's ink, usually below it.
+- Make the SMALLEST edit that answers. When correcting the user's writing,
+  mark it up in place instead of rewriting it: insert just the missing
+  characters with a tiny write_text region placed exactly where they belong
+  (the context's stroke coordinates locate the user's words), cross out
+  what is wrong with add_stroke. E.g. missing quotes -> write a small "
+  just before and just after the user's own words; never transcribe their
+  text again.
+- Rewrite in full only when markup would be illegible; then put the answer
+  in an empty region near the user's ink, usually below it.
 - Use highlight only when it helps connect your answer to existing ink.
 - Use add_stroke for arrows, marks, or simple diagram strokes.
 - Coordinates are page units. The page is {page.width:g} x {page.height:g}.
