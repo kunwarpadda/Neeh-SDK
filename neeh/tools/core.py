@@ -416,11 +416,13 @@ def write_text(
     }
 
 
-def _anchor_bbox(canvas: Canvas, stroke_ids: Sequence[str]) -> BoundingBox:
+def _anchor_bbox(
+    canvas: Canvas, stroke_ids: Sequence[str], name: str = "stroke_ids"
+) -> BoundingBox:
     """Union bbox of the named strokes; unknown ids are an error."""
-    ids = _stroke_ids(stroke_ids)
+    ids = _stroke_ids(stroke_ids, name)
     if not ids:
-        raise ValueError("stroke_ids must name at least one stroke")
+        raise ValueError(f"{name} must name at least one stroke")
     wanted = set(ids)
     boxes = [s.bbox for layer in canvas.page.layers if layer.visible
              for s in layer.strokes if s.id in wanted]
@@ -428,7 +430,8 @@ def _anchor_bbox(canvas: Canvas, stroke_ids: Sequence[str]) -> BoundingBox:
         found = {s.id for layer in canvas.page.layers if layer.visible
                  for s in layer.strokes if s.id in wanted}
         missing = sorted(wanted - found)
-        raise ValueError(f"unknown stroke ids: {missing}")
+        where = "" if name == "stroke_ids" else f" ({name})"
+        raise ValueError(f"unknown stroke ids{where}: {missing}")
     return BoundingBox.union_all(boxes)
 
 
@@ -486,6 +489,102 @@ def mark(
     )
     stroke = canvas.add_stroke(points, style=style, author=Author.AGENT)
     return {"stroke_id": stroke.id, "kind": kind, "anchor_bbox": box.to_list()}
+
+
+_MIN_ARROW_RUN = 12.0
+
+
+def _ray_box_exit(box: BoundingBox, ux: float, uy: float) -> float:
+    """Distance from the box center along the unit ray (ux, uy) to its boundary."""
+    tx = (box.width / 2) / abs(ux) if ux else math.inf
+    ty = (box.height / 2) / abs(uy) if uy else math.inf
+    return min(tx, ty)
+
+
+def _arrow_standoff(box: BoundingBox) -> float:
+    """How far outside a box an arrow endpoint sits, so it never touches the ink."""
+    return min(max(4.0, 0.15 * max(box.width, box.height)), 14.0)
+
+
+@tool(
+    "connect",
+    "Point at existing ink with an arrow — the geometry is computed for you "
+    "from the strokes' bounding boxes. The tip lands just outside the ink "
+    "named by stroke_ids; give source_stroke_ids to start the arrow from "
+    "other ink instead of blank space. Prefer this over add_stroke whenever "
+    "an arrow should reference ink already on the page: no coordinates "
+    "needed.",
+    {
+        "type": "object",
+        "properties": {
+            "stroke_ids": _IDS_SCHEMA,
+            "source_stroke_ids": _IDS_SCHEMA,
+            "color": {"type": "string", "description": "Hex color, e.g. #1d4ed8"},
+        },
+        "required": ["stroke_ids"],
+    },
+)
+def connect(
+    canvas: Canvas,
+    stroke_ids: Sequence[str],
+    source_stroke_ids: Optional[Sequence[str]] = None,
+    color: Optional[str] = None,
+) -> dict[str, Any]:
+    target = _anchor_bbox(canvas, stroke_ids)
+    tcx, tcy = target.center
+    source: Optional[BoundingBox] = None
+    if source_stroke_ids is not None:
+        source = _anchor_bbox(canvas, source_stroke_ids, name="source_stroke_ids")
+        scx, scy = source.center
+    else:
+        scx, scy = canvas.page.width / 2, canvas.page.height / 2
+    dx, dy = tcx - scx, tcy - scy
+    length = math.hypot(dx, dy)
+    if length < 1e-6:
+        if source is not None:
+            raise ValueError("source and target ink coincide; nothing to point between")
+        dx, dy, length = 1.0, 1.0, math.sqrt(2.0)  # target at page center: point down-right
+    ux, uy = dx / length, dy / length
+
+    # The tip approaches the target along the ray and stops on its near side.
+    tip_t = _ray_box_exit(target, ux, uy) + _arrow_standoff(target)
+    tip = (tcx - ux * tip_t, tcy - uy * tip_t)
+    if source is not None:
+        tail_t = _ray_box_exit(source, ux, uy) + _arrow_standoff(source)
+        tail = (scx + ux * tail_t, scy + uy * tail_t)
+    else:
+        shaft = min(max(1.5 * max(target.width, target.height), 48.0), 160.0)
+        tail = (
+            min(max(tip[0] - ux * shaft, 4.0), canvas.page.width - 4.0),
+            min(max(tip[1] - uy * shaft, 4.0), canvas.page.height - 4.0),
+        )
+
+    run = math.hypot(tip[0] - tail[0], tip[1] - tail[1])
+    # Guard the SIGNED length along the intended direction: standoffs around
+    # near-touching boxes can push the tail past the tip, flipping the arrow.
+    if (tip[0] - tail[0]) * ux + (tip[1] - tail[1]) * uy < _MIN_ARROW_RUN:
+        raise ValueError("source and target ink are too close to connect with an arrow")
+    # Head barbs follow the drawn shaft, which page clamping may have re-aimed.
+    hx, hy = (tip[0] - tail[0]) / run, (tip[1] - tail[1]) / run
+    head = min(max(6.0, 0.22 * run), 16.0)
+    back = (tip[0] - hx * head, tip[1] - hy * head)
+    left = (back[0] - hy * head * 0.55, back[1] + hx * head * 0.55)
+    right = (back[0] + hy * head * 0.55, back[1] - hx * head * 0.55)
+
+    style = StrokeStyle(
+        color=color or StrokeStyle().color,
+        width=min(max(run / 60.0, 1.4), 3.0),
+    )
+    strokes = canvas.add_strokes(
+        [[tail, tip], [left, tip, right]], style=style, author=Author.AGENT,
+    )
+    return {
+        "stroke_ids": [s.id for s in strokes],
+        "from": [tail[0], tail[1]],
+        "to": [tip[0], tip[1]],
+        "target_bbox": target.to_list(),
+        "source_bbox": source.to_list() if source is not None else None,
+    }
 
 
 _INSERT_POSITIONS = ("before", "after", "above", "below")

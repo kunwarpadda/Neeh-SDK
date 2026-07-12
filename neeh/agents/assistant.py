@@ -72,8 +72,12 @@ How to answer:
 - insert_text owns placement: it measures the new ink and automatically shifts
   the smallest same-line group needed to open a gap. Do not call move merely
   to make room for inserted text.
-- Use add_stroke for arrows, shapes, and diagrams; use highlight to emphasize
-  part of the user's ink. Write in {agent_ink} so your ink is visibly yours.
+- To point at or link ink already on the page, use connect: it aims an arrow
+  at the strokes you name by id (and starts it from other named ink when you
+  give source_stroke_ids), computing the geometry for you. Never aim a
+  freehand add_stroke arrow at existing ink — estimated coordinates miss.
+- Use add_stroke only for new freestanding shapes and diagrams; use highlight
+  to emphasize part of the user's ink. Write in {agent_ink} so your ink is visibly yours.
 - Keep written answers short: a sentence or two, or one worked step. This is a
   notebook page, not a chat window. Every stroke you add is re-sent on every
   future turn — sparse answers keep the page cheap.
@@ -86,7 +90,7 @@ When you are done, reply with one sentence summarizing what you wrote.
 OnAction = Callable[[str, dict[str, Any]], None]
 
 _CODEX_CLI_TOOL_NAMES = {
-    "add_stroke", "highlight", "insert_text", "mark", "move", "write_text",
+    "add_stroke", "connect", "highlight", "insert_text", "mark", "move", "write_text",
 }
 _CODEX_CLI_ACTION_INPUT_SCHEMA = {
     "type": "object",
@@ -104,6 +108,7 @@ _CODEX_CLI_ACTION_INPUT_SCHEMA = {
         "style": {"type": ["string", "null"], "enum": ["handwritten", None]},
         "size": {"type": ["number", "null"]},
         "stroke_ids": {"type": ["array", "null"], "items": {"type": "string"}},
+        "source_stroke_ids": {"type": ["array", "null"], "items": {"type": "string"}},
         "kind": {"type": ["string", "null"],
                  "enum": ["strike", "circle", "underline", "check", None]},
         "position": {"type": ["string", "null"],
@@ -114,7 +119,8 @@ _CODEX_CLI_ACTION_INPUT_SCHEMA = {
                "minimum": -MAX_AGENT_NUDGE, "maximum": MAX_AGENT_NUDGE},
     },
     "required": ["points", "region", "text", "color", "width", "brush", "style",
-                 "size", "stroke_ids", "kind", "position", "dx", "dy"],
+                 "size", "stroke_ids", "source_stroke_ids", "kind", "position",
+                 "dx", "dy"],
 }
 _CODEX_CLI_RESPONSE_SCHEMA = {
     "type": "object",
@@ -318,6 +324,16 @@ def _codex_cli_tool_contract() -> list[dict[str, Any]]:
             "optional": {"color": f"hex, prefer {AGENT_INK}"},
         },
         {
+            "name": "connect",
+            "purpose": "draw an arrow that points at ink you name by stroke id; "
+                       "geometry is computed for you — the precise way to point at "
+                       "or link existing ink, never estimate arrow coordinates "
+                       "with add_stroke",
+            "required": {"stroke_ids": "ids of the ink the arrow points AT"},
+            "optional": {"source_stroke_ids": "ids the arrow starts from",
+                         "color": f"hex, prefer {AGENT_INK}"},
+        },
+        {
             "name": "insert_text",
             "purpose": "write text placed relative to existing ink, auto-sized to "
                        "match it, with collision-free space created automatically; "
@@ -458,7 +474,9 @@ Rules:
   the markup is imperfect. insert_text automatically makes collision-free room;
   do not call move for insertion spacing.
 - Use highlight only when it helps connect your answer to existing ink.
-- Use add_stroke for arrows, marks, or simple diagram strokes.
+- To point at existing ink, use connect with the target's stroke ids (add
+  source_stroke_ids to start the arrow from other ink). Use add_stroke only
+  for new freestanding shapes that reference nothing on the page.
 - Coordinates are page units. The page is {page.width:g} x {page.height:g}.
 - Do not edit files, run commands, mention implementation details, or ask a
   follow-up question.
@@ -623,7 +641,9 @@ Rules:
   the markup is imperfect. insert_text automatically makes collision-free room;
   do not call move for insertion spacing.
 - Use highlight only when it helps connect your answer to existing ink.
-- Use add_stroke for arrows, marks, or simple diagram strokes.
+- To point at existing ink, use connect with the target's stroke ids (add
+  source_stroke_ids to start the arrow from other ink). Use add_stroke only
+  for new freestanding shapes that reference nothing on the page.
 - Coordinates are page units. The page is {page.width:g} x {page.height:g}.
 - The page PNG to inspect is at: {page_path}
 - Do not edit files, run commands, mention implementation details, or ask a

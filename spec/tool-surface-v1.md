@@ -127,6 +127,7 @@ than truncate it silently.
 | `highlight` | `region` | `color` | `{stroke_id,region}` |
 | `write_text` | `text`, `region` | `style`, `color`, `size` | `{stroke_ids,size,region,style}` |
 | `mark` | `stroke_ids`, `kind` | `color` | `{stroke_id,kind,anchor_bbox}` |
+| `connect` | `stroke_ids` | `source_stroke_ids`, `color` | `{stroke_ids,from,to,target_bbox,source_bbox}` |
 | `insert_text` | `text`, `stroke_ids`, `position` | `color`, `size` | `{stroke_ids,size,region,anchor_bbox,original_anchor_bbox,reflow,style}` |
 | `undo` | — | — | `{undone}` |
 | `redo` | — | — | `{redone}` |
@@ -178,6 +179,12 @@ strokes form one undoable edit.
 
 `mark` adds non-destructive agent ink relative to the union bounding box of `stroke_ids`. `kind`
 MUST be `strike`, `circle`, `underline`, or `check`. Unknown IDs are invalid.
+
+`connect` draws an arrow — shaft and head as one atomic edit — whose tip stands just outside the
+union bounding box of `stroke_ids`, on the side facing the arrow's origin. With `source_stroke_ids`
+the tail starts just outside the source ink's union box; without it the tail is placed
+deterministically toward the page interior and kept on-page. Unknown IDs are invalid; coincident or
+near-touching source and target MUST fail without mutation.
 
 `insert_text` places handwritten ink `before`, `after`, `above`, or `below` the union bounding box of
 `stroke_ids`. It MAY shift a bounded set of unlocked user strokes horizontally to open a gap. The

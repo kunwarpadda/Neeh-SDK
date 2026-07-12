@@ -18,6 +18,7 @@ EXPECTED_TOOLS = {
     "highlight",
     "insert_text",
     "mark",
+    "connect",
     "write_text",
     "undo",
     "redo",
@@ -259,6 +260,73 @@ def test_mark_rejects_unknown_ids_and_kinds():
         call_tool(canvas, "mark", {"stroke_ids": [anchor.id], "kind": "wavy"})
     with pytest.raises(ValueError, match="at least one"):
         call_tool(canvas, "mark", {"stroke_ids": [], "kind": "strike"})
+
+
+def _distance_to_box(box, x, y):
+    dx = max(box[0] - x, 0.0, x - box[2])
+    dy = max(box[1] - y, 0.0, y - box[3])
+    return (dx * dx + dy * dy) ** 0.5
+
+
+def test_connect_points_at_the_target_without_touching_it():
+    canvas = Canvas()
+    target = _anchor(canvas)
+    result = call_tool(canvas, "connect", {"stroke_ids": [target.id]})
+
+    assert result["target_bbox"] == [200, 300, 320, 340]
+    assert result["source_bbox"] is None
+    assert len(result["stroke_ids"]) == 2  # shaft + head, one gesture
+    tip_x, tip_y = result["to"]
+    gap = _distance_to_box(result["target_bbox"], tip_x, tip_y)
+    assert 0 < gap <= 14.5  # just outside the ink, never on it
+    tail_x, tail_y = result["from"]
+    assert ((tip_x - tail_x) ** 2 + (tip_y - tail_y) ** 2) ** 0.5 >= 12
+    for stroke_id in result["stroke_ids"]:
+        _, stroke = canvas.page.find(stroke_id)
+        assert stroke.author is Author.AGENT
+
+    assert canvas.undo() == "add_strokes"  # the whole arrow is one edit
+    assert all(canvas.page.find(sid) is None for sid in result["stroke_ids"])
+
+
+def test_connect_runs_from_source_ink_to_target_ink():
+    canvas = Canvas()
+    target = _anchor(canvas)  # centered at (260, 320)
+    source = canvas.add_stroke([(500, 300), (560, 340)])  # centered at (530, 320)
+    result = call_tool(canvas, "connect", {
+        "stroke_ids": [target.id], "source_stroke_ids": [source.id],
+        "color": "#1d4ed8",
+    })
+
+    assert result["source_bbox"] == [500, 300, 560, 340]
+    tip_x, tip_y = result["to"]
+    tail_x, tail_y = result["from"]
+    assert tip_y == pytest.approx(320) and tail_y == pytest.approx(320)
+    assert 320 < tip_x < 340  # tip stands off the target's source-facing side
+    assert 470 < tail_x < 500  # tail stands off the source's target-facing side
+    _, shaft = canvas.page.find(result["stroke_ids"][0])
+    assert shaft.style.color == "#1d4ed8"
+
+
+def test_connect_rejects_unknown_ids_and_coincident_endpoints():
+    canvas = Canvas()
+    target = _anchor(canvas)
+    with pytest.raises(ValueError, match="unknown stroke ids"):
+        call_tool(canvas, "connect", {"stroke_ids": ["st_nope"]})
+    with pytest.raises(ValueError, match="source_stroke_ids"):
+        call_tool(canvas, "connect", {
+            "stroke_ids": [target.id], "source_stroke_ids": ["st_nope"],
+        })
+    with pytest.raises(ValueError, match="coincide"):
+        call_tool(canvas, "connect", {
+            "stroke_ids": [target.id], "source_stroke_ids": [target.id],
+        })
+    with pytest.raises(ValueError, match="too close"):
+        near = canvas.add_stroke([(322, 300), (330, 340)])
+        call_tool(canvas, "connect", {
+            "stroke_ids": [target.id], "source_stroke_ids": [near.id],
+        })
+    assert not canvas.page.agent_layer().strokes  # failures never mutate
 
 
 def test_insert_text_before_and_after_hug_the_anchor():

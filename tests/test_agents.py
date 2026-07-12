@@ -17,7 +17,8 @@ def test_agent_input_preview_exposes_compact_and_auditable_views():
     assert "prompt" not in compact
     assert "tool_schemas" not in compact
     assert {tool["name"] for tool in compact["tools"]} == {
-        "add_stroke", "highlight", "insert_text", "mark", "move", "write_text",
+        "add_stroke", "connect", "highlight", "insert_text", "mark", "move",
+        "write_text",
     }
 
     full = agent_input_preview(canvas, "Explain this", full=True)
@@ -26,7 +27,8 @@ def test_agent_input_preview_exposes_compact_and_auditable_views():
     assert "NEVER use write_text to reproduce" in full["prompt"]
     assert 'uses the "handwritten" style' in full["prompt"]
     assert {tool["name"] for tool in full["tool_schemas"]} == {
-        "add_stroke", "highlight", "insert_text", "mark", "move", "write_text",
+        "add_stroke", "connect", "highlight", "insert_text", "mark", "move",
+        "write_text",
     }
     move = next(tool for tool in compact["tools"] if tool["name"] == "move")
     assert move["limits"] == {"dx": [-40.0, 40.0], "dy": [-40.0, 40.0]}
