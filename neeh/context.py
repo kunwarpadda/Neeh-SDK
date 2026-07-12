@@ -656,6 +656,58 @@ def build_ink_paths(
     return svg
 
 
+_POSITION_NAMES = {
+    ("upper", "left"): "upper-left", ("upper", "center"): "top",
+    ("upper", "right"): "upper-right", ("middle", "left"): "left",
+    ("middle", "center"): "center", ("middle", "right"): "right",
+    ("lower", "left"): "lower-left", ("lower", "center"): "bottom",
+    ("lower", "right"): "lower-right",
+}
+
+
+def _stroke_shape(stroke: Stroke) -> str:
+    """Coarse, honest shape bucket from geometry: dot, line, loop, or curve.
+
+    Deliberately does not try to tell an oval from a rectangle — the geometric
+    recognizer cannot do that reliably, and position is the useful signal for
+    picking one closed shape over another."""
+    pts = stroke.points
+    if len(pts) < 2:
+        return "dot"
+    total = sum(math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y)
+                for i in range(len(pts) - 1))
+    if total <= 0:
+        return "dot"
+    chord = math.hypot(pts[-1].x - pts[0].x, pts[-1].y - pts[0].y)
+    diag = math.hypot(stroke.bbox.width, stroke.bbox.height)
+    closed = chord <= max(0.2 * total, 0.15 * diag)
+    if closed:
+        return "loop"
+    return "line" if chord >= 0.9 * total else "curve"
+
+
+def _stroke_position(stroke: Stroke, frame: BoundingBox) -> str:
+    """Where the stroke sits within the inked region, as a human label."""
+    cx, cy = stroke.bbox.center
+    col_t = (cx - frame.min_x) / frame.width if frame.width else 0.5
+    row_t = (cy - frame.min_y) / frame.height if frame.height else 0.5
+    col = "left" if col_t < 1 / 3 else ("right" if col_t > 2 / 3 else "center")
+    row = "upper" if row_t < 1 / 3 else ("lower" if row_t > 2 / 3 else "middle")
+    return _POSITION_NAMES[(row, col)]
+
+
+def _stroke_hints(included: Sequence[Stroke]) -> dict[str, str]:
+    """Per-stroke ``shape, position`` labels so a model can map the ink it sees
+    to a stable stroke id without guessing from coordinates."""
+    if not included:
+        return {}
+    frame = BoundingBox.union_all([stroke.bbox for stroke in included])
+    return {
+        stroke.id: f"{_stroke_shape(stroke)}, {_stroke_position(stroke, frame)}"
+        for stroke in included
+    }
+
+
 def build_ink_context_v1(
     source: ContextSource,
     *,
@@ -667,6 +719,7 @@ def build_ink_context_v1(
     resample_grid_step: float = DEFAULT_RESAMPLE_GRID_STEP,
     raster: str = "none",
     stroke_bboxes: bool = False,
+    stroke_hints: bool = False,
     simplify_eps_grid: Optional[float] = None,
     char_budget: Optional[int] = None,
     semantics: Optional[Iterable[Union[SemanticItem, Mapping[str, Any]]]] = None,
@@ -697,7 +750,8 @@ def build_ink_context_v1(
         common = dict(
             page=page, region=region, visible_only=visible_only,
             max_strokes=max_strokes, resample_grid_step=resample_grid_step,
-            raster=raster, stroke_bboxes=stroke_bboxes, semantics=semantics,
+            raster=raster, stroke_bboxes=stroke_bboxes, stroke_hints=stroke_hints,
+            semantics=semantics,
         )
         # Fidelity ladder, highest-resolution representation first.
         ladder = [(512, None), (256, None), (256, 1.0), (128, 1.0), (128, 2.0)]
@@ -764,6 +818,8 @@ def build_ink_context_v1(
     }
     if stroke_bboxes:
         ink["bboxes"] = {stroke.id: _box_list(stroke.bbox) for stroke in included}
+    if stroke_hints:
+        ink["hints"] = _stroke_hints(included)
     return {
         "schema": INK_CONTEXT_V1_VERSION,
         "page": {

@@ -72,10 +72,18 @@ How to answer:
 - insert_text owns placement: it measures the new ink and automatically shifts
   the smallest same-line group needed to open a gap. Do not call move merely
   to make room for inserted text.
-- To point at or link ink already on the page, use connect: it aims an arrow
-  at the strokes you name by id (and starts it from other named ink when you
-  give source_stroke_ids), computing the geometry for you. Never aim a
-  freehand add_stroke arrow at existing ink — estimated coordinates miss.
+- To comment on part of the drawing, use annotate: give it your note text and
+  the target's stroke ids and it writes the note beside that ink AND draws an
+  arrow from the note to it, in one step. This keeps every label bound to the
+  ink it describes — prefer it over a separate write_text plus connect, which
+  can drift or cross when there are several notes.
+- For a bare arrow with no note, use connect: it aims an arrow at the strokes
+  you name by id (starting from other named ink when you give
+  source_stroke_ids), computing the geometry for you. Never aim a freehand
+  add_stroke arrow at existing ink — estimated coordinates miss.
+- Pick the right stroke ids from ink.hints in the context: each id is labeled
+  with the stroke's shape and position (e.g. "loop, lower-left"), so match the
+  ink you see in the image to its id there rather than guessing.
 - Use add_stroke only for new freestanding shapes and diagrams; use highlight
   to emphasize part of the user's ink. Write in {agent_ink} so your ink is visibly yours.
 - Keep written answers short: a sentence or two, or one worked step. This is a
@@ -92,8 +100,10 @@ When you are done, reply with one sentence summarizing what you wrote.
 OnAction = Callable[[str, dict[str, Any]], None]
 
 _CODEX_CLI_TOOL_NAMES = {
-    "add_stroke", "connect", "highlight", "insert_text", "mark", "move", "write_text",
+    "add_stroke", "annotate", "connect", "highlight", "insert_text", "mark",
+    "move", "write_text",
 }
+_ANNOTATE_SIDES = ("auto", "left", "right", "above", "below")
 _CODEX_CLI_ACTION_INPUT_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
@@ -115,6 +125,8 @@ _CODEX_CLI_ACTION_INPUT_SCHEMA = {
                  "enum": ["strike", "circle", "underline", "check", None]},
         "position": {"type": ["string", "null"],
                      "enum": ["before", "after", "above", "below", None]},
+        "side": {"type": ["string", "null"],
+                 "enum": [*_ANNOTATE_SIDES, None]},
         "dx": {"type": ["number", "null"],
                "minimum": -MAX_AGENT_NUDGE, "maximum": MAX_AGENT_NUDGE},
         "dy": {"type": ["number", "null"],
@@ -122,7 +134,7 @@ _CODEX_CLI_ACTION_INPUT_SCHEMA = {
     },
     "required": ["points", "region", "text", "color", "width", "brush", "style",
                  "size", "stroke_ids", "source_stroke_ids", "kind", "position",
-                 "dx", "dy"],
+                 "side", "dx", "dy"],
 }
 _CODEX_CLI_RESPONSE_SCHEMA = {
     "type": "object",
@@ -229,6 +241,7 @@ def _ink_context(canvas: Canvas) -> dict[str, Any]:
         raster="attached_image",
         region=_ink_crop(canvas),
         stroke_bboxes=(CONTEXT_VERSION == "pull"),
+        stroke_hints=True,
         semantics=_recognized_semantics(canvas),
     )
     if CONTEXT_VERSION == "pull":
@@ -326,11 +339,23 @@ def _codex_cli_tool_contract() -> list[dict[str, Any]]:
             "optional": {"color": f"hex, prefer {AGENT_INK}"},
         },
         {
+            "name": "annotate",
+            "purpose": "write a note about part of the drawing AND point an arrow "
+                       "from the note to it, in one action; the note is placed "
+                       "beside the target and the arrow is bound to it, so the "
+                       "label and its target never cross or get mispaired — use "
+                       "this for every 'point at X and explain' answer",
+            "required": {"text": "string", "stroke_ids": "ids of the ink the note is about"},
+            "optional": {"side": f"one of {list(_ANNOTATE_SIDES)} (default auto)",
+                         "color": f"hex, prefer {AGENT_INK}", "size": "number"},
+        },
+        {
             "name": "connect",
-            "purpose": "draw an arrow that points at ink you name by stroke id; "
-                       "geometry is computed for you — the precise way to point at "
-                       "or link existing ink, never estimate arrow coordinates "
-                       "with add_stroke",
+            "purpose": "draw a bare arrow (no note) that points at ink you name by "
+                       "stroke id; geometry is computed for you — the precise way "
+                       "to point at or link existing ink, never estimate arrow "
+                       "coordinates with add_stroke. If the arrow needs a caption, "
+                       "use annotate instead",
             "required": {"stroke_ids": "ids of the ink the arrow points AT"},
             "optional": {"source_stroke_ids": "ids the arrow starts from",
                          "color": f"hex, prefer {AGENT_INK}"},
@@ -476,9 +501,13 @@ Rules:
   the markup is imperfect. insert_text automatically makes collision-free room;
   do not call move for insertion spacing.
 - Use highlight only when it helps connect your answer to existing ink.
-- To point at existing ink, use connect with the target's stroke ids (add
-  source_stroke_ids to start the arrow from other ink). Use add_stroke only
+- To write a note about part of the drawing, use annotate (text + the target's
+  stroke ids): it places the note beside that ink and binds an arrow from note
+  to target in one step. Prefer it over write_text + connect so labels stay
+  paired with their targets. Use connect for a bare arrow, and add_stroke only
   for new freestanding shapes that reference nothing on the page.
+- Choose stroke ids using ink.hints, which labels each id by shape and position
+  (e.g. "loop, lower-left"); match what you see to its id instead of guessing.
 - Coordinates are page units. The page is {page.width:g} x {page.height:g}.
 - Do not edit files, run commands, mention implementation details, or ask a
   follow-up question.
@@ -643,9 +672,13 @@ Rules:
   the markup is imperfect. insert_text automatically makes collision-free room;
   do not call move for insertion spacing.
 - Use highlight only when it helps connect your answer to existing ink.
-- To point at existing ink, use connect with the target's stroke ids (add
-  source_stroke_ids to start the arrow from other ink). Use add_stroke only
+- To write a note about part of the drawing, use annotate (text + the target's
+  stroke ids): it places the note beside that ink and binds an arrow from note
+  to target in one step. Prefer it over write_text + connect so labels stay
+  paired with their targets. Use connect for a bare arrow, and add_stroke only
   for new freestanding shapes that reference nothing on the page.
+- Choose stroke ids using ink.hints, which labels each id by shape and position
+  (e.g. "loop, lower-left"); match what you see to its id instead of guessing.
 - Coordinates are page units. The page is {page.width:g} x {page.height:g}.
 - The page PNG to inspect is at: {page_path}
 - Do not edit files, run commands, mention implementation details, or ask a

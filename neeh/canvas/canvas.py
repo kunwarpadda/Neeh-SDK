@@ -86,6 +86,31 @@ class Canvas:
         self.history.push(edit, self.document)
         return strokes
 
+    def add_styled_strokes(
+        self,
+        groups: Iterable[tuple[Iterable[PointLike], StrokeStyle]],
+        author: Author = Author.AGENT,
+        layer: Optional[Layer] = None,
+        label: str = "add_strokes",
+    ) -> list[Stroke]:
+        """Add several strokes with individual styles as ONE undoable edit.
+
+        Unlike add_strokes (one shared style), each (points, style) pair keeps
+        its own style — so a composed gesture like a captioned arrow (thin text
+        strokes plus a thicker shaft) is a single undo step."""
+        strokes = [
+            Stroke(points=_coerce_points(pts), style=style, author=author)
+            for pts, style in groups
+        ]
+        if not strokes:
+            return []
+        target = layer or self._default_layer(author)
+        if target.locked:
+            raise ValueError(f"layer '{target.name}' is locked")
+        edit = StrokeEdit(label, self.page.id, added=[(target.id, s) for s in strokes])
+        self.history.push(edit, self.document)
+        return strokes
+
     def move_and_add_strokes(
         self,
         strokes_points: Iterable[Iterable[PointLike]],

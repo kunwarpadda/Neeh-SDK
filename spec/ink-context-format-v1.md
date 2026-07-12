@@ -77,6 +77,7 @@ URLs, and provider-specific image objects MUST NOT be embedded in the ICF JSON.
 | `truncated` | MUST equal `omitted_older_stroke_count > 0`. |
 | `svg` | Compact SVG containing the included stroke paths. |
 | `bboxes` | OPTIONAL map from included stroke ID to page-space bounding box. |
+| `hints` | OPTIONAL map from included stroke ID to a short `"shape, position"` label (e.g. `"loop, lower-left"`). Advisory only; consumers MUST NOT treat it as ground truth. |
 | `rate_point` | OPTIONAL rate-control settings selected by the producer. |
 
 When a producer applies a stroke limit, it MUST retain the newest eligible strokes and preserve

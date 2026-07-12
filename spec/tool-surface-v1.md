@@ -128,6 +128,7 @@ than truncate it silently.
 | `write_text` | `text`, `region` | `style`, `color`, `size` | `{stroke_ids,size,region,style}` |
 | `mark` | `stroke_ids`, `kind` | `color` | `{stroke_id,kind,anchor_bbox}` |
 | `connect` | `stroke_ids` | `source_stroke_ids`, `color` | `{stroke_ids,from,to,target_bbox,source_bbox}` |
+| `annotate` | `text`, `stroke_ids` | `side`, `color`, `size` | `{text_stroke_ids,arrow_stroke_ids,note_bbox,target_bbox,side,size,from,to}` |
 | `insert_text` | `text`, `stroke_ids`, `position` | `color`, `size` | `{stroke_ids,size,region,anchor_bbox,original_anchor_bbox,reflow,style}` |
 | `undo` | — | — | `{undone}` |
 | `redo` | — | — | `{redone}` |
@@ -185,6 +186,13 @@ union bounding box of `stroke_ids`, on the side facing the arrow's origin. With 
 the tail starts just outside the source ink's union box; without it the tail is placed
 deterministically toward the page interior and kept on-page. Unknown IDs are invalid; coincident or
 near-touching source and target MUST fail without mutation.
+
+`annotate` composes a note and a bound arrow as one atomic edit: it writes `text` (handwritten,
+auto-sized) in blank space beside the union bounding box of `stroke_ids` and draws an arrow from
+the note to that ink. `side` is `auto` (default), `left`, `right`, `above`, or `below`; `auto`
+picks the horizontal side of the target with more room. The note is shifted, never shrunk, to stay
+on-page. Because the arrow originates from the note itself, each label stays bound to the ink it
+describes. Unknown IDs, empty `text`, and non-positive `size` MUST fail without mutation.
 
 `insert_text` places handwritten ink `before`, `after`, `above`, or `below` the union bounding box of
 `stroke_ids`. It MAY shift a bounded set of unlocked user strokes horizontally to open a gap. The

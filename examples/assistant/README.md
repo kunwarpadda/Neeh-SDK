@@ -43,8 +43,11 @@ result = run_codex_cli(canvas, "Answer the question on the page")
 ```
 
 Planned actions are restricted to a small allowlist and bounded action count. Relative
-corrections use stroke IDs through `insert_text` and `mark`, and arrows that reference existing
-ink use stroke IDs through `connect`; explicit `move` calls are limited to small offsets. Blue agent text uses the cursive Hershey Script Complex face so it remains visually
+corrections use stroke IDs through `insert_text` and `mark`; arrows that reference existing ink use
+stroke IDs through `connect`; and captioned pointers use `annotate`, which writes a note beside a
+target and binds an arrow to it in one step so labels stay paired with their targets. The model
+picks targets from `ink.hints`, which labels each stroke by shape and position. Explicit `move`
+calls are limited to small offsets. Blue agent text uses the cursive Hershey Script Complex face so it remains visually
 distinct from regular print. Agent-created strokes are stored on the agent layer and remain
 undoable.
 

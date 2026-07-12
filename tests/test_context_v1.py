@@ -143,6 +143,18 @@ def test_stroke_bboxes_are_page_units():
     assert "bboxes" not in build_ink_context_v1(page)["ink"]  # opt-in
 
 
+def test_stroke_hints_label_shape_and_position():
+    # A closed loop in the lower-left and a straight line in the upper-right of
+    # the inked region — hints must let a model tell them apart by id.
+    loop = _stroke("st_loop", [(20, 200), (60, 200), (60, 240), (20, 240), (20, 200)])
+    line = _stroke("st_line", [(300, 20), (460, 24)])
+    payload = build_ink_context_v1(_page_with([loop, line]), stroke_hints=True)
+    hints = payload["ink"]["hints"]
+    assert hints["st_loop"] == "loop, lower-left"
+    assert hints["st_line"] == "line, upper-right"
+    assert "hints" not in build_ink_context_v1(_page_with([loop, line]))["ink"]  # opt-in
+
+
 def test_parse_ink_paths_round_trip():
     from neeh import parse_ink_paths
 

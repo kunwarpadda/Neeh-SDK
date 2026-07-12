@@ -506,38 +506,18 @@ def _arrow_standoff(box: BoundingBox) -> float:
     return min(max(4.0, 0.15 * max(box.width, box.height)), 14.0)
 
 
-@tool(
-    "connect",
-    "Point at existing ink with an arrow — the geometry is computed for you "
-    "from the strokes' bounding boxes. The tip lands just outside the ink "
-    "named by stroke_ids; give source_stroke_ids to start the arrow from "
-    "other ink instead of blank space. Prefer this over add_stroke whenever "
-    "an arrow should reference ink already on the page: no coordinates "
-    "needed.",
-    {
-        "type": "object",
-        "properties": {
-            "stroke_ids": _IDS_SCHEMA,
-            "source_stroke_ids": _IDS_SCHEMA,
-            "color": {"type": "string", "description": "Hex color, e.g. #1d4ed8"},
-        },
-        "required": ["stroke_ids"],
-    },
-)
-def connect(
-    canvas: Canvas,
-    stroke_ids: Sequence[str],
-    source_stroke_ids: Optional[Sequence[str]] = None,
-    color: Optional[str] = None,
-) -> dict[str, Any]:
-    target = _anchor_bbox(canvas, stroke_ids)
+def _arrow_geometry(
+    page: Page, target: BoundingBox, source: Optional[BoundingBox] = None,
+) -> tuple[list[list[tuple[float, float]]], float, tuple[float, float], tuple[float, float]]:
+    """Shaft + arrowhead polylines for an arrow whose tip stands just outside
+    ``target``. With a ``source`` box the tail stands off it; otherwise the
+    tail is placed toward the page interior at a default shaft length, clamped
+    on-page. Returns (polylines, width, tail, tip)."""
     tcx, tcy = target.center
-    source: Optional[BoundingBox] = None
-    if source_stroke_ids is not None:
-        source = _anchor_bbox(canvas, source_stroke_ids, name="source_stroke_ids")
+    if source is not None:
         scx, scy = source.center
     else:
-        scx, scy = canvas.page.width / 2, canvas.page.height / 2
+        scx, scy = page.width / 2, page.height / 2
     dx, dy = tcx - scx, tcy - scy
     length = math.hypot(dx, dy)
     if length < 1e-6:
@@ -555,35 +535,167 @@ def connect(
     else:
         shaft = min(max(1.5 * max(target.width, target.height), 48.0), 160.0)
         tail = (
-            min(max(tip[0] - ux * shaft, 4.0), canvas.page.width - 4.0),
-            min(max(tip[1] - uy * shaft, 4.0), canvas.page.height - 4.0),
+            min(max(tip[0] - ux * shaft, 4.0), page.width - 4.0),
+            min(max(tip[1] - uy * shaft, 4.0), page.height - 4.0),
         )
 
-    run = math.hypot(tip[0] - tail[0], tip[1] - tail[1])
     # Guard the SIGNED length along the intended direction: standoffs around
     # near-touching boxes can push the tail past the tip, flipping the arrow.
     if (tip[0] - tail[0]) * ux + (tip[1] - tail[1]) * uy < _MIN_ARROW_RUN:
         raise ValueError("source and target ink are too close to connect with an arrow")
+    run = math.hypot(tip[0] - tail[0], tip[1] - tail[1])
     # Head barbs follow the drawn shaft, which page clamping may have re-aimed.
     hx, hy = (tip[0] - tail[0]) / run, (tip[1] - tail[1]) / run
     head = min(max(6.0, 0.22 * run), 16.0)
     back = (tip[0] - hx * head, tip[1] - hy * head)
     left = (back[0] - hy * head * 0.55, back[1] + hx * head * 0.55)
     right = (back[0] + hy * head * 0.55, back[1] - hx * head * 0.55)
+    width = min(max(run / 60.0, 1.4), 3.0)
+    return [[tail, tip], [left, tip, right]], width, tail, tip
 
-    style = StrokeStyle(
-        color=color or StrokeStyle().color,
-        width=min(max(run / 60.0, 1.4), 3.0),
-    )
-    strokes = canvas.add_strokes(
-        [[tail, tip], [left, tip, right]], style=style, author=Author.AGENT,
-    )
+
+@tool(
+    "connect",
+    "Point at existing ink with an arrow — the geometry is computed for you "
+    "from the strokes' bounding boxes. The tip lands just outside the ink "
+    "named by stroke_ids; give source_stroke_ids to start the arrow from "
+    "other ink instead of blank space. Prefer this over add_stroke whenever "
+    "an arrow should reference ink already on the page: no coordinates "
+    "needed. To attach a written note to a target, prefer annotate.",
+    {
+        "type": "object",
+        "properties": {
+            "stroke_ids": _IDS_SCHEMA,
+            "source_stroke_ids": _IDS_SCHEMA,
+            "color": {"type": "string", "description": "Hex color, e.g. #1d4ed8"},
+        },
+        "required": ["stroke_ids"],
+    },
+)
+def connect(
+    canvas: Canvas,
+    stroke_ids: Sequence[str],
+    source_stroke_ids: Optional[Sequence[str]] = None,
+    color: Optional[str] = None,
+) -> dict[str, Any]:
+    target = _anchor_bbox(canvas, stroke_ids)
+    source: Optional[BoundingBox] = None
+    if source_stroke_ids is not None:
+        source = _anchor_bbox(canvas, source_stroke_ids, name="source_stroke_ids")
+    polylines, width, tail, tip = _arrow_geometry(canvas.page, target, source)
+    style = StrokeStyle(color=color or StrokeStyle().color, width=width)
+    strokes = canvas.add_strokes(polylines, style=style, author=Author.AGENT)
     return {
         "stroke_ids": [s.id for s in strokes],
         "from": [tail[0], tail[1]],
         "to": [tip[0], tip[1]],
         "target_bbox": target.to_list(),
         "source_bbox": source.to_list() if source is not None else None,
+    }
+
+
+_ANNOTATE_SIDES = ("auto", "left", "right", "above", "below")
+_ANNOTATE_DEFAULT_SIZE = 24.0
+_ANNOTATE_GAP = 44.0  # clear span from target to note; must exceed both standoffs
+
+
+def _note_box(
+    page: Page, target: BoundingBox, w: float, h: float, side: str, gap: float,
+) -> tuple[BoundingBox, str]:
+    """Place a w×h note beside ``target`` on ``side``, shifted (never shrunk)
+    to stay on-page. 'auto' picks the horizontal side with more room."""
+    tcx, tcy = target.center
+    if side == "auto":
+        side = "right" if (page.width - target.max_x) >= target.min_x else "left"
+    if side == "right":
+        x0, y0 = target.max_x + gap, tcy - h / 2
+    elif side == "left":
+        x0, y0 = target.min_x - gap - w, tcy - h / 2
+    elif side == "above":
+        x0, y0 = tcx - w / 2, target.min_y - gap - h
+    else:  # below
+        x0, y0 = tcx - w / 2, target.max_y + gap
+    m = 6.0
+    x0 = min(max(x0, m), max(m, page.width - m - w))
+    y0 = min(max(y0, m), max(m, page.height - m - h))
+    return BoundingBox(x0, y0, x0 + w, y0 + h), side
+
+
+@tool(
+    "annotate",
+    "Attach a written note to existing ink and point an arrow from the note to "
+    "it — one atomic action. The note is placed in blank space beside the ink "
+    "named by stroke_ids and an arrow is drawn from the note to that ink, with "
+    "all geometry computed for you. This is the reliable way to caption or "
+    "explain part of a drawing: it keeps each note bound to the ink it "
+    "describes, so labels and arrows never cross or get mispaired. 'side' "
+    "chooses which side of the target the note sits on (default 'auto').",
+    {
+        "type": "object",
+        "properties": {
+            "text": {"type": "string"},
+            "stroke_ids": _IDS_SCHEMA,
+            "side": {"type": "string", "enum": list(_ANNOTATE_SIDES), "default": "auto"},
+            "color": {"type": "string", "description": "Hex color, e.g. #1d4ed8"},
+            "size": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "description": "Cap height in page units; omit for a default size",
+            },
+        },
+        "required": ["text", "stroke_ids"],
+    },
+)
+def annotate(
+    canvas: Canvas,
+    text: str,
+    stroke_ids: Sequence[str],
+    side: str = "auto",
+    color: Optional[str] = None,
+    size: Optional[float] = None,
+) -> dict[str, Any]:
+    from neeh.ink.textink import layout_text, measure_text  # optional font tables
+
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("annotate text must be a non-empty string")
+    if side not in _ANNOTATE_SIDES:
+        raise ValueError(f"side must be one of {_ANNOTATE_SIDES}")
+    if size is not None:
+        size = _finite_number(size, "size")
+        if size <= 0:
+            raise ValueError("size must be positive")
+    target = _anchor_bbox(canvas, stroke_ids)
+    style_name = "handwritten"
+    cap = size or _ANNOTATE_DEFAULT_SIZE
+    w, h = measure_text(text, cap, style_name)
+    box, side = _note_box(canvas.page, target, w, h, side, _ANNOTATE_GAP)
+    polylines, used = layout_text(text, box, size=cap, style=style_name)
+    if not polylines:
+        raise ValueError("annotate text produced no ink")
+
+    xs = [x for line in polylines for x, _ in line]
+    ys = [y for line in polylines for _, y in line]
+    note_box = BoundingBox(min(xs), min(ys), max(xs), max(ys))
+    arrow_lines, arrow_width, tail, tip = _arrow_geometry(canvas.page, target, note_box)
+
+    ink_color = color or StrokeStyle().color
+    text_style = StrokeStyle(color=ink_color, width=max(used / 12.0, 0.8))
+    arrow_style = StrokeStyle(color=ink_color, width=arrow_width)
+    groups = [(line, text_style) for line in polylines]
+    groups += [(line, arrow_style) for line in arrow_lines]
+    strokes = canvas.add_styled_strokes(groups, author=Author.AGENT, label="annotate")
+
+    text_ids = [s.id for s in strokes[:len(polylines)]]
+    arrow_ids = [s.id for s in strokes[len(polylines):]]
+    return {
+        "text_stroke_ids": text_ids,
+        "arrow_stroke_ids": arrow_ids,
+        "note_bbox": note_box.to_list(),
+        "target_bbox": target.to_list(),
+        "side": side,
+        "size": used,
+        "from": [tail[0], tail[1]],
+        "to": [tip[0], tip[1]],
     }
 
 

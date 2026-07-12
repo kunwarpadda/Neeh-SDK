@@ -19,6 +19,7 @@ EXPECTED_TOOLS = {
     "insert_text",
     "mark",
     "connect",
+    "annotate",
     "write_text",
     "undo",
     "redo",
@@ -327,6 +328,67 @@ def test_connect_rejects_unknown_ids_and_coincident_endpoints():
             "stroke_ids": [target.id], "source_stroke_ids": [near.id],
         })
     assert not canvas.page.agent_layer().strokes  # failures never mutate
+
+
+def test_annotate_places_note_beside_target_and_binds_arrow():
+    canvas = Canvas()
+    target = _anchor(canvas)  # bbox [200,300,320,340], centered (260,320)
+    result = call_tool(canvas, "annotate", {
+        "text": "make this round", "stroke_ids": [target.id], "color": "#1d4ed8",
+    })
+
+    assert result["target_bbox"] == [200, 300, 320, 340]
+    assert result["text_stroke_ids"] and result["arrow_stroke_ids"]
+    # The note sits clear of the target, and the arrow tip lands just outside it.
+    note = result["note_bbox"]
+    assert note[0] >= 320 or note[2] <= 200  # wholly left or right of the target
+    tip_gap = _distance_to_box(result["target_bbox"], *result["to"])
+    assert 0 < tip_gap <= 14.5
+    # The arrow starts from the note, not from dead page space.
+    tail_gap = _distance_to_box(note, *result["from"])
+    assert tail_gap <= 14.5
+
+    # Note text and bound arrow are ONE undoable edit.
+    for sid in result["text_stroke_ids"] + result["arrow_stroke_ids"]:
+        _, stroke = canvas.page.find(sid)
+        assert stroke.author is Author.AGENT
+        assert stroke.style.color == "#1d4ed8"
+    assert canvas.undo() == "annotate"
+    assert not canvas.page.agent_layer().strokes
+
+
+def test_annotate_side_selection_and_auto_prefers_room():
+    canvas = Canvas()
+    target = canvas.add_stroke([(60, 300), (120, 340)])  # near the left edge
+    auto = call_tool(canvas, "annotate", {"text": "note", "stroke_ids": [target.id]})
+    assert auto["side"] == "right"  # more room to the right of a left-edge target
+    assert auto["note_bbox"][0] >= 120
+
+    canvas2 = Canvas()
+    target2 = _anchor(canvas2)
+    below = call_tool(canvas2, "annotate", {
+        "text": "note", "stroke_ids": [target2.id], "side": "below",
+    })
+    assert below["side"] == "below"
+    assert below["note_bbox"][1] >= 340  # note is beneath the target
+
+
+def test_annotate_validates_inputs_without_mutating():
+    canvas = Canvas()
+    target = _anchor(canvas)
+    with pytest.raises(ValueError, match="unknown stroke ids"):
+        call_tool(canvas, "annotate", {"text": "x", "stroke_ids": ["st_nope"]})
+    with pytest.raises(ValueError, match="non-empty"):
+        call_tool(canvas, "annotate", {"text": "   ", "stroke_ids": [target.id]})
+    with pytest.raises(ValueError, match="side"):
+        call_tool(canvas, "annotate", {
+            "text": "x", "stroke_ids": [target.id], "side": "diagonal",
+        })
+    with pytest.raises(ValueError, match="size"):
+        call_tool(canvas, "annotate", {
+            "text": "x", "stroke_ids": [target.id], "size": 0,
+        })
+    assert not canvas.page.agent_layer().strokes
 
 
 def test_insert_text_before_and_after_hug_the_anchor():
