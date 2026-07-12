@@ -20,6 +20,24 @@ def _coerce_points(points: Iterable[PointLike]) -> tuple[Point, ...]:
     return tuple(p if isinstance(p, Point) else Point.from_list(p) for p in points)
 
 
+# Point/BoundingBox only reject non-finite coordinates, not magnitude — an
+# unbounded coordinate (e.g. 1e12) is a valid Stroke but makes every future
+# page raster (bbox-cropped to content) attempt an unbounded allocation.
+# Bound coordinates relative to the page instead, with a generous margin so
+# legitimate off-canvas scratch content still fits.
+_MAX_COORD_MARGIN_FACTOR = 10.0
+
+
+def _validate_points_in_bounds(points: Iterable[Point], page: Page) -> None:
+    bound = page.rect.expanded(max(page.width, page.height) * _MAX_COORD_MARGIN_FACTOR)
+    for point in points:
+        if not bound.contains(point.x, point.y):
+            raise ValueError(
+                f"stroke point ({point.x:g}, {point.y:g}) is far outside the "
+                f"page bounds {page.rect.to_list()}"
+            )
+
+
 class Canvas:
     def __init__(self, document: Optional[Document] = None) -> None:
         self.document = document or Document()
@@ -55,6 +73,7 @@ class Canvas:
             style=style or StrokeStyle(),
             author=author,
         )
+        _validate_points_in_bounds(stroke.points, self.page)
         target = layer or self._default_layer(author)
         if target.locked:
             raise ValueError(f"layer '{target.name}' is locked")
@@ -75,6 +94,8 @@ class Canvas:
             Stroke(points=_coerce_points(pts), style=style or StrokeStyle(), author=author)
             for pts in strokes_points
         ]
+        for stroke in strokes:
+            _validate_points_in_bounds(stroke.points, self.page)
         if not strokes:
             return []
         # As above, default-layer lookup happens only after every stroke has
@@ -102,6 +123,8 @@ class Canvas:
             Stroke(points=_coerce_points(pts), style=style, author=author)
             for pts, style in groups
         ]
+        for stroke in strokes:
+            _validate_points_in_bounds(stroke.points, self.page)
         if not strokes:
             return []
         target = layer or self._default_layer(author)
@@ -128,6 +151,8 @@ class Canvas:
             Stroke(points=_coerce_points(pts), style=style or StrokeStyle(), author=author)
             for pts in strokes_points
         ]
+        for stroke in strokes:
+            _validate_points_in_bounds(stroke.points, self.page)
         if not strokes:
             return [], []
 
@@ -143,6 +168,9 @@ class Canvas:
                 raise ValueError(f"layer '{source_layer.name}' is locked")
             removed.append((source_layer.id, stroke))
             moved.append((source_layer.id, stroke.translated(dx, dy)))
+
+        for _, moved_stroke in moved:
+            _validate_points_in_bounds(moved_stroke.points, self.page)
 
         target = layer or self._default_layer(author)
         if target.locked:
@@ -206,6 +234,8 @@ class Canvas:
             added.append((layer.id, stroke.translated(dx, dy)))
         if not removed:
             return 0
+        for _, moved_stroke in added:
+            _validate_points_in_bounds(moved_stroke.points, self.page)
         self.history.push(StrokeEdit("move", self.page.id, removed=removed, added=added), self.document)
         return len(removed)
 

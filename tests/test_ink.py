@@ -122,6 +122,14 @@ class TestStroke:
         with pytest.raises(ValueError):
             Stroke(points=())
 
+    def test_exceeding_max_points_raises(self):
+        from neeh.ink.stroke import _MAX_POINTS_PER_STROKE
+
+        with pytest.raises(ValueError, match="point limit"):
+            Stroke(points=tuple(Point(i, i) for i in range(_MAX_POINTS_PER_STROKE + 1)))
+        # exactly at the limit is still valid
+        Stroke(points=tuple(Point(i, i) for i in range(_MAX_POINTS_PER_STROKE)))
+
     def test_bbox_and_duration(self):
         s = Stroke(points=(Point(0, 0, t_ms=0), Point(10, 5, t_ms=120)))
         assert s.bbox == BoundingBox(0, 0, 10, 5)

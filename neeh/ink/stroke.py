@@ -24,6 +24,12 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
+# Generous ceiling on points per stroke: real capture at high sampling rates
+# over a long gesture stays in the low thousands. Bounds serialization,
+# rendering, and history/undo cost against an adversarial or buggy caller.
+_MAX_POINTS_PER_STROKE = 20_000
+
+
 @dataclass(frozen=True)
 class Stroke:
     """An immutable timestamped sequence of points.
@@ -45,6 +51,11 @@ class Stroke:
             object.__setattr__(self, "points", tuple(self.points))
         if not self.points:
             raise ValueError("a stroke needs at least one point")
+        if len(self.points) > _MAX_POINTS_PER_STROKE:
+            raise ValueError(
+                f"stroke has {len(self.points)} points, exceeding the "
+                f"{_MAX_POINTS_PER_STROKE} point limit"
+            )
         if any(not isinstance(point, Point) for point in self.points):
             raise ValueError("stroke points must be Point instances")
         if not isinstance(self.id, str) or not self.id.strip():

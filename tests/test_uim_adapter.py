@@ -9,7 +9,14 @@ import pytest
 
 pytest.importorskip("uim")
 
-from neeh.adapters.uim import NEEH_PROFILE, document_from_uim, document_to_uim, load_uim, save_uim
+from neeh.adapters.uim import (
+    NEEH_PROFILE,
+    UimImportError,
+    document_from_uim,
+    document_to_uim,
+    load_uim,
+    save_uim,
+)
 from neeh.document import Document, Layer, Page
 from neeh.ink import Author, Point, Stroke
 from neeh.ink.style import Brush, StrokeStyle
@@ -156,6 +163,23 @@ def test_rejects_non_neeh_uim():
     blob = UIMEncoder310().encode(model)
     with pytest.raises(ValueError, match="neeh"):
         document_from_uim(blob)
+
+
+def test_corrupted_document_raises_uim_import_error_not_raw_key_error():
+    # A truncated/corrupted file that passes the profile check but is missing
+    # required node facts must surface as one documented UimImportError, not
+    # an unspecified KeyError leaking from dict access deep in traversal.
+    from uim.codec.writer.encoder.encoder_3_1_0 import UIMEncoder310
+    from uim.codec.parser.uim import UIMParser
+
+    blob = document_to_uim(make_document())
+    model = UIMParser().parse(blob)
+    for triple in [t for t in model.knowledge_graph.statements if t.predicate == "neeh:id"]:
+        model.knowledge_graph.remove_semantic_triple(triple)
+    corrupted = UIMEncoder310().encode(model)
+
+    with pytest.raises(UimImportError, match="malformed UIM document"):
+        document_from_uim(corrupted)
 
 
 def test_profile_identifier_is_canonical_and_unknown_versions_are_rejected():

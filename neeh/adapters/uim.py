@@ -70,6 +70,16 @@ NEEH_PROFILE = UIM_PROFILE_VERSION
 _LEGACY_NEEH_PROFILES = {"1"}
 _NS = uuid.NAMESPACE_URL
 
+
+class UimImportError(ValueError):
+    """A UIM document could not be imported into a Neeh Document.
+
+    Covers both explicit profile/structure checks and raw structural failures
+    (missing facts, malformed nodes) deep in ink-tree traversal, so callers
+    catch one documented type instead of an unspecified KeyError/IndexError
+    leaking from dict/list access.
+    """
+
 # Triple predicates of the Neeh profile.
 _TYPE = "neeh:type"
 _ID = "neeh:id"
@@ -287,33 +297,41 @@ def document_from_uim(data: bytes) -> Document:
     props = dict(model.properties)
     profile = props.get("neeh.profile")
     if profile is None:
-        raise ValueError("not a Neeh-profile UIM file (missing neeh.profile property)")
+        raise UimImportError("not a Neeh-profile UIM file (missing neeh.profile property)")
     if profile != NEEH_PROFILE and profile not in _LEGACY_NEEH_PROFILES:
-        raise ValueError(
+        raise UimImportError(
             f"unsupported Neeh UIM profile {profile!r}; supported profile is {NEEH_PROFILE!r}"
         )
 
-    facts: dict[str, dict[str, str]] = {}
-    for triple in model.knowledge_graph.statements:
-        facts.setdefault(triple.subject, {})[triple.predicate] = triple.object
+    # Node/fact traversal below assumes a well-formed Neeh-profile document;
+    # a truncated or corrupted file surfaces as a raw KeyError/IndexError deep
+    # in dict/list access. Normalize those to one documented, catchable type.
+    try:
+        facts: dict[str, dict[str, str]] = {}
+        for triple in model.knowledge_graph.statements:
+            facts.setdefault(triple.subject, {})[triple.predicate] = triple.object
 
-    channel_types = {
-        channel.id: channel.type
-        for context in model.input_configuration.sensor_contexts
-        for scc in context.sensor_channels_contexts
-        for channel in scc.channels
-    }
+        channel_types = {
+            channel.id: channel.type
+            for context in model.input_configuration.sensor_contexts
+            for scc in context.sensor_channels_contexts
+            for channel in scc.channels
+        }
 
-    pages = [
-        _import_page(model, page_node, facts, channel_types)
-        for page_node in model.ink_tree.root.children
-    ]
-    return Document(
-        id=props["neeh.document.id"],
-        title=props.get("neeh.document.title", "Untitled"),
-        created_at_ms=int(props.get("neeh.document.created_at_ms", 0)),
-        pages=pages,
-    )
+        pages = [
+            _import_page(model, page_node, facts, channel_types)
+            for page_node in model.ink_tree.root.children
+        ]
+        return Document(
+            id=props["neeh.document.id"],
+            title=props.get("neeh.document.title", "Untitled"),
+            created_at_ms=int(props.get("neeh.document.created_at_ms", 0)),
+            pages=pages,
+        )
+    except UimImportError:
+        raise
+    except (KeyError, IndexError, AttributeError, TypeError) as exc:
+        raise UimImportError(f"malformed UIM document: {exc}") from exc
 
 
 def _import_page(
@@ -321,7 +339,7 @@ def _import_page(
 ) -> Page:
     about = facts.get(page_node.uri, {})
     if about.get(_TYPE) != "page":
-        raise ValueError(f"unexpected ink-tree node {page_node.uri}: not a neeh page")
+        raise UimImportError(f"unexpected ink-tree node {page_node.uri}: not a neeh page")
     layers = [
         _import_layer(model, layer_node, facts, channel_types)
         for layer_node in page_node.children
@@ -340,7 +358,7 @@ def _import_layer(
 ) -> Layer:
     about = facts.get(layer_node.uri, {})
     if about.get(_TYPE) != "layer":
-        raise ValueError(f"unexpected ink-tree node {layer_node.uri}: not a neeh layer")
+        raise UimImportError(f"unexpected ink-tree node {layer_node.uri}: not a neeh layer")
     strokes = [
         _import_stroke(model, stroke_node, facts.get(stroke_node.uri, {}), channel_types)
         for stroke_node in layer_node.children
@@ -407,4 +425,12 @@ def save_uim(doc: Document, path: Union[str, Path]) -> None:
 
 
 def load_uim(path: Union[str, Path]) -> Document:
+    """Load a Neeh-profile UIM 3.1 file.
+
+    Reads the whole file into memory with no size limit and raises
+    `UimImportError` for a malformed or non-Neeh-profile document. An
+    embedding application that accepts uploads from untrusted end users must
+    enforce its own file-size limit before calling this — Neeh trusts its
+    caller's process boundary, not arbitrary uploaders.
+    """
     return document_from_uim(Path(path).read_bytes())

@@ -26,7 +26,19 @@ _FORMAT_SCHEMA = {
 }
 
 
+# A generous ceiling against runaway allocation from an oversized region or
+# page, independent of any caller-specific (e.g. IAI) context budget — this
+# guards every renderer caller, not just the agent perception path.
+_MAX_RENDER_PIXELS = 64_000_000  # ~64 megapixels
+
+
 def _render(page: Page, region: Optional[BoundingBox], fmt: str) -> dict[str, Any]:
+    box = region or page.rect
+    area = box.width * box.height
+    if area > _MAX_RENDER_PIXELS:
+        raise ValueError(
+            f"render area {area:.0f} px exceeds the {_MAX_RENDER_PIXELS} px limit"
+        )
     if fmt == "png":
         from neeh.rendering.png import render_page_png  # optional extra, import lazily
 
@@ -55,6 +67,17 @@ def _finite_number(value: Any, name: str) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
         raise ValueError(f"{name} must be a finite number")
     return float(value)
+
+
+# Generous ceiling on ink-text tool inputs: any real note, answer, or
+# annotation is well under this. Bounds text-layout and rendering cost
+# against an oversized payload from a malformed or adversarial caller.
+_MAX_TEXT_LENGTH = 10_000
+
+
+def _validate_text_length(text: str, name: str = "text") -> None:
+    if len(text) > _MAX_TEXT_LENGTH:
+        raise ValueError(f"{name} exceeds the {_MAX_TEXT_LENGTH} character limit")
 
 
 def _stroke_ids(values: Optional[Sequence[str]], name: str = "stroke_ids") -> Optional[list[str]]:
@@ -400,6 +423,7 @@ def write_text(
 
     if not isinstance(text, str):
         raise ValueError("text must be a string")
+    _validate_text_length(text)
     if size is not None:
         size = _finite_number(size, "size")
         if size <= 0:
@@ -727,6 +751,7 @@ def annotate(
 
     if not isinstance(text, str) or not text.strip():
         raise ValueError("annotate text must be a non-empty string")
+    _validate_text_length(text)
     if side not in _ANNOTATE_SIDES:
         raise ValueError(f"side must be one of {_ANNOTATE_SIDES}")
     if size is not None:
@@ -909,6 +934,7 @@ def insert_text(
 
     if not isinstance(text, str) or not text.strip():
         raise ValueError("text must be a non-empty string")
+    _validate_text_length(text)
     if position not in _INSERT_POSITIONS:
         raise ValueError(f"position must be one of {_INSERT_POSITIONS}")
     validated_ids = _stroke_ids(stroke_ids)

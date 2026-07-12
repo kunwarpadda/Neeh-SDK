@@ -1,7 +1,7 @@
 import pytest
 
 from neeh import Canvas, Document, Viewport
-from neeh.ink import Author, BoundingBox
+from neeh.ink import Author, BoundingBox, StrokeStyle
 
 
 class TestCanvasEditing:
@@ -90,6 +90,56 @@ class TestCanvasEditing:
         assert canvas.redo() == "insert_text"
         assert canvas.page.find(source.id)[1].bbox.min_x == 120
         assert canvas.page.find(added[0].id) is not None
+
+
+class TestCoordinateBounds:
+    """A point far outside the page is a valid Stroke (finite) but would make
+    every future content-cropped raster attempt an unbounded allocation. Every
+    entry point that can place a point onto the page must reject it."""
+
+    def test_add_stroke_rejects_extreme_point(self):
+        canvas = Canvas()
+        with pytest.raises(ValueError, match="far outside the page bounds"):
+            canvas.add_stroke([(0, 0), (1e12, 1e12)])
+
+    def test_add_strokes_rejects_extreme_point(self):
+        canvas = Canvas()
+        with pytest.raises(ValueError, match="far outside the page bounds"):
+            canvas.add_strokes([[(0, 0), (10, 10)], [(0, 0), (-1e12, 0)]])
+
+    def test_add_styled_strokes_rejects_extreme_point(self):
+        canvas = Canvas()
+        with pytest.raises(ValueError, match="far outside the page bounds"):
+            canvas.add_styled_strokes([([(0, 0), (1e9, 1e9)], StrokeStyle())])
+
+    def test_move_and_add_strokes_rejects_extreme_new_point(self):
+        canvas = Canvas()
+        source = canvas.add_stroke([(100, 100), (120, 120)])
+        with pytest.raises(ValueError, match="far outside the page bounds"):
+            canvas.move_and_add_strokes(
+                [[(0, 0), (1e12, 0)]], move_stroke_ids=[source.id], dx=1, dy=1,
+            )
+
+    def test_move_and_add_strokes_rejects_extreme_translation(self):
+        canvas = Canvas()
+        source = canvas.add_stroke([(100, 100), (120, 120)])
+        with pytest.raises(ValueError, match="far outside the page bounds"):
+            canvas.move_and_add_strokes(
+                [[(0, 0), (10, 10)]], move_stroke_ids=[source.id], dx=1e12, dy=0,
+            )
+
+    def test_move_rejects_extreme_translation(self):
+        canvas = Canvas()
+        source = canvas.add_stroke([(100, 100), (120, 120)])
+        with pytest.raises(ValueError, match="far outside the page bounds"):
+            canvas.move(dx=1e12, dy=0, stroke_ids=[source.id])
+
+    def test_reasonable_off_page_scratch_content_still_fits(self):
+        # The margin is generous (10x page size) so legitimate off-canvas
+        # scratch/staging content is not rejected by this guard.
+        canvas = Canvas()
+        stroke = canvas.add_stroke([(-500, -500), (-100, -100)])
+        assert canvas.page.find(stroke.id) is not None
 
 
 class TestUndoRedo:

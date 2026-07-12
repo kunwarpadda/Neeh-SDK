@@ -96,4 +96,11 @@ class Document:
 
     @classmethod
     def load(cls, path: Union[str, Path]) -> "Document":
+        """Load a Neeh JSON snapshot.
+
+        Reads the whole file into memory with no size limit. An embedding
+        application that accepts uploads from untrusted end users must
+        enforce its own file-size limit before calling this — Neeh trusts its
+        caller's process boundary, not arbitrary uploaders.
+        """
         return cls.from_json(Path(path).read_text(encoding="utf-8"))

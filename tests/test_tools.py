@@ -53,6 +53,26 @@ def test_render_format_is_validated_for_direct_python_calls():
         call_tool(Canvas(), "view_page", {"format": "jpeg"})
 
 
+def test_view_region_rejects_oversized_render_area():
+    # A caller-supplied region this large would make the PNG renderer attempt
+    # an unbounded allocation; it must be rejected before any rendering runs,
+    # for both svg and png (svg is cheap to render, but the bound is a
+    # uniform sanity check on the requested area, not format-specific).
+    huge = [0, 0, 1_000_000, 1_000_000]
+    with pytest.raises(ValueError, match="exceeds the .* px limit"):
+        call_tool(Canvas(), "view_region", {"region": huge, "format": "svg"})
+    with pytest.raises(ValueError, match="exceeds the .* px limit"):
+        call_tool(Canvas(), "view_region", {"region": huge, "format": "png"})
+
+
+def test_view_page_rejects_oversized_page():
+    from neeh.document import Document, Page
+
+    huge_page = Canvas(Document(pages=[Page(width=200_000, height=200_000)]))
+    with pytest.raises(ValueError, match="exceeds the .* px limit"):
+        call_tool(huge_page, "view_page", {"format": "png"})
+
+
 def test_get_strokes_returns_vector_context_and_filters():
     canvas = Canvas()
     user = canvas.add_stroke([(0, 0), (10, 10)])
@@ -212,6 +232,15 @@ def test_write_text_defaults_to_agent_hand_and_user_font_is_reserved():
             canvas, "write_text",
             {"text": "hi", "region": [0, 0, 100, 40], "style": "user_font"},
         )
+
+
+def test_write_text_rejects_oversized_text():
+    from neeh.tools.core import _MAX_TEXT_LENGTH
+
+    with pytest.raises(ValueError, match="character limit"):
+        call_tool(Canvas(), "write_text", {
+            "text": "x" * (_MAX_TEXT_LENGTH + 1), "region": [0, 0, 100, 40],
+        })
 
 
 def _anchor(canvas):
@@ -410,6 +439,17 @@ def test_annotate_validates_inputs_without_mutating():
     assert not canvas.page.agent_layer().strokes
 
 
+def test_annotate_rejects_oversized_text():
+    from neeh.tools.core import _MAX_TEXT_LENGTH
+
+    canvas = Canvas()
+    target = _anchor(canvas)
+    with pytest.raises(ValueError, match="character limit"):
+        call_tool(canvas, "annotate", {
+            "text": "x" * (_MAX_TEXT_LENGTH + 1), "stroke_ids": [target.id],
+        })
+
+
 def test_insert_text_before_and_after_hug_the_anchor():
     canvas = Canvas()
     anchor = _anchor(canvas)
@@ -466,6 +506,18 @@ def test_insert_text_validates_inputs():
             canvas, "insert_text",
             {"text": "  ", "stroke_ids": [anchor.id], "position": "before"},
         )
+
+
+def test_insert_text_rejects_oversized_text():
+    from neeh.tools.core import _MAX_TEXT_LENGTH
+
+    canvas = Canvas()
+    anchor = _anchor(canvas)
+    with pytest.raises(ValueError, match="character limit"):
+        call_tool(canvas, "insert_text", {
+            "text": "x" * (_MAX_TEXT_LENGTH + 1),
+            "stroke_ids": [anchor.id], "position": "after",
+        })
 
 
 def test_insert_text_uses_horizontal_punctuation_width_for_auto_size():
