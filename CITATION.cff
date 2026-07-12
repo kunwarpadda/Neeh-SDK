@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use Neeh SDK in your research or software, please cite it using the metadata below."
+title: "Neeh SDK: a structured digital-ink SDK for notebook, whiteboard, and handwriting applications"
+type: software
+authors:
+  - given-names: Kunwarbir Singh
+    family-names: Padda
+version: 0.1.0
+date-released: "2026-07-11"
+license: Apache-2.0
+keywords:
+  - digital ink
+  - handwriting
+  - stylus
+  - agents
+  - model context protocol
+  - notebook
+  - whiteboard

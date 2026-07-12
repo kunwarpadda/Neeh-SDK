@@ -9,7 +9,8 @@ description = "A structured digital-ink SDK for notebook, whiteboard, and handwr
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
-authors = [{ name = "Kunwar Padda" }]
+authors = [{ name = "Kunwarbir Singh Padda" }]
+maintainers = [{ name = "Kunwarbir Singh Padda" }]
 keywords = ["ink", "handwriting", "stylus", "agents", "mcp", "notebook", "whiteboard"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
@@ -32,7 +33,7 @@ dev = ["pytest>=7", "universal-ink-library>=2.1,<3", "Pillow>=10"]
 include = ["neeh*"]
 
 [tool.setuptools]
-license-files = ["LICENSE", "THIRD_PARTY_NOTICES"]
+license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_NOTICES"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
