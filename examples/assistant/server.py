@@ -10,6 +10,7 @@ Stdlib-only HTTP server around one shared Canvas:
     POST /clear      fresh page
 
 Run:  python examples/assistant/server.py [--port 8787] [--agent codex|claude|mock|auto]
+                                             [--perception active-index|raster-only|raster-always|index-only|marked-index]
 The default uses the local Codex CLI login. Missing CLIs or credentials fall
 back to the canned mock agent.
 """
@@ -152,15 +153,23 @@ def main() -> None:
     )
     parser.add_argument("--mock", action="store_true", help="shortcut for --agent mock")
     parser.add_argument(
+        "--perception",
+        choices=agent.PERCEPTION_MODES,
+        default=agent.PERCEPTION_MODE,
+        help="model perception policy: active index with typed retrieval (default), "
+             "raster control, strict index ablation, or marked index",
+    )
+    parser.add_argument(
         "--context",
         choices=["v1", "pull", "v0"],
         default=agent.CONTEXT_VERSION,
         help="ink context payload: v1 (compact SVG, default), pull (v1 gist "
-             "+ fetch_ink_region tool — use with --agent claude), "
+             "+ geometry in the on-demand detail file), "
              "or the original v0 JSON",
     )
     args = parser.parse_args()
     agent_mode = "mock" if args.mock else args.agent
+    agent.PERCEPTION_MODE = args.perception
     agent.CONTEXT_VERSION = args.context
 
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
@@ -170,7 +179,7 @@ def main() -> None:
     else:
         mode = label
     print(f"Neeh ink assistant on http://127.0.0.1:{args.port}  "
-          f"[agent: {mode}] [context: {args.context}]")
+          f"[agent: {mode}] [perception: {args.perception}] [context: {args.context}]")
     server.serve_forever()
 
 

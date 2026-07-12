@@ -37,6 +37,13 @@ def _draw_stroke(draw: "ImageDraw.ImageDraw", stroke: Stroke, origin: tuple[floa
     width = max(style.width * ss, 1.0)
     pts = [((p.x - origin[0]) * ss, (p.y - origin[1]) * ss) for p in stroke.points]
 
+    # Constant-brush rendering is independent of capture direction. Canonical
+    # point order removes tiny ImageDraw/LANCZOS direction artifacts, allowing
+    # controlled experiments whose final raster is truly identical while the
+    # underlying trajectory runs in the opposite direction.
+    if len(pts) > 1 and pts[-1] < pts[0]:
+        pts.reverse()
+
     if len(pts) == 1:
         x, y = pts[0]
         r = width / 2

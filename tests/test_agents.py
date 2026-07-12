@@ -13,7 +13,17 @@ def test_agent_input_preview_exposes_compact_and_auditable_views():
 
     compact = agent_input_preview(canvas)
     assert compact["mode"] == "codex-cli"
-    assert compact["context"]["schema"] == "ink-context/v1"
+    assert compact["perception_mode"] == "active-index"
+    assert compact["perception_policy"] == "active-index"
+    assert compact["context"]["schema"] == "ink-agent-interface/v1"
+    assert compact["context"]["page_map"]["schema"] == "ink-index/v1"
+    assert compact["image"]["attached"] is False
+    assert compact["image"]["transport"] == "IAI view_region"
+    assert compact["image"]["bytes"] == 0
+    assert {tool["name"] for tool in compact["perception_tools"]} == {
+        "find_marks", "analyze_ink", "find_ink_moments", "inspect_ink_moment",
+        "view_region", "get_ink", "expand_relations",
+    }
     assert "prompt" not in compact
     assert "tool_schemas" not in compact
     assert {tool["name"] for tool in compact["tools"]} == {
@@ -38,6 +48,86 @@ def test_agent_input_preview_exposes_compact_and_auditable_views():
     assert assistant._CODEX_CLI_RESPONSE_SCHEMA["properties"]["actions"]["maxItems"] == 6
 
 
+def test_raster_perception_keeps_attached_image_context(monkeypatch):
+    canvas = Canvas()
+    monkeypatch.setattr(assistant, "PERCEPTION_MODE", "raster")
+
+    preview = agent_input_preview(canvas)
+
+    assert preview["perception_mode"] == "raster"
+    assert preview["perception_policy"] == "raster-always"
+    assert preview["context"]["schema"] == "ink-context/v1"
+    assert preview["image"]["attached"] is True
+    assert preview["image"]["transport"] == "codex exec --image"
+    command = assistant._codex_cli_command(
+        "codex",
+        assistant.Path("/tmp"),
+        assistant.Path("/tmp/schema.json"),
+        assistant.Path("/tmp/output.json"),
+        assistant.Path("/tmp/page.png"),
+    )
+    assert command[command.index("--image") + 1] == "/tmp/page.png"
+    assert command[command.index("--model") + 1] == "gpt-5.5"
+    effort_config = command[command.index("-c") + 1]
+    assert effort_config == 'model_reasoning_effort="high"'
+
+
+def test_codex_backend_cannot_be_overridden_to_gpt_5_6(monkeypatch):
+    monkeypatch.setenv("NEEH_CODEX_CLI_MODEL", "gpt-5.6")
+
+    command = assistant._codex_cli_command(
+        "codex",
+        assistant.Path("/tmp"),
+        assistant.Path("/tmp/schema.json"),
+        assistant.Path("/tmp/output.json"),
+    )
+
+    assert command[command.index("--model") + 1] == "gpt-5.5"
+    assert "gpt-5.6" not in command
+
+
+def test_unknown_perception_mode_is_rejected(monkeypatch):
+    monkeypatch.setattr(assistant, "PERCEPTION_MODE", "unknown")
+    try:
+        assistant._perception(Canvas())
+    except ValueError as exc:
+        assert "choose index, raster" in str(exc)
+    else:
+        raise AssertionError("invalid perception mode was accepted")
+
+
+def test_active_index_configures_typed_iai_for_codex(monkeypatch):
+    canvas = Canvas()
+    monkeypatch.setattr(assistant.shutil, "which", lambda _: "/tmp/codex")
+    seen = {}
+
+    def fake_run(command, **kwargs):
+        seen["command"] = command
+        seen["prompt"] = kwargs["input"]
+        tmp = assistant.Path(command[command.index("-C") + 1])
+        assert (tmp / "page-state.json").exists()
+        assert not (tmp / "ink-context.json").exists()
+        output_path = command[command.index("--output-last-message") + 1]
+        with open(output_path, "w", encoding="utf-8") as output:
+            json.dump({"reply": "No edit needed.", "actions": []}, output)
+        return assistant.subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(assistant.subprocess, "run", fake_run)
+    run_codex_cli(canvas)
+
+    assert "--image" not in seen["command"]
+    assert "--ignore-user-config" in seen["command"]
+    assert seen["command"].count("--disable") == 2
+    assert "shell_tool" in seen["command"]
+    assert "unified_exec" in seen["command"]
+    assert any("mcp_servers.neeh_iai.command" in part for part in seen["command"])
+    assert "ink-agent-interface/v1" in seen["prompt"]
+    assert "ink-index/v1" in seen["prompt"]
+    assert "typed IAI perception actions" in seen["prompt"]
+    assert "page.png" not in seen["prompt"]
+    assert "ink-context.json" not in seen["prompt"]
+
+
 def test_situation_note_conditions_on_what_is_on_the_page():
     from neeh.agents import assistant
 
@@ -51,8 +141,9 @@ def test_situation_note_conditions_on_what_is_on_the_page():
     for i in range(30):  # a line of handwriting
         x = 80 + i * 12
         canvas.add_stroke([(x, 600), (x + 6, 612), (x + 3, 624)], author=Author.USER)
-    note = assistant._situation_note(assistant._ink_context(canvas))
-    assert "target by id" in note and "mark up in place" in note
+    note = assistant._situation_note(assistant._perception(canvas))
+    assert "target by id" in note and "on-demand detail" in note
+    assert "(marks)" in note
 
     prompt = assistant._codex_cli_prompt(canvas, "help")
     assert note.strip() in prompt
@@ -140,6 +231,11 @@ def test_codex_cli_runner_applies_valid_planned_actions(monkeypatch):
     result = run_codex_cli(canvas, on_action=lambda name, args: seen.append((name, args)))
 
     assert result["reply"] == "Wrote a short answer."
+    assert result["perception_mode"] == "active-index"
+    assert result["perception_policy"] == "active-index"
+    assert result["validation"] == {
+        "passed": True, "repair_attempted": False, "failure_count": 0,
+    }
     assert result["actions"][0]["tool"] == "write_text"
     assert result["actions"][0]["output"]["stroke_ids"]
     assert result["actions"][0]["input"]["style"] == "handwritten"
@@ -194,6 +290,12 @@ def test_claude_cli_runner_applies_valid_planned_actions(monkeypatch):
     monkeypatch.setattr(assistant.shutil, "which", lambda _: "/tmp/claude")
 
     def fake_run(command, **kwargs):
+        prompt = next(part for part in command if "Current perception payload:" in part)
+        assert "ink-agent-interface/v1" in prompt
+        assert "ink-index/v1" in prompt
+        assert "ink-context.json" not in prompt
+        assert "--mcp-config" in command
+        assert "mcp__neeh_iai__find_marks" in command[command.index("--tools") + 1]
         output = {
             "structured_output": {
                 "reply": "Wrote a short answer.",
@@ -219,9 +321,42 @@ def test_claude_cli_runner_applies_valid_planned_actions(monkeypatch):
     result = run_claude(canvas, on_action=lambda name, args: seen.append((name, args)))
 
     assert result["reply"] == "Wrote a short answer."
+    assert result["perception_mode"] == "active-index"
+    assert result["perception_policy"] == "active-index"
     assert result["actions"][0]["tool"] == "write_text"
     assert result["actions"][0]["input"]["style"] == "handwritten"
     assert result["actions"][0]["output"]["style"] == "handwritten"
     assert json.loads(result["raw_model_output"])["structured_output"]["reply"] == "Wrote a short answer."
     assert seen[0][0] == "write_text"
+    assert canvas.page.agent_layer().strokes
+
+
+def test_codex_validation_repairs_once_before_mutating_canvas(monkeypatch):
+    canvas = Canvas()
+    monkeypatch.setattr(assistant.shutil, "which", lambda _: "/tmp/codex")
+    calls = 0
+
+    def fake_run(command, **kwargs):
+        nonlocal calls
+        calls += 1
+        output_path = command[command.index("--output-last-message") + 1]
+        action = (
+            {"tool": "move", "input": {"stroke_ids": ["st_missing"], "dx": 5, "dy": 0}}
+            if calls == 1 else
+            {"tool": "write_text", "input": {
+                "text": "fixed", "region": [60, 80, 400, 160], "color": "#1d4ed8",
+            }}
+        )
+        with open(output_path, "w", encoding="utf-8") as output:
+            json.dump({"reply": "Repaired.", "actions": [action]}, output)
+        return assistant.subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(assistant.subprocess, "run", fake_run)
+    result = run_codex_cli(canvas)
+
+    assert calls == 2
+    assert result["validation"] == {
+        "passed": True, "repair_attempted": True, "failure_count": 0,
+    }
+    assert [action["tool"] for action in result["actions"]] == ["write_text"]
     assert canvas.page.agent_layer().strokes

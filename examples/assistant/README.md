@@ -10,7 +10,7 @@ From the repository root:
 
 ```bash
 python -m pip install -e ".[agents]"
-python examples/assistant/server.py --agent codex
+python examples/assistant/server.py --agent codex --perception active-index
 ```
 
 Open <http://127.0.0.1:8787>, draw on the page, and press **Ask**.
@@ -22,14 +22,55 @@ Available backends:
 - `--agent mock`: run without an external model.
 - `--agent auto`: try Codex CLI, then Claude CLI, then the mock fallback.
 
-The default context is `ink-context/v1`. Use `--context pull` to send a bounding-box index and
-fetch detailed vector geometry by region, or `--context v0` for compatibility testing.
+The default perception is `--perception active-index`: the model receives a budgeted IAI page map,
+then can call typed `analyze_ink`, `find_marks`, `view_region`, `get_ink`, and `expand_relations` actions when it
+needs handwriting, visual detail, relations, or omitted stroke IDs. `index` and `raster` remain
+compatibility aliases for `active-index` and `raster-always`. The evaluation policies are:
+
+Active policies also expose Ink Moment Retrieval through `find_ink_moments` and
+`inspect_ink_moment`. These tools retrieve creation order, direction, pauses,
+pressure summaries, overlays, and bounded replay evidence without dumping the
+complete point stream.
+
+`analyze_ink` is preferred for mechanical questions. It deterministically
+reduces latest-mark, creation-order, stroke-dynamics, and cross-out queries to
+bounded evidence before the model sees them.
+
+- `raster-only`: attached pixels with no geometry or temporal evidence (clean control).
+- `raster-always`: attached raster plus compact geometry (legacy control).
+- `index-only`: strict structured-map ablation with no perception fallback.
+- `active-index`: map first, typed perception on demand (production candidate).
+- `marked-index`: active index plus an ASCII Set-of-Marks bootstrap view.
+
+Set `NEEH_PERCEPTION_MODE` when using the adapter outside this demo. In raster mode the default
+context is `ink-context/v1`; use `--context pull` to keep geometry in the on-demand detail file, or
+`--context v0` for compatibility testing.
+
+Run the policy harness without model calls using:
+
+```bash
+python examples/evaluate_perception_policies.py --dry-run
+```
+
+Remove `--dry-run` to execute the P0-P4 grounding cases through Codex CLI, or pass
+`--agent claude` for Claude CLI.
+
+The first controlled direction smoke result is checked in at
+`examples/results/ink_moment_direction_ab_gpt55_high.json`: the two samples
+have identical PNG bytes, raster-only answered `right` twice (1/2), and the
+temporal active index answered `right` then `left` (2/2). Treat this as harness
+validation, not a statistical accuracy claim.
+
+Codex-backed assistant and evaluation runs are intentionally pinned to
+`gpt-5.5` with `model_reasoning_effort="high"`. The adapter ignores user model
+configuration and does not accept an environment override to GPT-5.6.
 
 ## Inspect model input
 
-The **Inspect** view shows the raster metadata, compact ink context, action-tool contract, prompt
-preview, and payload sizes. **Raw** shows the complete prompt and tool schemas. The same data is
-available from `GET /agent-input`; add `?full=1` for the raw representation.
+The **Inspect** view shows the selected perception mode, raster transport, compact context,
+action-tool contract, prompt preview, and payload sizes. **Raw** shows the complete prompt and tool
+schemas. The same data is available from `GET /agent-input`; add `?full=1` for the raw
+representation.
 
 ## Use the adapter directly
 
