@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neeh"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "A structured digital-ink SDK for notebook, whiteboard, and handwriting applications."
 readme = "README.md"
 license = { file = "LICENSE" }

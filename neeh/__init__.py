@@ -18,7 +18,7 @@ from neeh.document import Document, Layer, Page
 from neeh.ink import Author, BoundingBox, Brush, Point, Stroke, StrokeStyle
 from neeh.rendering import Renderer, SvgRenderer, render_page_svg
 
-__version__ = "0.1.0.dev0"
+__version__ = "0.1.0"
 
 __all__ = [
     "Author",
