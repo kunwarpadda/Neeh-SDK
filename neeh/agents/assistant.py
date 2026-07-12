@@ -81,8 +81,10 @@ How to answer:
 - Keep written answers short: a sentence or two, or one worked step. This is a
   notebook page, not a chat window. Every stroke you add is re-sent on every
   future turn — sparse answers keep the page cheap.
-- After writing, call view_page with format "png" to check placement and
-  legibility. If your ink overlaps something, undo and place it again.
+- You plan all actions at once; you do not see the result before it is applied.
+  So place answers in empty page area you can see in the image, and prefer the
+  anchored tools (mark, insert_text, connect) that compute geometry from stroke
+  ids over hand-placed write_text/add_stroke — they cannot drift onto other ink.
 
 When you are done, reply with one sentence summarizing what you wrote.
 """.format(agent_ink=AGENT_INK)
