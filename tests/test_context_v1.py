@@ -8,6 +8,7 @@ from neeh import (
     InkContextError,
     Page,
     build_ink_context_v1,
+    build_ink_index,
     build_ink_paths,
 )
 from neeh.document import Layer
@@ -153,6 +154,34 @@ def test_stroke_hints_label_shape_and_position():
     assert hints["st_loop"] == "loop, lower-left"
     assert hints["st_line"] == "line, upper-right"
     assert "hints" not in build_ink_context_v1(_page_with([loop, line]))["ink"]  # opt-in
+
+
+def test_build_ink_index_lists_marks_and_summarizes_handwriting():
+    box = _stroke("st_box", [(600, 40), (760, 40), (760, 200), (600, 200), (600, 40)])
+    glyphs = [
+        _stroke(f"st_g{i}", [(100 + i * 12, 400), (106 + i * 12, 412), (103 + i * 12, 424)])
+        for i in range(12)
+    ]
+    index = build_ink_index(_page_with([box] + glyphs))
+
+    assert index["schema"] == "ink-index/v1"
+    assert index["stroke_count"] == 13
+    # The box is a mark; the dense glyphs are summarized, not enumerated.
+    assert index["mark_count"] == 1
+    assert index["handwriting_stroke_count"] == 12
+    (mark,) = index["marks"]
+    assert mark["id"] == "st_box"
+    assert mark["shape"] == "loop"
+    assert mark["position"] == "upper-right"
+    assert mark["bbox"] == [600.0, 40.0, 760.0, 200.0]
+    json.dumps(index)  # index is plain JSON, no geometry or raster rides in it
+
+
+def test_build_ink_index_is_empty_for_a_blank_page():
+    index = build_ink_index(_page_with([]))
+    assert index["marks"] == []
+    assert index["mark_count"] == 0
+    assert index["handwriting_stroke_count"] == 0
 
 
 def test_stroke_hints_skip_dense_handwriting_but_keep_marks():

@@ -730,25 +730,33 @@ def _is_hint_target(
     return True
 
 
-def _stroke_hints(included: Sequence[Stroke]) -> dict[str, str]:
-    """``shape, position`` labels for the strokes a model might target, so it can
-    map the ink it sees to a stable stroke id without guessing from coordinates.
-
-    Only labelable marks are included (see _is_hint_target); dense handwriting
-    is left out, which both shrinks the payload and keeps the labels meaningful.
-    Positions are measured against the whole inked region, targets or not."""
+def _target_strokes(included: Sequence[Stroke]) -> list[Stroke]:
+    """The strokes worth labeling: deliberate marks a model might point at, not
+    the dense glyphs of handwriting (see _is_hint_target). Shared by the hint
+    map and the structured ink index so both agree on what counts as a mark."""
     if not included:
-        return {}
-    frame = BoundingBox.union_all([stroke.bbox for stroke in included])
+        return []
     diagonals = sorted(_diagonal(stroke) for stroke in included)
     glyph_scale = max(diagonals[len(diagonals) // 2], 1.0)  # median ≈ glyph size
     reach = _HINT_NEIGHBOR_REACH * glyph_scale
     large = _HINT_LARGE_FACTOR * glyph_scale
     centers = [(stroke.id, *stroke.bbox.center) for stroke in included]
+    return [s for s in included if _is_hint_target(s, centers, reach, large)]
+
+
+def _stroke_hints(included: Sequence[Stroke]) -> dict[str, str]:
+    """``shape, position`` labels for the strokes a model might target, so it can
+    map the ink it sees to a stable stroke id without guessing from coordinates.
+
+    Only labelable marks are included; dense handwriting is left out, which both
+    shrinks the payload and keeps the labels meaningful. Positions are measured
+    against the whole inked region, targets or not."""
+    if not included:
+        return {}
+    frame = BoundingBox.union_all([stroke.bbox for stroke in included])
     return {
         stroke.id: f"{_stroke_shape(stroke)}, {_stroke_position(stroke, frame)}"
-        for stroke in included
-        if _is_hint_target(stroke, centers, reach, large)
+        for stroke in _target_strokes(included)
     }
 
 
@@ -880,6 +888,62 @@ def build_ink_context_v1(
         },
         "ink": ink,
         "semantics": _semantic_items(semantics, included_ids),
+    }
+
+
+INK_INDEX_VERSION = "ink-index/v1"
+
+
+def build_ink_index(
+    source: ContextSource,
+    *,
+    page: Optional[PageSelector] = None,
+    region: Optional[RegionLike] = None,
+    visible_only: bool = True,
+    max_strokes: Optional[int] = None,
+) -> dict[str, Any]:
+    """Build the structured "ink accessibility tree" — the token-cheap primary
+    channel, analogous to a GUI accessibility tree or Set-of-Marks index.
+
+    Each ``mark`` is a stroke a model might point at, carrying a stable id, a
+    coarse ``shape`` (loop/line/curve/dot), a ``position`` label, and a page-
+    space ``bbox``. Dense handwriting is summarized as ``handwriting_stroke_count``
+    rather than enumerated, since a model targets words as a whole, not glyphs.
+    No geometry or raster rides here; fetch those on demand when a mark needs
+    precise coordinates or a task must read the ink.
+    """
+    selected_page = _resolve_page(source, page)
+    selected_region = None if region is None else _box(region, "region")
+    if not isinstance(visible_only, bool):
+        raise InkContextError("visible_only must be a boolean")
+    if max_strokes is not None:
+        max_strokes = _integer(max_strokes, "max_strokes", minimum=0)
+
+    included, stroke_count = _select_strokes_v1(
+        selected_page, selected_region, visible_only, max_strokes
+    )
+    frame = BoundingBox.union_all([s.bbox for s in included]) if included else None
+    marks = [
+        {
+            "id": stroke.id,
+            "shape": _stroke_shape(stroke),
+            "position": _stroke_position(stroke, frame),
+            "bbox": _box_list(stroke.bbox),
+        }
+        for stroke in _target_strokes(included)
+    ]
+    return {
+        "schema": INK_INDEX_VERSION,
+        "page": {
+            "id": _non_empty_string(selected_page.id, "page.id"),
+            "width": _finite_number(selected_page.width, "page.width"),
+            "height": _finite_number(selected_page.height, "page.height"),
+        },
+        "stroke_count": stroke_count,
+        "included_stroke_count": len(included),
+        "mark_count": len(marks),
+        "handwriting_stroke_count": len(included) - len(marks),
+        "marks": marks,
     }
 
 

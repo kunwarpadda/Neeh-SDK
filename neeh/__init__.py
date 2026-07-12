@@ -11,12 +11,13 @@ from neeh.context import (
     SemanticItem,
     build_ink_context,
     build_ink_context_v1,
+    build_ink_index,
     build_ink_paths,
     parse_ink_paths,
 )
 from neeh.document import Document, Layer, Page
 from neeh.ink import Author, BoundingBox, Brush, Point, Stroke, StrokeStyle
-from neeh.rendering import Renderer, SvgRenderer, render_page_svg
+from neeh.rendering import Renderer, SvgRenderer, render_page_ascii, render_page_svg
 
 __version__ = "0.1.0"
 
@@ -45,7 +46,9 @@ __all__ = [
     "Viewport",
     "build_ink_context",
     "build_ink_context_v1",
+    "build_ink_index",
     "build_ink_paths",
     "parse_ink_paths",
+    "render_page_ascii",
     "render_page_svg",
 ]

@@ -12,9 +12,10 @@ can render, query, edit, persist, and expose ink to tools without flattening it 
 - Immutable points and strokes with pressure, tilt, timestamps, style, and stable IDs.
 - Ordered documents, pages, and layers with visibility and lock state.
 - A canvas session with selection, atomic edits, undo, and redo.
-- SVG and optional PNG rendering in a shared page coordinate system.
+- SVG, optional PNG, and token-cheap ASCII rendering in a shared page coordinate system.
 - A discoverable, JSON Schema-based tool surface for model and automation integrations.
 - Compact Ink Context Format snapshots with addressable stroke geometry.
+- A structured ink index (marks with stable ids, shape, and position) for cheap, groundable model context.
 - Optional Universal Ink Model 3.1 import and export.
 - A C++17 core and versioned C ABI for native hosts.
 
