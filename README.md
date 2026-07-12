@@ -7,6 +7,21 @@ can render, query, edit, persist, and expose ink to tools without flattening it 
 > Neeh is pre-alpha. The protocol specifications are versioned, but the Python and native APIs
 > may change before the first stable release.
 
+## Why not OCR, a canvas API, or an image pipeline
+
+A rendered image or a handwriting-recognition transcript is a *many-to-one* view of digital ink:
+two different stroke histories can rasterize to identical pixels while differing in draw order,
+direction, pressure, and revision — and once flattened, that information cannot be recovered. A
+typical canvas or whiteboard API exposes pixels or opaque vector paths, not a stable, agent-
+addressable structure: there is no consistent id a tool call can target, no bounded way to ask
+"what changed since I last looked," and no local computation of temporal or spatial facts before
+spending model context on them.
+
+Neeh proposes giving agents both channels deliberately: a rendered view for what pixels alone can
+answer, and native ink structure — addressable strokes, deterministic geometric/temporal analysis,
+and a bounded tool surface — for what pixels cannot. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
+full design rationale, the perception-action-feedback loop, and the trade-offs this implies.
+
 ## Features
 
 - Immutable points and strokes with pressure, tilt, timestamps, style, and stable IDs.
@@ -157,5 +172,12 @@ suites, and verifies the installed CMake package.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and conventions, and
 [SECURITY.md](SECURITY.md) to report a vulnerability.
 
-Licensed under the [Apache License 2.0](LICENSE). Vendored data attribution is listed in
+## Authorship
+
+Neeh is created and maintained by **Kunwarbir Singh Padda**. See
+[AUTHORS](AUTHORS) for project authorship and [CITATION.cff](CITATION.cff) to
+cite this work.
+
+Licensed under the [Apache License 2.0](LICENSE). Copyright and vendored-data
+attribution are listed in [`NOTICE`](NOTICE) and
 [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).

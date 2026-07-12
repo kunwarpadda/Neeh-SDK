@@ -4,6 +4,16 @@ Neeh is pre-alpha. APIs and protocol identifiers are versioned but may still
 change before a first stable release — see [ROADMAP.md](ROADMAP.md) for the
 current milestones and what's explicitly not planned.
 
+## Development history
+
+Neeh is created and maintained by Kunwarbir Singh Padda (see
+[AUTHORS](AUTHORS)). Development has used AI-assisted coding tools, including
+Claude, under the maintainer's direction and review. Every architectural
+decision, design trade-off, and accepted change in this repository is
+authored and owned by the maintainer, not generated autonomously — see
+[ARCHITECTURE.md](ARCHITECTURE.md) and [`docs/adr/`](docs/adr/) for the
+reasoning behind specific decisions.
+
 ## Development setup
 
 ```bash
@@ -81,3 +91,11 @@ diff.
   the PR description — this SDK is consumed by real assistant integrations.
 - Security-relevant reports should go through [SECURITY.md](SECURITY.md)
   instead of a public PR/issue.
+
+## Attribution
+
+Original design decisions and their reasoning are recorded in
+[ARCHITECTURE.md](ARCHITECTURE.md) and [`docs/adr/`](docs/adr/), dated as
+they were made. Community contributions are attributed through normal git
+commit authorship; a contributor whose work is significant and sustained may
+be added to [AUTHORS](AUTHORS) by the maintainer.

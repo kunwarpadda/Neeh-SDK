@@ -112,6 +112,29 @@ the assistant example or depending on private Python snapshot shapes.
 
 Exit gate: first externally consumable SDK release candidate.
 
+## Release strategy
+
+Kept modest while the project is pre-alpha:
+
+- **Protocol identifiers, not the package version, are the stability
+  contract.** `ink-context/v1`, `neeh-tools/v1`, `ink-agent-interface/v1`,
+  etc. are versioned independently; applications should discover them at
+  runtime rather than infer compatibility from `neeh`'s package version (see
+  README).
+- **Package versioning follows semantic versioning once M5 lands.** Before a
+  `1.0`, a `0.x` release may include breaking Python/native API changes
+  between minor versions; a protocol identifier bump is required for any
+  breaking wire-format change regardless of package version.
+- **Tags are annotated git tags on `main`, one release commit per tag**
+  (`chore(release): vX.Y.Z`), matching the existing `v0.1.0` precedent —
+  significant versions stay identifiable directly from git history, not only
+  from a changelog.
+- **GitHub Releases mark each tag publicly** with the substance of what
+  shipped, once the repository is public. Archival (e.g. a Zenodo DOI per
+  release) is a reasonable next step once there's a public repository to
+  archive, so releases stay independently citable — see
+  [CITATION.cff](CITATION.cff).
+
 ## Explicitly not planned
 
 - Training an LLM from scratch.
