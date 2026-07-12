@@ -696,15 +696,59 @@ def _stroke_position(stroke: Stroke, frame: BoundingBox) -> str:
     return _POSITION_NAMES[(row, col)]
 
 
+_HINT_NEIGHBOR_REACH = 1.5   # multiples of the page's glyph scale (median size)
+_HINT_MAX_NEIGHBORS = 2      # denser than this reads as handwriting, not a mark
+_HINT_LARGE_FACTOR = 2.5     # this much bigger than a glyph is always a mark
+
+
+def _diagonal(stroke: Stroke) -> float:
+    return math.hypot(stroke.bbox.width, stroke.bbox.height)
+
+
+def _is_hint_target(
+    stroke: Stroke, centers: Sequence[tuple[str, float, float]],
+    reach: float, large: float,
+) -> bool:
+    """Whether a stroke is worth labeling: a deliberate mark someone might point
+    at (a shape, an arrow, an isolated symbol) rather than one glyph in a word.
+
+    Handwriting glyphs travel in dense packs at the page's glyph scale, so a
+    stroke is a target when it is clearly larger than that scale, or sits with
+    few close neighbors. Both tests use the glyph scale rather than the stroke's
+    own size, so a big container drawn around text is not mistaken for prose."""
+    if _diagonal(stroke) >= large:
+        return True
+    cx, cy = stroke.bbox.center
+    near = 0
+    for other_id, ox, oy in centers:
+        if other_id == stroke.id:
+            continue
+        if math.hypot(ox - cx, oy - cy) <= reach:
+            near += 1
+            if near > _HINT_MAX_NEIGHBORS:
+                return False
+    return True
+
+
 def _stroke_hints(included: Sequence[Stroke]) -> dict[str, str]:
-    """Per-stroke ``shape, position`` labels so a model can map the ink it sees
-    to a stable stroke id without guessing from coordinates."""
+    """``shape, position`` labels for the strokes a model might target, so it can
+    map the ink it sees to a stable stroke id without guessing from coordinates.
+
+    Only labelable marks are included (see _is_hint_target); dense handwriting
+    is left out, which both shrinks the payload and keeps the labels meaningful.
+    Positions are measured against the whole inked region, targets or not."""
     if not included:
         return {}
     frame = BoundingBox.union_all([stroke.bbox for stroke in included])
+    diagonals = sorted(_diagonal(stroke) for stroke in included)
+    glyph_scale = max(diagonals[len(diagonals) // 2], 1.0)  # median ≈ glyph size
+    reach = _HINT_NEIGHBOR_REACH * glyph_scale
+    large = _HINT_LARGE_FACTOR * glyph_scale
+    centers = [(stroke.id, *stroke.bbox.center) for stroke in included]
     return {
         stroke.id: f"{_stroke_shape(stroke)}, {_stroke_position(stroke, frame)}"
         for stroke in included
+        if _is_hint_target(stroke, centers, reach, large)
     }
 
 

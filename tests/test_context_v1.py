@@ -155,6 +155,19 @@ def test_stroke_hints_label_shape_and_position():
     assert "hints" not in build_ink_context_v1(_page_with([loop, line]))["ink"]  # opt-in
 
 
+def test_stroke_hints_skip_dense_handwriting_but_keep_marks():
+    # A word: many small strokes packed together. Plus one isolated shape.
+    glyphs = [
+        _stroke(f"st_g{i}", [(100 + i * 12, 200), (106 + i * 12, 212), (103 + i * 12, 224)])
+        for i in range(12)
+    ]
+    shape = _stroke("st_box", [(600, 400), (700, 400), (700, 480), (600, 480), (600, 400)])
+    hints = build_ink_context_v1(_page_with(glyphs + [shape]), stroke_hints=True)["ink"]["hints"]
+    # The isolated shape is labeled; the crowded glyphs are not.
+    assert "st_box" in hints
+    assert not any(k.startswith("st_g") for k in hints)
+
+
 def test_parse_ink_paths_round_trip():
     from neeh import parse_ink_paths
 

@@ -213,19 +213,30 @@ def _page_raster(canvas: Canvas) -> bytes:
 
 
 def _recognized_semantics(canvas: Canvas) -> list[dict[str, Any]]:
-    """Geometric recognizer output, filtered to strokes the payload keeps.
+    """Geometric recognizer output, filtered to strokes the payload keeps and
+    trimmed to its highest-value signal.
 
     The v1 builder truncates to the newest MAX_CONTEXT_STROKES strokes and
-    rejects semantics that reference dropped ink, so items (and links whose
-    endpoints vanished) are filtered against the same newest-tail rule."""
+    rejects semantics that reference dropped ink, so items are filtered against
+    the same newest-tail rule. Of those, only *links* (an arrow relating one
+    group to another — structure the image shows poorly) and the clusters those
+    links reference are sent; standalone grouping clusters are dropped, since
+    the raster and the scoped ink.hints already convey grouping far more cheaply
+    than enumerating every stroke id in a handwritten word."""
     strokes = [s for layer in canvas.page.layers if layer.visible
                for s in layer.strokes]
     kept = {s.id for s in strokes[-MAX_CONTEXT_STROKES:]}
     items = [item for item in build_semantics(canvas.page)
              if all(sid in kept for sid in item["stroke_ids"])]
-    ids = {item["id"] for item in items}
-    return [item for item in items
-            if all(t in ids for t in (item.get("edges") or {}).values())]
+    by_id = {item["id"]: item for item in items}
+    links = [item for item in items
+             if item.get("kind") == "link"
+             and all(t in by_id for t in (item.get("edges") or {}).values())]
+    referenced = {t for link in links for t in link["edges"].values()}
+    clusters = [item for item in items
+                if item.get("kind") == "cluster" and item["id"] in referenced]
+    # Preserve document order (clusters precede the links that bind them).
+    return [item for item in items if item in clusters or item in links]
 
 
 def _ink_context(canvas: Canvas) -> dict[str, Any]:
