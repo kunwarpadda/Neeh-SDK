@@ -1288,7 +1288,7 @@ def run_mock(
     on_action: Optional[OnAction] = None,
 ) -> dict[str, Any]:
     """Keyless stand-in: same tool surface, canned behavior. Highlights the
-    user's ink and writes a placeholder answer below it."""
+    user's ink and writes a mock answer below it."""
     page = canvas.page
     actions: list[dict[str, Any]] = []
 

@@ -1,0 +1,15 @@
+include AUTHORS
+include ARCHITECTURE.md
+include CITATION.cff
+include CMakeLists.txt
+include CODE_OF_CONDUCT.md
+include CONTRIBUTING.md
+include ROADMAP.md
+include SECURITY.md
+
+recursive-include cpp *
+recursive-include docs *
+recursive-include examples *
+recursive-include spec *
+
+global-exclude *.py[cod]

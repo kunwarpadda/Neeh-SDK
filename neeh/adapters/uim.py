@@ -8,8 +8,8 @@ This module defines how a Neeh `Document` maps onto one UIM 3.1 `InkModel`:
 - Neeh-only fields (ids, page geometry, layer flags, authorship) are
   `neeh:*` triples in the knowledge graph, keyed by node URI,
 - everything UIM models natively stays native: geometry in splines, width /
-  color / opacity in path-point properties, brushes as `neeh://brush/<name>`
-  URIs, per-point time / pressure / tilt in sensor channels, and
+  color / opacity in path-point properties, brush URIs under `neeh://brush/`,
+  per-point time / pressure / tilt in sensor channels, and
   `Stroke.created_at_ms` as the SensorData timestamp.
 
 Fidelity: structure, ids, authorship, flags, and millisecond times survive

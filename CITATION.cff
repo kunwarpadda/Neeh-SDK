@@ -5,8 +5,8 @@ type: software
 authors:
   - given-names: Kunwarbir Singh
     family-names: Padda
-version: 0.1.0
-date-released: "2026-07-11"
+version: 0.2.0
+date-released: "2026-07-12"
 license: Apache-2.0
 keywords:
   - digital ink

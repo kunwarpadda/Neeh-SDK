@@ -42,6 +42,12 @@ cmake --build build --config Release
 ctest --test-dir build --build-config Release --output-on-failure
 ```
 
+For release artifact checks:
+
+```bash
+python -I -m build --sdist --wheel
+```
+
 CI runs Python 3.10 and 3.12, builds the native core on Linux and macOS, and
 verifies the installed CMake package — see
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
