@@ -373,6 +373,25 @@ def test_annotate_side_selection_and_auto_prefers_room():
     assert below["note_bbox"][1] >= 340  # note is beneath the target
 
 
+def test_annotate_places_the_note_clear_of_existing_ink():
+    from neeh.ink import BoundingBox
+
+    canvas = Canvas()
+    target = _anchor(canvas)  # [200,300,320,340]
+    # Fill the natural right-side spot with a large block of other ink.
+    blocker = canvas.add_stroke([
+        (360, 250), (900, 250), (900, 430), (360, 430), (360, 250),
+    ])
+    result = call_tool(canvas, "annotate", {"text": "round it off", "stroke_ids": [target.id]})
+
+    note = BoundingBox(*result["note_bbox"])
+    _, blocker_stroke = canvas.page.find(blocker.id)
+    assert not note.intersects(blocker_stroke.bbox)  # dodged the obstacle
+    # The arrow still lands on the target despite the note being relocated.
+    tip_gap = _distance_to_box(result["target_bbox"], *result["to"])
+    assert 0 < tip_gap <= 14.5
+
+
 def test_annotate_validates_inputs_without_mutating():
     canvas = Canvas()
     target = _anchor(canvas)

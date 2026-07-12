@@ -599,26 +599,95 @@ _ANNOTATE_DEFAULT_SIZE = 24.0
 _ANNOTATE_GAP = 44.0  # clear span from target to note; must exceed both standoffs
 
 
-def _note_box(
-    page: Page, target: BoundingBox, w: float, h: float, side: str, gap: float,
-) -> tuple[BoundingBox, str]:
-    """Place a w×h note beside ``target`` on ``side``, shifted (never shrunk)
-    to stay on-page. 'auto' picks the horizontal side with more room."""
-    tcx, tcy = target.center
-    if side == "auto":
-        side = "right" if (page.width - target.max_x) >= target.min_x else "left"
+_HORIZONTAL_SIDES = ("left", "right")
+_NOTE_MARGIN = 6.0
+_NOTE_OBSTACLE_PAD = 4.0
+
+
+def _side_room(page: Page, target: BoundingBox, side: str) -> float:
+    """Blank page span beyond the target's edge on ``side``."""
     if side == "right":
-        x0, y0 = target.max_x + gap, tcy - h / 2
+        return page.width - target.max_x
+    if side == "left":
+        return target.min_x
+    if side == "above":
+        return target.min_y
+    return page.height - target.max_y  # below
+
+
+def _ordered_sides(side: str, page: Page, target: BoundingBox) -> list[str]:
+    """Sides to try in order. A note reads best beside its target, so horizontal
+    sides lead (roomier one first) with vertical sides as fallback. An explicit
+    choice leads, then the same ranking for collision fallback."""
+    room = lambda s: _side_room(page, target, s)  # noqa: E731
+    ranked = (sorted(_HORIZONTAL_SIDES, key=room, reverse=True)
+              + sorted(("below", "above"), key=room, reverse=True))
+    if side == "auto":
+        return ranked
+    return [side] + [s for s in ranked if s != side]
+
+
+def _place_on_side(
+    page: Page, target: BoundingBox, w: float, h: float,
+    side: str, gap: float, offset: float,
+) -> BoundingBox:
+    """A w×h box `gap` off the target's ``side``, slid by ``offset`` along the
+    perpendicular axis, then shifted (never shrunk) to stay on-page."""
+    tcx, tcy = target.center
+    if side == "right":
+        x0, y0 = target.max_x + gap, tcy - h / 2 + offset
     elif side == "left":
-        x0, y0 = target.min_x - gap - w, tcy - h / 2
+        x0, y0 = target.min_x - gap - w, tcy - h / 2 + offset
     elif side == "above":
-        x0, y0 = tcx - w / 2, target.min_y - gap - h
+        x0, y0 = tcx - w / 2 + offset, target.min_y - gap - h
     else:  # below
-        x0, y0 = tcx - w / 2, target.max_y + gap
-    m = 6.0
+        x0, y0 = tcx - w / 2 + offset, target.max_y + gap
+    m = _NOTE_MARGIN
     x0 = min(max(x0, m), max(m, page.width - m - w))
     y0 = min(max(y0, m), max(m, page.height - m - h))
-    return BoundingBox(x0, y0, x0 + w, y0 + h), side
+    return BoundingBox(x0, y0, x0 + w, y0 + h)
+
+
+def _overlap_area(box: BoundingBox, obstacles: Sequence[BoundingBox], pad: float) -> float:
+    """Total area `box` overlaps any obstacle, each grown by ``pad``."""
+    total = 0.0
+    for ob in obstacles:
+        ix = min(box.max_x, ob.max_x + pad) - max(box.min_x, ob.min_x - pad)
+        iy = min(box.max_y, ob.max_y + pad) - max(box.min_y, ob.min_y - pad)
+        if ix > 0 and iy > 0:
+            total += ix * iy
+    return total
+
+
+def _note_box(
+    page: Page, target: BoundingBox, w: float, h: float, side: str, gap: float,
+    obstacles: Sequence[BoundingBox],
+) -> tuple[BoundingBox, str]:
+    """Place a w×h note beside ``target`` clear of existing ink.
+
+    Tries each side (the explicit choice or, for 'auto', roomiest first),
+    sliding along the perpendicular axis to dodge obstacles. Returns the first
+    fully-clear spot; if the page is too crowded for any, returns the
+    least-overlapping candidate so annotate still produces a note."""
+    best: Optional[tuple[float, BoundingBox, str]] = None
+    for candidate_side in _ordered_sides(side, page, target):
+        extent = h if candidate_side in _HORIZONTAL_SIDES else w
+        step = 0.6 * extent
+        offsets = [0.0] + [sign * k * step for k in (1, 2, 3) for sign in (1, -1)]
+        for offset in offsets:
+            box = _place_on_side(page, target, w, h, candidate_side, gap, offset)
+            # Score other ink with a small pad, but require the full gap of
+            # clearance from the target itself: a side without room clamps the
+            # note back toward the target, which looks wrong and leaves the
+            # bound arrow too little run to draw.
+            overlap = (_overlap_area(box, obstacles, _NOTE_OBSTACLE_PAD)
+                       + _overlap_area(box, [target], gap))
+            if overlap == 0.0:
+                return box, candidate_side
+            if best is None or overlap < best[0]:
+                best = (overlap, box, candidate_side)
+    assert best is not None  # _ordered_sides is never empty
+    return best[1], best[2]
 
 
 @tool(
@@ -668,7 +737,13 @@ def annotate(
     style_name = "handwritten"
     cap = size or _ANNOTATE_DEFAULT_SIZE
     w, h = measure_text(text, cap, style_name)
-    box, side = _note_box(canvas.page, target, w, h, side, _ANNOTATE_GAP)
+    target_ids = set(_stroke_ids(stroke_ids) or [])
+    obstacles = [
+        stroke.bbox
+        for layer in canvas.page.layers if layer.visible
+        for stroke in layer.strokes if stroke.id not in target_ids
+    ]
+    box, side = _note_box(canvas.page, target, w, h, side, _ANNOTATE_GAP, obstacles)
     polylines, used = layout_text(text, box, size=cap, style=style_name)
     if not polylines:
         raise ValueError("annotate text produced no ink")
