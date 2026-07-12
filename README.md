@@ -16,6 +16,7 @@ can render, query, edit, persist, and expose ink to tools without flattening it 
 - A discoverable, JSON Schema-based tool surface for model and automation integrations.
 - Compact Ink Context Format snapshots with addressable stroke geometry.
 - A structured ink index (marks with stable ids, shape, and position) for cheap, groundable model context.
+- Deterministic ink analyzers and query-aware temporal retrieval for bounded agent evidence.
 - Optional Universal Ink Model 3.1 import and export.
 - A C++17 core and versioned C ABI for native hosts.
 
@@ -92,9 +93,14 @@ The current public contracts are:
 | Legacy model context | `ink-context/v0` | [Ink Context Format v0](spec/ink-context-format.md) |
 | Tool calls | `neeh-tools/v1` | [Tool Surface v1](spec/tool-surface-v1.md) |
 | UIM mapping | `neeh-uim/v1` | [UIM Profile v1](spec/uim-profile-v1.md) |
+| Agent perception workspace | `ink-agent-interface/v1` | [Ink Agent Interface v1](spec/ink-agent-interface-v1.md) |
+| Deterministic ink analysis | `ink-analysis/v1` | [Ink Analysis v1](spec/ink-analysis-v1.md) |
+| Temporal retrieval | `ink-timeline/v1` | [Ink Timeline v1](spec/ink-timeline-v1.md) |
 
 Applications should discover protocol identifiers and tool schemas at runtime instead of deriving
-them from the Python package version.
+them from the Python package version. The design rationale behind the Ink Agent Interface — why a
+structured index is the primary model-facing channel, with raster fetched on demand — is in
+[Ink accessibility tree](spec/ink-accessibility-tree.md).
 
 ## Persistence
 
@@ -133,6 +139,11 @@ It can use an existing Codex CLI or Claude CLI login and includes a mock backend
 Agent answers use blue ink with the cursive Hershey Script Complex face.
 See the [assistant example guide](examples/assistant/README.md).
 
+The current product direction and remaining milestones are tracked in
+[ROADMAP.md](ROADMAP.md). The active path is deterministic analysis + structured
+retrieval + raster on demand; learned ink encoders are not planned without a
+measured failure of that baseline.
+
 ## Development
 
 ```bash
@@ -142,6 +153,9 @@ python -m pytest -q
 
 CI tests Python 3.10 and 3.12, builds the native core on Linux and macOS, runs the C and C++ test
 suites, and verifies the installed CMake package.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and conventions, and
+[SECURITY.md](SECURITY.md) to report a vulnerability.
 
 Licensed under the [Apache License 2.0](LICENSE). Vendored data attribution is listed in
 [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).
