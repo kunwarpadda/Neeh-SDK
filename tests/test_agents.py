@@ -24,8 +24,10 @@ def test_agent_input_preview_exposes_compact_and_auditable_views():
     full = agent_input_preview(canvas, "Explain this", full=True)
     assert "User instruction: Explain this" in full["prompt"]
     assert "Use at most 6 actions" in full["prompt"]
-    assert "NEVER use write_text to reproduce" in full["prompt"]
-    assert 'uses the "handwritten" style' in full["prompt"]
+    # Behavioral guidance lives once in SYSTEM; the per-turn rules stay lean.
+    assert "mark it up in place" in full["prompt"]  # from SYSTEM, not duplicated
+    assert "handwritten style" in full["prompt"]
+    assert full["prompt"].count("Make the SMALLEST edit") == 1  # no rules/SYSTEM dupe
     assert {tool["name"] for tool in full["tool_schemas"]} == {
         "add_stroke", "annotate", "connect", "highlight", "insert_text", "mark",
         "move", "write_text",
@@ -34,6 +36,26 @@ def test_agent_input_preview_exposes_compact_and_auditable_views():
     assert move["limits"] == {"dx": [-40.0, 40.0], "dy": [-40.0, 40.0]}
     assert compact["output_schema"].endswith("up to 6 Neeh tool actions")
     assert assistant._CODEX_CLI_RESPONSE_SCHEMA["properties"]["actions"]["maxItems"] == 6
+
+
+def test_situation_note_conditions_on_what_is_on_the_page():
+    from neeh.agents import assistant
+
+    # A blank page names no situation.
+    assert assistant._situation_note({"ink": {}}) == ""
+
+    # A sketch with a targetable mark and a run of handwriting names both.
+    canvas = Canvas()
+    canvas.add_stroke([(60, 120), (300, 120), (300, 400), (60, 400), (60, 120)],
+                      author=Author.USER)  # a box: a labelable mark
+    for i in range(30):  # a line of handwriting
+        x = 80 + i * 12
+        canvas.add_stroke([(x, 600), (x + 6, 612), (x + 3, 624)], author=Author.USER)
+    note = assistant._situation_note(assistant._ink_context(canvas))
+    assert "target by id" in note and "mark up in place" in note
+
+    prompt = assistant._codex_cli_prompt(canvas, "help")
+    assert note.strip() in prompt
 
 
 def test_planned_move_opens_room_before_insert_text_and_preserves_anchor_ids():

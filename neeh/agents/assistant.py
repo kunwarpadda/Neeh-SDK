@@ -307,6 +307,40 @@ def _focus_note(canvas: Canvas) -> str:
     )
 
 
+def _situation_note(context: dict[str, Any]) -> str:
+    """A short, factual summary of what is on the page. It conditions which
+    system guidance applies this turn (correcting handwriting vs. pointing at
+    marks) without restating those rules in full — the system prompt already
+    carries them once."""
+    ink = context.get("ink", {})
+    hints = ink.get("hints") or {}
+    included = ink.get("included_stroke_count") or 0
+    parts = []
+    if hints:
+        parts.append(f"{len(hints)} labeled mark(s) you can target by id (ink.hints)")
+    if included - len(hints) >= 3:
+        parts.append("handwriting you can mark up in place")
+    if not parts:
+        return ""
+    return "\nOn this page: " + "; ".join(parts) + "."
+
+
+def _planner_rules(canvas: Canvas) -> str:
+    """Planner mechanics only. The behavioral guidance (smallest edit, correct
+    in place, annotate/connect, hints) lives once in SYSTEM; repeating it here
+    every turn is pure duplication, so this block stays lean."""
+    page = canvas.page
+    return (
+        "Rules:\n"
+        "- Return only JSON matching the schema; do not edit files, run commands, "
+        "mention implementation details, or ask a follow-up question.\n"
+        f"- Use at most {MAX_PLANNED_ACTIONS} actions; the shared input object means "
+        f"unused fields are null. Agent ink is {AGENT_INK}, handwritten style.\n"
+        f"- Coordinates are page units; the page is {page.width:g} x {page.height:g}. "
+        "Follow the tool and editing guidance in the system instructions above."
+    )
+
+
 def _ink_context_text(canvas: Canvas) -> str:
     context = _ink_context(canvas)
     label = "v0" if context["schema"] == "ink-context/v0" else "v1"
@@ -491,37 +525,12 @@ tool actions that should be applied, and return only JSON matching the provided
 output schema.
 
 Current ink context:
-{json.dumps(context, separators=(",", ":"))}{_context_note(context)}{_focus_note(canvas)}
+{json.dumps(context, separators=(",", ":"))}{_context_note(context)}{_focus_note(canvas)}{_situation_note(context)}
 
 Available Neeh action tools:
 {json.dumps(_codex_cli_tool_contract(), separators=(",", ":"))}
 
-Rules:
-- Use at most {MAX_PLANNED_ACTIONS} actions.
-- The output schema uses one shared input object; set unrelated fields to null.
-- Use write_text only for genuinely new answer content, in color {AGENT_INK}.
-- Agent text uses the "handwritten" style so it looks written rather than typeset.
-- Make the SMALLEST edit that answers. When correcting the user's writing,
-  mark it up in place instead of rewriting it: insert_text adds missing
-  characters next to ink you name by stroke id, mark strikes/circles/
-  underlines/checks it — both compute geometry for you, no coordinates
-  needed. E.g. missing quotes -> insert_text " with position "before" and
-  "after" on the word's stroke ids; never transcribe their text again.
-- For ANY correction of existing writing, NEVER use write_text to reproduce a
-  corrected copy elsewhere. Use in-place insert_text and mark actions, even if
-  the markup is imperfect. insert_text automatically makes collision-free room;
-  do not call move for insertion spacing.
-- Use highlight only when it helps connect your answer to existing ink.
-- To write a note about part of the drawing, use annotate (text + the target's
-  stroke ids): it places the note beside that ink and binds an arrow from note
-  to target in one step. Prefer it over write_text + connect so labels stay
-  paired with their targets. Use connect for a bare arrow, and add_stroke only
-  for new freestanding shapes that reference nothing on the page.
-- Choose stroke ids using ink.hints, which labels each id by shape and position
-  (e.g. "loop, lower-left"); match what you see to its id instead of guessing.
-- Coordinates are page units. The page is {page.width:g} x {page.height:g}.
-- Do not edit files, run commands, mention implementation details, or ask a
-  follow-up question.
+{_planner_rules(canvas)}
 
 User instruction: {ask}
 """
@@ -662,38 +671,13 @@ Read on the file at {page_path}. Choose the Neeh tool actions that should be
 applied, and return only JSON matching the provided output schema.
 
 Current ink context:
-{json.dumps(context, separators=(",", ":"))}{_context_note(context)}{_focus_note(canvas)}
+{json.dumps(context, separators=(",", ":"))}{_context_note(context)}{_focus_note(canvas)}{_situation_note(context)}
 
 Available Neeh action tools:
 {json.dumps(_codex_cli_tool_contract(), separators=(",", ":"))}
 
-Rules:
-- Use at most {MAX_PLANNED_ACTIONS} actions.
-- The output schema uses one shared input object; set unrelated fields to null.
-- Use write_text only for genuinely new answer content, in color {AGENT_INK}.
-- Agent text uses the "handwritten" style so it looks written rather than typeset.
-- Make the SMALLEST edit that answers. When correcting the user's writing,
-  mark it up in place instead of rewriting it: insert_text adds missing
-  characters next to ink you name by stroke id, mark strikes/circles/
-  underlines/checks it — both compute geometry for you, no coordinates
-  needed. E.g. missing quotes -> insert_text " with position "before" and
-  "after" on the word's stroke ids; never transcribe their text again.
-- For ANY correction of existing writing, NEVER use write_text to reproduce a
-  corrected copy elsewhere. Use in-place insert_text and mark actions, even if
-  the markup is imperfect. insert_text automatically makes collision-free room;
-  do not call move for insertion spacing.
-- Use highlight only when it helps connect your answer to existing ink.
-- To write a note about part of the drawing, use annotate (text + the target's
-  stroke ids): it places the note beside that ink and binds an arrow from note
-  to target in one step. Prefer it over write_text + connect so labels stay
-  paired with their targets. Use connect for a bare arrow, and add_stroke only
-  for new freestanding shapes that reference nothing on the page.
-- Choose stroke ids using ink.hints, which labels each id by shape and position
-  (e.g. "loop, lower-left"); match what you see to its id instead of guessing.
-- Coordinates are page units. The page is {page.width:g} x {page.height:g}.
+{_planner_rules(canvas)}
 - The page PNG to inspect is at: {page_path}
-- Do not edit files, run commands, mention implementation details, or ask a
-  follow-up question.
 
 User instruction: {ask}
 """
