@@ -37,8 +37,42 @@ solve within its latency and context budgets.
 - IAI map-first policies, read-only MCP perception, telemetry, bounded working
   set, atomic action validation, and one repair pass.
 - Experimental `ink-timeline/v1` and Ink Moment Retrieval.
-- Deterministic `ink-analysis/v1` reducers for latest mark, creation order,
-  stroke dynamics, and cross-out candidates.
+- Deterministic `ink-analysis/v1` analyzers split into exact measurements
+  (latest mark, creation order, stroke dynamics, containment, intersection,
+  endpoints, spatial collision) and inferences that carry confidence and
+  provenance (cross-out, connector, and grouping candidates).
+- Task-specific reducers (`reduce_ink`) for recent changes, overwritten ink,
+  revisions, ambiguous connectors, and page summaries.
+- Analyzer-signal retrieval ranking and explicit intent routing that
+  pre-computes the matching reducer into the IAI observation workspace.
+- Append-only `ink-eventlog/v1` document event log capturing add, erase, move,
+  restyle, group, agent, undo, and redo mutations with stable ids, plus
+  replay/diff/snapshot/recover queries over erased and replaced ink.
+- `ink-timeline/v1` reconstruction from the event log, with an honest
+  `history_complete` claim gated on the log actually covering the page.
+- Event-log persistence: full snapshot serialization, a `neeh-session/v1`
+  document+log bundle (`Canvas.save_session`/`load_session`), and a UIM
+  `.events.json` sidecar (`save_uim(..., event_log=)` / `load_uim_events`).
+- `Canvas.group`/`ungroup` recording grouping in the log, with current
+  membership folded back from group/ungroup events.
+- Move 3 grounding harness (`research/move3_grounding.py`): a deterministic
+  `--dry-run` policy comparison (raster-only, raster+geometry, index-only,
+  active-index, marked-index, analyzer-first) over history-bearing tasks,
+  scoring grounding level against context and pixel cost with adversarial
+  leak/balance controls. The live GPT-5.5 accuracy/abstention arm and real-device
+  datasets remain to be run (M3 exit gate).
+- Public `benchmarks/` evidence surface: the three harnesses, their raw results
+  (dry-run and archived GPT-5.5 transcripts), and a claim→command→result
+  reproducibility index, linked from the README Evidence section.
+- JSON Schema conformance fixtures (`spec/fixtures/`) for `ink-analysis/v1`
+  (analyzer + reducer envelopes) and `ink-eventlog/v1` (compact + snapshot),
+  with golden payloads, live-output conformance tests, and a documented
+  ignore-unknown-fields compatibility policy; experimental protocols surfaced
+  via `neeh.protocol.experimental_protocol_versions()`.
+- MCP hardening: JSON-RPC-correct error codes (-32700 parse / -32600 invalid
+  request), request-id preservation on unexpected failures, and adversarial
+  tests for malformed input, wrong-shaped params, unknown tools, and budget
+  exhaustion over stdio.
 - Controlled render-identical and token-scaling experiments. A render-identical
   pairs study establishes that ink history prevents PNG-only confabulation; a
   token-budget scaling study establishes that local reduction beats both
