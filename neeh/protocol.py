@@ -22,6 +22,19 @@ _PROTOCOL_VERSIONS: Final = {
     "persistence_profile": UIM_PROFILE_VERSION,
 }
 
+# Experimental protocols: schemas and conformance fixtures exist under
+# spec/fixtures/, but the wire formats may still change without a major bump.
+# Surfaced separately so hosts can feature-detect them without mistaking them
+# for stability commitments; each graduates to the stable manifest once its
+# fixtures have held across a release.
+_EXPERIMENTAL_PROTOCOL_VERSIONS: Final = {
+    "ink_analysis": "ink-analysis/v1",
+    "ink_eventlog": "ink-eventlog/v1",
+    "ink_timeline": "ink-timeline/v1",
+    "ink_agent_interface": "ink-agent-interface/v1",
+    "session_bundle": "neeh-session/v1",
+}
+
 
 def protocol_versions() -> dict[str, str]:
     """Return a JSON-serializable copy of the supported protocol manifest."""
@@ -29,10 +42,17 @@ def protocol_versions() -> dict[str, str]:
     return dict(_PROTOCOL_VERSIONS)
 
 
+def experimental_protocol_versions() -> dict[str, str]:
+    """Return the manifest of experimental (fixture-backed, not yet stable) protocols."""
+
+    return dict(_EXPERIMENTAL_PROTOCOL_VERSIONS)
+
+
 __all__ = [
     "INK_CONTEXT_V1_DRAFT_VERSION",
     "INK_CONTEXT_VERSION",
     "TOOL_SURFACE_VERSION",
     "UIM_PROFILE_VERSION",
+    "experimental_protocol_versions",
     "protocol_versions",
 ]

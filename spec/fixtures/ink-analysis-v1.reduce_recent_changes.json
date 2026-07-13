@@ -1,0 +1,29 @@
+{
+  "schema": "ink-analysis/v1",
+  "task": "recent_changes",
+  "deterministic": true,
+  "claim_type": "measurement",
+  "source_stroke_count": 1,
+  "matched_stroke_count": 1,
+  "latest_ms": 1000000,
+  "since_ms": null,
+  "changes": [
+    {
+      "id": "st_b4a06178fdfe",
+      "end_ms": 1000000,
+      "ms_since_latest": 0,
+      "center": [
+        130.0,
+        100.0
+      ],
+      "bbox": [
+        100.0,
+        100.0,
+        160.0,
+        100.0
+      ],
+      "direction": "right"
+    }
+  ],
+  "truncated": false
+}

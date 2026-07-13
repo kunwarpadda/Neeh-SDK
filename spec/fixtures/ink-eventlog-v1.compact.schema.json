@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neeh.dev/spec/fixtures/ink-eventlog-v1.compact.schema.json",
+  "title": "ink-eventlog/v1 compact (model-facing) view",
+  "description": "EventLog.to_dict(): ids only, no stroke geometry. Consumers MUST ignore unknown fields.",
+  "type": "object",
+  "required": ["schema", "event_count", "head_seq", "events"],
+  "properties": {
+    "schema": { "const": "ink-eventlog/v1" },
+    "event_count": { "type": "integer", "minimum": 0 },
+    "head_seq": { "type": "integer", "minimum": -1 },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "seq", "event_id", "kind", "label", "page_id", "at_ms",
+          "removed_ids", "added_ids", "authors"
+        ],
+        "properties": {
+          "seq": { "type": "integer", "minimum": 0 },
+          "event_id": { "type": "string" },
+          "kind": {
+            "enum": ["add", "erase", "move", "restyle", "group", "agent", "undo", "redo"]
+          },
+          "label": { "type": "string" },
+          "page_id": { "type": "string" },
+          "at_ms": { "type": "integer", "minimum": 0 },
+          "removed_ids": { "type": "array", "items": { "type": "string" } },
+          "added_ids": { "type": "array", "items": { "type": "string" } },
+          "authors": { "type": "array", "items": { "type": "string" } },
+          "meta": { "type": "object" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

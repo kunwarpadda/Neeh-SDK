@@ -1,0 +1,12 @@
+{
+  "schema": "ink-analysis/v1",
+  "operation": "connector_candidates",
+  "deterministic": true,
+  "claim_type": "inference",
+  "source_stroke_count": 1,
+  "matched_stroke_count": 1,
+  "candidates": [],
+  "candidate_count": 0,
+  "margin": 40.0,
+  "truncated": false
+}

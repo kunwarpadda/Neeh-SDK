@@ -1,0 +1,32 @@
+{
+  "schema": "ink-analysis/v1",
+  "operation": "latest_mark",
+  "deterministic": true,
+  "claim_type": "measurement",
+  "source_stroke_count": 1,
+  "matched_stroke_count": 1,
+  "latest": {
+    "id": "st_b4a06178fdfe",
+    "start_ms": 1000000,
+    "end_ms": 1000000,
+    "center": [
+      130.0,
+      100.0
+    ],
+    "bbox": [
+      100.0,
+      100.0,
+      160.0,
+      100.0
+    ],
+    "vertical_half": "upper",
+    "horizontal_half": "left",
+    "direction": "right",
+    "duration_ms": 0,
+    "pressure": {
+      "mean": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    }
+  }
+}

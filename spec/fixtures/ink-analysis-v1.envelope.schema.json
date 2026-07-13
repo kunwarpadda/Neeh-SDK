@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neeh.dev/spec/fixtures/ink-analysis-v1.envelope.schema.json",
+  "title": "ink-analysis/v1 analyzer envelope",
+  "description": "Common envelope for every analyze_ink response. Operation-specific evidence keys ride alongside; consumers MUST ignore unknown fields (forward compatibility).",
+  "type": "object",
+  "required": [
+    "schema",
+    "operation",
+    "deterministic",
+    "claim_type",
+    "source_stroke_count",
+    "matched_stroke_count"
+  ],
+  "properties": {
+    "schema": { "const": "ink-analysis/v1" },
+    "operation": {
+      "enum": [
+        "latest_mark",
+        "creation_order",
+        "stroke_dynamics",
+        "containment",
+        "intersection",
+        "endpoints",
+        "spatial_collision",
+        "cross_out_candidates",
+        "connector_candidates",
+        "grouping_candidates"
+      ]
+    },
+    "deterministic": { "const": true },
+    "claim_type": { "enum": ["measurement", "inference"] },
+    "source_stroke_count": { "type": "integer", "minimum": 0 },
+    "matched_stroke_count": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": true
+}

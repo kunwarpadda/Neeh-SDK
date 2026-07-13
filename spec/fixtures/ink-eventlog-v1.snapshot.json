@@ -1,0 +1,156 @@
+{
+  "schema": "ink-eventlog/v1",
+  "event_count": 4,
+  "events": [
+    {
+      "seq": 0,
+      "event_id": "evt_af8a1a568e1d",
+      "kind": "add",
+      "label": "add_stroke",
+      "page_id": "pg_c04b0f6fcea0",
+      "at_ms": 1783966330374,
+      "removed": [],
+      "added": [
+        {
+          "layer_id": "ly_0d1ceca0961b",
+          "stroke": {
+            "id": "st_b4a06178fdfe",
+            "author": "user",
+            "created_at_ms": 1000000,
+            "style": {
+              "color": "#1a1a1a",
+              "width": 2.0,
+              "brush": "pen",
+              "opacity": 1.0
+            },
+            "points": [
+              [
+                100.0,
+                100.0,
+                0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                160.0,
+                100.0,
+                0,
+                1.0,
+                0.0,
+                0.0
+              ]
+            ]
+          }
+        }
+      ],
+      "meta": null
+    },
+    {
+      "seq": 1,
+      "event_id": "evt_e8c835e792bd",
+      "kind": "add",
+      "label": "add_stroke",
+      "page_id": "pg_c04b0f6fcea0",
+      "at_ms": 1783966330374,
+      "removed": [],
+      "added": [
+        {
+          "layer_id": "ly_0d1ceca0961b",
+          "stroke": {
+            "id": "st_58f817418283",
+            "author": "user",
+            "created_at_ms": 1005000,
+            "style": {
+              "color": "#1a1a1a",
+              "width": 2.0,
+              "brush": "pen",
+              "opacity": 1.0
+            },
+            "points": [
+              [
+                100.0,
+                102.0,
+                0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                160.0,
+                98.0,
+                0,
+                1.0,
+                0.0,
+                0.0
+              ]
+            ]
+          }
+        }
+      ],
+      "meta": null
+    },
+    {
+      "seq": 2,
+      "event_id": "evt_3ed071a63d8a",
+      "kind": "group",
+      "label": "group",
+      "page_id": "pg_c04b0f6fcea0",
+      "at_ms": 1783966330374,
+      "removed": [],
+      "added": [],
+      "meta": {
+        "group_id": "grp_21ca50df900f",
+        "member_ids": [
+          "st_b4a06178fdfe",
+          "st_58f817418283"
+        ],
+        "label": "figure"
+      }
+    },
+    {
+      "seq": 3,
+      "event_id": "evt_d7262363fc92",
+      "kind": "erase",
+      "label": "erase",
+      "page_id": "pg_c04b0f6fcea0",
+      "at_ms": 1783966330374,
+      "removed": [
+        {
+          "layer_id": "ly_0d1ceca0961b",
+          "stroke": {
+            "id": "st_58f817418283",
+            "author": "user",
+            "created_at_ms": 1005000,
+            "style": {
+              "color": "#1a1a1a",
+              "width": 2.0,
+              "brush": "pen",
+              "opacity": 1.0
+            },
+            "points": [
+              [
+                100.0,
+                102.0,
+                0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              [
+                160.0,
+                98.0,
+                0,
+                1.0,
+                0.0,
+                0.0
+              ]
+            ]
+          }
+        }
+      ],
+      "added": [],
+      "meta": null
+    }
+  ]
+}

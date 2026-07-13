@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neeh.dev/spec/fixtures/ink-eventlog-v1.snapshot.schema.json",
+  "title": "ink-eventlog/v1 full snapshot (persistence) form",
+  "description": "EventLog.to_snapshot(): the round-trippable form including full stroke snapshots, written by Canvas.save_session and the UIM .events.json sidecar. Consumers MUST ignore unknown fields; producers MUST NOT drop events.",
+  "type": "object",
+  "required": ["schema", "event_count", "events"],
+  "properties": {
+    "schema": { "const": "ink-eventlog/v1" },
+    "event_count": { "type": "integer", "minimum": 0 },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["seq", "event_id", "kind", "label", "page_id", "at_ms", "removed", "added"],
+        "properties": {
+          "seq": { "type": "integer", "minimum": 0 },
+          "event_id": { "type": "string" },
+          "kind": {
+            "enum": ["add", "erase", "move", "restyle", "group", "agent", "undo", "redo"]
+          },
+          "label": { "type": "string" },
+          "page_id": { "type": "string" },
+          "at_ms": { "type": "integer", "minimum": 0 },
+          "removed": { "$ref": "#/$defs/pairs" },
+          "added": { "$ref": "#/$defs/pairs" },
+          "meta": { "type": ["object", "null"] }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "pairs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["layer_id", "stroke"],
+        "properties": {
+          "layer_id": { "type": "string" },
+          "stroke": {
+            "type": "object",
+            "required": ["id", "author", "created_at_ms", "points"],
+            "properties": {
+              "id": { "type": "string" },
+              "author": { "type": "string" },
+              "created_at_ms": { "type": "integer", "minimum": 0 },
+              "style": { "type": "object" },
+              "points": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "array", "minItems": 2 }
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

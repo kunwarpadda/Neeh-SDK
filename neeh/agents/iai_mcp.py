@@ -65,8 +65,23 @@ def serve(interface: InkAgentInterface) -> None:
             continue
         try:
             message = json.loads(line)
+        except json.JSONDecodeError as exc:
+            # JSON-RPC: unparseable input is a -32700 parse error, id null.
+            print(json.dumps(_response(None, error={
+                "code": -32700, "message": f"parse error: {exc.msg}",
+            })), flush=True)
+            continue
+        if not isinstance(message, dict):
+            # Parseable but not a request object (e.g. a bare string or array).
+            print(json.dumps(_response(None, error={
+                "code": -32600, "message": "invalid request: expected an object",
+            })), flush=True)
+            continue
+        # Extract the id before any processing so even an unexpected failure
+        # below can be answered with the caller's own id (not null).
+        request_id = message.get("id")
+        try:
             method = message.get("method")
-            request_id = message.get("id")
             if method == "initialize":
                 result = {
                     "protocolVersion": "2024-11-05",
@@ -97,7 +112,9 @@ def serve(interface: InkAgentInterface) -> None:
             if request_id is not None:
                 print(json.dumps(_response(request_id, result=result)), flush=True)
         except Exception as exc:
-            print(json.dumps(_response(None, error={"code": -32603, "message": str(exc)})), flush=True)
+            # Answer with the caller's id so strict clients don't hang on an
+            # unmatched response; the id was extracted before processing began.
+            print(json.dumps(_response(request_id, error={"code": -32603, "message": str(exc)})), flush=True)
 
 
 def main() -> None:

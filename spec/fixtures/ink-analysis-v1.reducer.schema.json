@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neeh.dev/spec/fixtures/ink-analysis-v1.reducer.schema.json",
+  "title": "ink-analysis/v1 task-reducer envelope",
+  "description": "Common envelope for every reduce_ink response (task-shaped reducers composed from the primitive analyzers). Task-specific evidence keys ride alongside; consumers MUST ignore unknown fields.",
+  "type": "object",
+  "required": [
+    "schema",
+    "task",
+    "deterministic",
+    "claim_type",
+    "source_stroke_count",
+    "matched_stroke_count"
+  ],
+  "properties": {
+    "schema": { "const": "ink-analysis/v1" },
+    "task": {
+      "enum": [
+        "recent_changes",
+        "overwritten_ink",
+        "revisions",
+        "ambiguous_connectors",
+        "page_summary"
+      ]
+    },
+    "deterministic": { "const": true },
+    "claim_type": { "enum": ["measurement", "inference"] },
+    "source_stroke_count": { "type": "integer", "minimum": 0 },
+    "matched_stroke_count": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": true
+}
