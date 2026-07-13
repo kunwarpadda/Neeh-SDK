@@ -24,6 +24,40 @@ def _scene() -> tuple[Canvas, str]:
     return canvas, loop.id
 
 
+def test_intent_routing_selects_the_matching_reducer():
+    canvas, _ = _scene()
+
+    cases = {
+        "what is the most recent mark?": ("operation", "latest_mark"),
+        "was anything crossed out?": ("operation", "cross_out_candidates"),
+        "what did I revise on this page?": ("task", "revisions"),
+        "show me recent changes since I started": ("task", "recent_changes"),
+        "give me a summary of the page": ("task", "page_summary"),
+        "which arrow connects the two boxes?": ("operation", "connector_candidates"),
+        "how are these strokes grouped?": ("operation", "grouping_candidates"),
+    }
+    for query, (key, expected) in cases.items():
+        workspace = build_observation_workspace(canvas, query)
+        analysis = workspace["analysis"]
+        assert analysis is not None, query
+        assert analysis[key] == expected, (query, analysis.get(key))
+
+
+def test_find_marks_ranks_equal_matches_by_analyzer_signal_not_insertion():
+    canvas = Canvas()
+    # Two equally-matching lines; the second is created later, so the analyzer's
+    # page-map rank (creation-order signal) places it ahead of the first.
+    early = canvas.add_stroke([(40, 40), (40, 200)], author=Author.USER)
+    late = canvas.add_stroke([(600, 600), (600, 760)], author=Author.USER)
+    interface = InkAgentInterface(canvas, policy="active-index")
+
+    result = interface.call("find_marks", {"query": "line"})
+
+    ids = [mark["id"] for mark in result["marks"]]
+    assert set(ids) == {early.id, late.id}  # both match lexically
+    assert ids[0] == late.id  # analyzer rank, not insertion order, wins
+
+
 def test_workspace_is_budgeted_ranked_and_task_conditioned():
     canvas, loop_id = _scene()
     workspace = build_observation_workspace(
@@ -39,8 +73,8 @@ def test_workspace_is_budgeted_ranked_and_task_conditioned():
     assert workspace["page_map"]["handwriting_stroke_count"] == 12
     assert workspace["bootstrap_chars"] <= 4000
     assert workspace["capabilities"] == [
-        "find_marks", "analyze_ink", "find_ink_moments", "inspect_ink_moment",
-        "view_region", "get_ink", "expand_relations",
+        "find_marks", "analyze_ink", "reduce_ink", "find_ink_moments",
+        "inspect_ink_moment", "view_region", "get_ink", "expand_relations",
     ]
     with pytest.raises(ValueError, match="minimal observation workspace"):
         build_observation_workspace(
@@ -116,8 +150,8 @@ def test_stdio_mcp_lists_and_calls_iai_tools(tmp_path):
 
     assert responses[0]["result"]["serverInfo"]["name"] == "neeh-iai"
     assert {tool["name"] for tool in responses[1]["result"]["tools"]} == {
-        "find_marks", "analyze_ink", "find_ink_moments", "inspect_ink_moment",
-        "view_region", "get_ink", "expand_relations",
+        "find_marks", "analyze_ink", "reduce_ink", "find_ink_moments",
+        "inspect_ink_moment", "view_region", "get_ink", "expand_relations",
     }
     called = responses[2]["result"]["structuredContent"]
     assert called["marks"][0]["id"] == loop_id

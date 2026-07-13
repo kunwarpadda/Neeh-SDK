@@ -449,9 +449,9 @@ def _perception_note(
         return (
             f"Primary perception policy: {policy}. Treat page_map marks and their "
             "stable ids/bboxes as authoritative for grounding. Use the typed IAI "
-            "perception actions (find_marks, analyze_ink, find_ink_moments, "
-            "inspect_ink_moment, view_region, get_ink, expand_relations) only "
-            "when the bootstrap is insufficient."
+            "perception actions (find_marks, analyze_ink, reduce_ink, "
+            "find_ink_moments, inspect_ink_moment, view_region, get_ink, "
+            "expand_relations) only when the bootstrap is insufficient."
             + marked
             + raster_fallback
             + detail_fallback
@@ -1137,6 +1137,7 @@ def _claude_cli_command(
         cmd.extend(["--mcp-config", json.dumps(config), "--strict-mcp-config"])
         tools = (
             "mcp__neeh_iai__find_marks,mcp__neeh_iai__analyze_ink,"
+            "mcp__neeh_iai__reduce_ink,"
             "mcp__neeh_iai__find_ink_moments,mcp__neeh_iai__inspect_ink_moment,"
             "mcp__neeh_iai__view_region,mcp__neeh_iai__get_ink,"
             "mcp__neeh_iai__expand_relations"

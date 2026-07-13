@@ -21,8 +21,8 @@ def test_agent_input_preview_exposes_compact_and_auditable_views():
     assert compact["image"]["transport"] == "IAI view_region"
     assert compact["image"]["bytes"] == 0
     assert {tool["name"] for tool in compact["perception_tools"]} == {
-        "find_marks", "analyze_ink", "find_ink_moments", "inspect_ink_moment",
-        "view_region", "get_ink", "expand_relations",
+        "find_marks", "analyze_ink", "reduce_ink", "find_ink_moments",
+        "inspect_ink_moment", "view_region", "get_ink", "expand_relations",
     }
     assert "prompt" not in compact
     assert "tool_schemas" not in compact

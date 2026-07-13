@@ -22,6 +22,7 @@ from neeh.agents.timeline import (
     inspect_ink_moment,
 )
 from neeh.agents.analyzers import ANALYSIS_OPERATIONS, analyze_ink
+from neeh.agents.reducers import REDUCER_TASKS, reduce_ink
 
 IAI_VERSION = "ink-agent-interface/v1"
 PERCEPTION_POLICIES = (
@@ -143,11 +144,32 @@ def _recent_delta(canvas: Canvas, limit: int) -> dict[str, Any]:
 
 
 def _task_analysis(canvas: Canvas, task: str) -> Optional[dict[str, Any]]:
+    """Route a natural-language task to the exact analyzer/reducer that answers it.
+
+    Explicit intent routing keeps mechanical questions off the model: the
+    matching reducer is pre-computed into the workspace so the answer is already
+    bounded evidence, not a search the model has to perform. Order matters ---
+    more specific intents are checked before more general ones.
+    """
     normalized = " ".join(task.casefold().split())
-    if any(phrase in normalized for phrase in ("most recent", "latest", "last drawn")):
+
+    def has(*phrases: str) -> bool:
+        return any(phrase in normalized for phrase in phrases)
+
+    if has("most recent", "latest", "last drawn", "last mark", "newest"):
         return analyze_ink(canvas, "latest_mark")
-    if any(phrase in normalized for phrase in ("crossed out", "cross-out", "cross out")):
+    if has("crossed out", "cross-out", "cross out", "struck through", "scratched out"):
         return analyze_ink(canvas, "cross_out_candidates", limit=4)
+    if has("revis", "overwrit", "corrected", "replaced", "rewrote", "rewritten"):
+        return reduce_ink(canvas, "revisions", limit=6)
+    if has("recently", "recent change", "what changed", "new since", "just added"):
+        return reduce_ink(canvas, "recent_changes", limit=6)
+    if has("summar", "overview", "what is on the page", "describe the page"):
+        return reduce_ink(canvas, "page_summary")
+    if has("connector", "connect", "arrow", "links to", "linking", "joins"):
+        return analyze_ink(canvas, "connector_candidates", limit=6)
+    if has("group", "cluster"):
+        return analyze_ink(canvas, "grouping_candidates", limit=6)
     return None
 
 
@@ -225,8 +247,8 @@ def build_observation_workspace(
             "working_set": {"regions": [], "stroke_ids": [], "moment_ids": []},
             "budget": budget.to_dict(),
             "capabilities": [
-                "find_marks", "analyze_ink", "find_ink_moments", "inspect_ink_moment",
-                "view_region", "get_ink", "expand_relations",
+                "find_marks", "analyze_ink", "reduce_ink", "find_ink_moments",
+                "inspect_ink_moment", "view_region", "get_ink", "expand_relations",
             ] if policy in {"active-index", "marked-index"} else [],
             "bootstrap_chars": 0,
         }
@@ -276,6 +298,21 @@ IAI_TOOL_SCHEMAS: list[dict[str, Any]] = [
                 "limit": {"type": "integer", "minimum": 1, "maximum": 24},
             },
             "required": ["operation"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "reduce_ink",
+        "description": "Compose analyzers into a task-shaped answer (recent changes, revisions, page summary).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "task": {"type": "string", "enum": list(REDUCER_TASKS)},
+                "region": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4},
+                "since_ms": {"type": "integer", "minimum": 0},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 24},
+            },
+            "required": ["task"],
             "additionalProperties": False,
         },
     },
@@ -433,11 +470,24 @@ class InkAgentInterface:
         if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 24:
             raise ValueError("limit must be an integer between 1 and 24")
         terms = [term.lower() for term in query.split() if term]
-        marks = self._all_marks
+        # Keep the strict lexical filter (only matching marks are returned), but
+        # rank the matches by analyzer signals rather than page order: matches on
+        # a mark's structured shape/position labels outrank incidental substring
+        # hits, and the analyzer-derived page-map rank breaks ties.
         matched = [
-            mark for mark in marks
-            if not terms or all(term in json.dumps(mark).lower() for term in terms)
-        ][:limit]
+            mark for mark in self._all_marks
+            if all(term in json.dumps(mark).lower() for term in terms)
+        ]
+
+        def relevance(mark: dict[str, Any]) -> tuple[int, int, int]:
+            labels = {mark["shape"].lower(), *mark["position"].lower().split("-")}
+            label_hits = sum(1 for term in terms if any(term in label for label in labels))
+            blob = json.dumps(mark).lower()
+            blob_hits = sum(1 for term in terms if term in blob)
+            return (label_hits, blob_hits, -mark["rank"])
+
+        matched.sort(key=relevance, reverse=True)
+        matched = matched[:limit]
         return self._finish({"query": query, "marks": matched, "match_count": len(matched)})
 
     def analyze_ink(
@@ -453,6 +503,22 @@ class InkAgentInterface:
             operation,
             stroke_ids=stroke_ids,
             region=region,
+            limit=limit,
+        ))
+
+    def reduce_ink(
+        self,
+        task: str,
+        region: Optional[Sequence[float]] = None,
+        since_ms: Optional[int] = None,
+        limit: int = 8,
+    ) -> dict[str, Any]:
+        self._analyzer_queries += 1
+        return self._finish(reduce_ink(
+            self.canvas,
+            task,
+            region=region,
+            since_ms=since_ms,
             limit=limit,
         ))
 

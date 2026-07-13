@@ -26,6 +26,7 @@ from neeh.agents.timeline import (
     inspect_ink_moment,
 )
 from neeh.agents.analyzers import ANALYSIS_OPERATIONS, ANALYSIS_VERSION, analyze_ink
+from neeh.agents.reducers import REDUCER_TASKS, reduce_ink
 
 __all__ = [
     "ModelUnavailableError",
@@ -46,4 +47,6 @@ __all__ = [
     "ANALYSIS_OPERATIONS",
     "ANALYSIS_VERSION",
     "analyze_ink",
+    "REDUCER_TASKS",
+    "reduce_ink",
 ]
