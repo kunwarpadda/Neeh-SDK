@@ -73,6 +73,13 @@ solve within its latency and context budgets.
   request), request-id preservation on unexpected failures, and adversarial
   tests for malformed input, wrong-shaped params, unknown tools, and budget
   exhaustion over stdio.
+- Native analyzer parity (`neeh::analysis`, C++17 + C ABI): all seven
+  measurement operations (latest mark, creation order, stroke dynamics,
+  containment, exact intersection, spatial collision, endpoints) with
+  semantics mirroring the Python analyzers (same ordering keys, same 8-way
+  compass with ties-to-even rounding); C ABI exposes `neeh_stroke_analyze`,
+  `neeh_page_latest_mark`, and `neeh_page_creation_order`. Inference
+  operations remain Python-only by design.
 - Controlled render-identical and token-scaling experiments. A render-identical
   pairs study establishes that ink history prevents PNG-only confabulation; a
   token-budget scaling study establishes that local reduction beats both

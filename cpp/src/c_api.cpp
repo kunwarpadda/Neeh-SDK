@@ -1,13 +1,16 @@
 #include <neeh/c_api.h>
 
+#include <neeh/analysis.hpp>
 #include <neeh/core.hpp>
 #include <neeh/render.hpp>
 
+#include <algorithm>
 #include <cstring>
 #include <memory>
 #include <new>
 #include <optional>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -135,6 +138,24 @@ neeh::BoundingBox bbox_from_c(const neeh_bbox_t& box) {
 
 neeh_bbox_t bbox_to_c(const neeh::BoundingBox& box) {
     return neeh_bbox_t {box.min_x(), box.min_y(), box.max_x(), box.max_y()};
+}
+
+neeh_mark_analysis_t mark_analysis_to_c(const neeh::analysis::MarkAnalysis& analysis) {
+    neeh_mark_analysis_t out;
+    out.bbox = bbox_to_c(analysis.bbox);
+    out.center_x = analysis.center_x;
+    out.center_y = analysis.center_y;
+    out.start_ms = analysis.start_ms;
+    out.end_ms = analysis.end_ms;
+    out.duration_ms = analysis.duration_ms;
+    out.upper_half = analysis.upper_half ? 1 : 0;
+    out.left_half = analysis.left_half ? 1 : 0;
+    out.direction = static_cast<neeh_direction_t>(analysis.direction);
+    out.path_length = analysis.path_length;
+    out.pressure_mean = analysis.pressure_mean;
+    out.pressure_min = analysis.pressure_min;
+    out.pressure_max = analysis.pressure_max;
+    return out;
 }
 
 neeh_point_t point_to_c(const neeh::Point& point) {
@@ -891,6 +912,88 @@ uint32_t neeh_image_height(const neeh_image_t* image) {
 
 size_t neeh_image_stride(const neeh_image_t* image) {
     return image == nullptr ? 0 : image->value.stride();
+}
+
+const char* neeh_direction_name(neeh_direction_t direction) {
+    return neeh::analysis::direction_name(
+        static_cast<neeh::analysis::Direction>(direction));
+}
+
+neeh_status_t neeh_stroke_analyze(
+    const neeh_stroke_t* stroke,
+    double page_width,
+    double page_height,
+    neeh_mark_analysis_t* out_analysis) {
+    return invoke([&] {
+        require(stroke != nullptr, "stroke handle is NULL");
+        require(out_analysis != nullptr, "out_analysis is NULL");
+        require(page_width > 0.0 && page_height > 0.0, "page frame must be positive");
+        *out_analysis = mark_analysis_to_c(
+            neeh::analysis::analyze_stroke(stroke->value, page_width, page_height));
+    });
+}
+
+neeh_status_t neeh_page_latest_mark(
+    const neeh_document_t* document,
+    size_t page_index,
+    neeh_mark_analysis_t* out_analysis,
+    neeh_stroke_t** out_stroke) {
+    return invoke([&] {
+        require(
+            out_analysis != nullptr || out_stroke != nullptr,
+            "at least one of out_analysis/out_stroke is required");
+        if (out_stroke != nullptr) {
+            *out_stroke = nullptr;
+        }
+        const auto& page = page_at(document, page_index);
+        const auto latest = neeh::analysis::latest_mark(page);
+        if (!latest) {
+            throw neeh::Error(neeh::ErrorCode::not_found, "page has no visible strokes");
+        }
+        if (out_analysis != nullptr) {
+            *out_analysis = mark_analysis_to_c(*latest);
+        }
+        if (out_stroke != nullptr) {
+            for (const auto* stroke : page.all_strokes(true)) {
+                if (stroke->id() == latest->id) {
+                    *out_stroke = new neeh_stroke {*stroke};
+                    return;
+                }
+            }
+            throw neeh::Error(neeh::ErrorCode::internal, "latest mark disappeared");
+        }
+    });
+}
+
+neeh_status_t neeh_page_creation_order(
+    const neeh_document_t* document,
+    size_t page_index,
+    neeh_stroke_list_t** out_list) {
+    return invoke([&] {
+        require(out_list != nullptr, "out_list is NULL");
+        *out_list = nullptr;
+        const auto& page = page_at(document, page_index);
+        auto strokes = page.all_strokes(true);
+        std::vector<size_t> order(strokes.size());
+        for (size_t i = 0; i < strokes.size(); ++i) {
+            order[i] = i;
+        }
+        auto key = [&strokes](size_t index) {
+            const auto& stroke = *strokes[index];
+            const auto start = stroke.created_at_ms() + stroke.points().front().t_ms;
+            const auto end = stroke.created_at_ms() + stroke.points().back().t_ms;
+            return std::make_tuple(start, end, index);
+        };
+        std::sort(order.begin(), order.end(), [&key](size_t a, size_t b) {
+            return key(a) < key(b);
+        });
+        auto list = std::make_unique<neeh_stroke_list>();
+        list->values.reserve(strokes.size());
+        for (const auto index : order) {
+            list->values.push_back(*strokes[index]);
+        }
+        *out_list = list.release();
+    });
 }
 
 } // extern "C"

@@ -1,3 +1,4 @@
+#include <neeh/analysis.hpp>
 #include <neeh/core.hpp>
 #include <neeh/render.hpp>
 
@@ -283,6 +284,87 @@ void test_renderers() {
     });
 }
 
+void test_analysis_measurements() {
+    auto stroke_at = [](std::string id, double x, double y, std::int64_t created_at,
+                        double dx = 12.0, double dy = 4.0) {
+        return neeh::Stroke(
+            std::vector<neeh::Point> {
+                {x, y, 0, 0.4F, 0.0F, 0.0F},
+                {x + dx, y + dy, 100, 0.8F, 0.0F, 0.0F}},
+            neeh::StrokeStyle {},
+            std::move(id),
+            neeh::Author::user,
+            created_at);
+    };
+
+    // latest_mark orders by (end_ms, start_ms, page order) — same as Python.
+    neeh::Page page;
+    page.add_stroke(stroke_at("st_early", 100.0, 100.0, 1000));
+    page.add_stroke(stroke_at("st_late", 300.0, 1200.0, 2000));
+
+    const auto latest = neeh::analysis::latest_mark(page);
+    CHECK(latest.has_value());
+    CHECK(latest->id == "st_late");
+    CHECK(latest->start_ms == 2000);
+    CHECK(latest->end_ms == 2100);
+    CHECK(!latest->upper_half); // y≈1202 on a 1414-tall page
+    // A (12, 4) chord is 18.4°, which the 8-way compass rounds to "right" —
+    // the same answer Python's analyzer gives for this stroke shape.
+    CHECK(latest->direction == neeh::analysis::Direction::right);
+    CHECK(std::string(neeh::analysis::direction_name(latest->direction)) == "right");
+
+    // creation_order sorts by (start_ms, end_ms, page order); errors are typed.
+    const auto order = neeh::analysis::creation_order(page, {"st_late", "st_early"});
+    CHECK(order.size() == 2);
+    CHECK(order[0].rank == 1 && order[0].id == "st_early");
+    CHECK(order[1].rank == 2 && order[1].id == "st_late");
+    expect_error(neeh::ErrorCode::not_found, [&] {
+        (void)neeh::analysis::creation_order(page, {"st_missing"});
+    });
+    expect_error(neeh::ErrorCode::invalid_argument, [&] {
+        (void)neeh::analysis::creation_order(page, {});
+    });
+
+    // stroke_dynamics computes exact pressure stats and path length.
+    const auto dynamics = neeh::analysis::stroke_dynamics(page, {"st_early"});
+    CHECK(dynamics.size() == 1);
+    // Pressures are stored as float; compare at float precision.
+    CHECK(std::abs(dynamics[0].pressure_mean - 0.6) < 1e-6);
+    CHECK(std::abs(dynamics[0].path_length - std::hypot(12.0, 4.0)) < 1e-9);
+
+    // containment splits fully-inside from boundary-straddling.
+    neeh::Page geo;
+    geo.add_stroke(stroke_at("st_inside", 50.0, 50.0, 1000, 10.0, 10.0));
+    geo.add_stroke(stroke_at("st_straddle", 190.0, 190.0, 1000, 70.0, 70.0));
+    const auto contained = neeh::analysis::containment(geo, neeh::BoundingBox(0, 0, 200, 200));
+    CHECK(contained.contained == std::vector<std::string> {"st_inside"});
+    CHECK(contained.partial == std::vector<std::string> {"st_straddle"});
+
+    // intersection is exact: an X crosses; parallel bbox-overlapping lines do not.
+    neeh::Page cross;
+    cross.add_stroke(stroke_at("st_x1", 100.0, 100.0, 1000, 100.0, 100.0));
+    cross.add_stroke(stroke_at("st_x2", 100.0, 200.0, 1000, 100.0, -100.0));
+    cross.add_stroke(stroke_at("st_p1", 500.0, 500.0, 1000, 50.0, 50.0));
+    cross.add_stroke(stroke_at("st_p2", 520.0, 500.0, 1000, 50.0, 50.0));
+    const auto crossings = neeh::analysis::intersections(cross);
+    CHECK(crossings.size() == 1);
+    CHECK(crossings[0].a == "st_x1" && crossings[0].b == "st_x2");
+    CHECK(std::abs(crossings[0].x - 150.0) < 1e-9);
+    CHECK(std::abs(crossings[0].y - 150.0) < 1e-9);
+    const auto collisions = neeh::analysis::spatial_collisions(cross);
+    CHECK(collisions.size() == 2); // the X pair and the parallel bbox pair
+
+    // endpoints reports exact first/last coordinates and displacement.
+    const auto ends = neeh::analysis::endpoints(geo, {"st_inside"});
+    CHECK(ends.size() == 1);
+    CHECK(ends[0].start.x == 50.0 && ends[0].end.x == 60.0);
+    CHECK(std::abs(ends[0].displacement - std::hypot(10.0, 10.0)) < 1e-9);
+
+    // hidden layers are excluded everywhere.
+    geo.layer(std::size_t {0})->set_visible(false);
+    CHECK(!neeh::analysis::latest_mark(geo).has_value());
+}
+
 } // namespace
 
 int main() {
@@ -290,6 +372,7 @@ int main() {
     test_stroke_identity_and_layer_safety();
     test_document_mutation_and_queries();
     test_renderers();
+    test_analysis_measurements();
     if (failures != 0) {
         std::cerr << failures << " test check(s) failed\n";
         return EXIT_FAILURE;

@@ -13,6 +13,7 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 add_library(neeh_core
+  cpp/src/analysis.cpp
   cpp/src/c_api.cpp
   cpp/src/core.cpp
   cpp/src/render.cpp

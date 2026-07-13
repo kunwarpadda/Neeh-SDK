@@ -119,6 +119,36 @@ typedef struct neeh_stroke_info {
     double opacity;
 } neeh_stroke_info_t;
 
+typedef enum neeh_direction {
+    NEEH_DIRECTION_RIGHT = 0,
+    NEEH_DIRECTION_DOWN_RIGHT = 1,
+    NEEH_DIRECTION_DOWN = 2,
+    NEEH_DIRECTION_DOWN_LEFT = 3,
+    NEEH_DIRECTION_LEFT = 4,
+    NEEH_DIRECTION_UP_LEFT = 5,
+    NEEH_DIRECTION_UP = 6,
+    NEEH_DIRECTION_UP_RIGHT = 7,
+    NEEH_DIRECTION_CLOSED_OR_STATIONARY = 8
+} neeh_direction_t;
+
+/* Deterministic per-stroke measurement record (ink-analysis/v1 parity).
+ * Halves are relative to the page frame passed to (or implied by) the call. */
+typedef struct neeh_mark_analysis {
+    neeh_bbox_t bbox;
+    double center_x;
+    double center_y;
+    int64_t start_ms;
+    int64_t end_ms;
+    int64_t duration_ms;
+    uint8_t upper_half;
+    uint8_t left_half;
+    neeh_direction_t direction;
+    double path_length;
+    double pressure_mean;
+    double pressure_min;
+    double pressure_max;
+} neeh_mark_analysis_t;
+
 /* Error text is thread-local and valid until the next status-returning call on that thread. */
 NEEH_API uint32_t neeh_abi_version(void);
 NEEH_API const char* neeh_status_name(neeh_status_t status);
@@ -320,6 +350,31 @@ NEEH_API neeh_status_t neeh_stroke_list_get(
     const neeh_stroke_list_t* list,
     size_t index,
     neeh_stroke_t** out_stroke);
+
+NEEH_API const char* neeh_direction_name(neeh_direction_t direction);
+
+/* Analyze one stroke against a page frame (page width/height decide halves). */
+NEEH_API neeh_status_t neeh_stroke_analyze(
+    const neeh_stroke_t* stroke,
+    double page_width,
+    double page_height,
+    neeh_mark_analysis_t* out_analysis);
+
+/* The most recently finished visible stroke on the page, by (end time, start
+ * time, page order). Empty page returns NEEH_STATUS_NOT_FOUND. Either output
+ * may be NULL (but not both); out_stroke follows handle ownership rules. */
+NEEH_API neeh_status_t neeh_page_latest_mark(
+    const neeh_document_t* document,
+    size_t page_index,
+    neeh_mark_analysis_t* out_analysis,
+    neeh_stroke_t** out_stroke);
+
+/* All visible strokes in chronological order (start time, end time, page
+ * order) as an immutable snapshot list. */
+NEEH_API neeh_status_t neeh_page_creation_order(
+    const neeh_document_t* document,
+    size_t page_index,
+    neeh_stroke_list_t** out_list);
 
 NEEH_API neeh_status_t neeh_document_render_page_svg(
     const neeh_document_t* document,

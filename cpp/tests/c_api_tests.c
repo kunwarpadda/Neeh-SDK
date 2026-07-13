@@ -384,6 +384,92 @@ int main(void) {
     CHECK_STATUS(neeh_stroke_get_info(snapshot_stroke, &stroke_info), NEEH_STATUS_OK);
     CHECK(stroke_info.point_count == 3);
 
+    /* --- ink-analysis parity over the C ABI --- */
+    CHECK(strcmp(neeh_direction_name(NEEH_DIRECTION_DOWN_RIGHT), "down-right") == 0);
+    CHECK(strcmp(
+        neeh_direction_name(NEEH_DIRECTION_CLOSED_OR_STATIONARY),
+        "closed-or-stationary") == 0);
+
+    neeh_mark_analysis_t analysis;
+    CHECK_STATUS(neeh_stroke_analyze(stroke, 1000.0, 1414.0, &analysis), NEEH_STATUS_OK);
+    CHECK(analysis.start_ms == 123456 + 10);
+    CHECK(analysis.end_ms == 123456 + 40);
+    CHECK(analysis.upper_half == 1);
+    CHECK(analysis.left_half == 1);
+    CHECK(analysis.direction == NEEH_DIRECTION_DOWN_RIGHT);
+    CHECK(analysis.pressure_min == 0.25 && analysis.pressure_max == 1.0);
+    CHECK_STATUS(neeh_stroke_analyze(stroke, 0.0, 1414.0, &analysis),
+                 NEEH_STATUS_INVALID_ARGUMENT);
+    CHECK_STATUS(neeh_stroke_analyze(NULL, 1000.0, 1414.0, &analysis),
+                 NEEH_STATUS_INVALID_ARGUMENT);
+
+    /* Page 0 has no visible strokes left here (st_c_abi was removed above),
+     * so the empty page is a clean negative probe. */
+    neeh_mark_analysis_t latest_analysis;
+    CHECK_STATUS(neeh_page_latest_mark(document, 0, &latest_analysis, NULL),
+                 NEEH_STATUS_NOT_FOUND);
+    CHECK_STATUS(neeh_page_latest_mark(document, 0, NULL, NULL),
+                 NEEH_STATUS_INVALID_ARGUMENT);
+    CHECK_STATUS(neeh_page_latest_mark(document, 99, &latest_analysis, NULL),
+                 NEEH_STATUS_OUT_OF_RANGE);
+
+    /* Add two timed strokes, then check the temporal analyzers end to end. */
+    neeh_point_t early_points[2] = {
+        {100.0, 100.0, 0, 0.4F, 0.0F, 0.0F},
+        {112.0, 104.0, 100, 0.8F, 0.0F, 0.0F},
+    };
+    neeh_point_t late_points[2] = {
+        {300.0, 1200.0, 0, 0.4F, 0.0F, 0.0F},
+        {312.0, 1204.0, 100, 0.8F, 0.0F, 0.0F},
+    };
+    neeh_stroke_desc_t early_desc = stroke_desc;
+    early_desc.points = early_points;
+    early_desc.point_count = 2;
+    early_desc.id = "st_early";
+    early_desc.author = NEEH_AUTHOR_USER;
+    early_desc.created_at_ms = 1000;
+    neeh_stroke_desc_t late_desc = early_desc;
+    late_desc.points = late_points;
+    late_desc.id = "st_late";
+    late_desc.created_at_ms = 2000;
+
+    neeh_stroke_t* early_stroke = NULL;
+    neeh_stroke_t* late_stroke = NULL;
+    CHECK_STATUS(neeh_stroke_create(&early_desc, &early_stroke), NEEH_STATUS_OK);
+    CHECK_STATUS(neeh_stroke_create(&late_desc, &late_stroke), NEEH_STATUS_OK);
+    CHECK_STATUS(neeh_page_add_stroke(document, 0, early_stroke, "ink", NULL), NEEH_STATUS_OK);
+    CHECK_STATUS(neeh_page_add_stroke(document, 0, late_stroke, "ink", NULL), NEEH_STATUS_OK);
+
+    /* latest mark: analysis record plus an owned handle for the stroke. */
+    neeh_stroke_t* latest_stroke = NULL;
+    CHECK_STATUS(
+        neeh_page_latest_mark(document, 0, &latest_analysis, &latest_stroke),
+        NEEH_STATUS_OK);
+    CHECK(latest_stroke != NULL);
+    CHECK(latest_analysis.start_ms == 2000);
+    CHECK(latest_analysis.end_ms == 2100);
+    CHECK(latest_analysis.upper_half == 0); /* y ~1202 on a 1414-tall page */
+    char latest_id[64];
+    copy_stroke_id(latest_stroke, latest_id, sizeof latest_id);
+    CHECK(strcmp(latest_id, "st_late") == 0);
+
+    /* creation order: chronological snapshot list, earliest first. */
+    neeh_stroke_list_t* chrono = NULL;
+    CHECK_STATUS(neeh_page_creation_order(document, 0, &chrono), NEEH_STATUS_OK);
+    size_t chrono_count = 0;
+    CHECK_STATUS(neeh_stroke_list_get_count(chrono, &chrono_count), NEEH_STATUS_OK);
+    CHECK(chrono_count == 2);
+    neeh_stroke_t* first = NULL;
+    CHECK_STATUS(neeh_stroke_list_get(chrono, 0, &first), NEEH_STATUS_OK);
+    char first_id[64];
+    copy_stroke_id(first, first_id, sizeof first_id);
+    CHECK(strcmp(first_id, "st_early") == 0);
+    neeh_stroke_destroy(first);
+    neeh_stroke_list_destroy(chrono);
+    neeh_stroke_destroy(latest_stroke);
+    neeh_stroke_destroy(late_stroke);
+    neeh_stroke_destroy(early_stroke);
+
     neeh_image_destroy(image);
     neeh_string_destroy(svg);
     neeh_stroke_destroy(removed);
