@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
 
+from neeh.canvas.events import EventLog, kind_for_label
 from neeh.document import Document, Layer, Page
 from neeh.ink import Stroke
 
@@ -90,6 +91,9 @@ class History:
         self.limit = limit
         self._undo: list[StrokeEdit] = []
         self._redo: list[StrokeEdit] = []
+        # Append-only record of every mutation; unlike the undo/redo stacks it
+        # is never popped, so erased and replaced ink stays recoverable.
+        self.log = EventLog()
 
     @property
     def can_undo(self) -> bool:
@@ -99,12 +103,34 @@ class History:
     def can_redo(self) -> bool:
         return bool(self._redo)
 
-    def push(self, edit: StrokeEdit, document: Document) -> None:
+    def push(self, edit: StrokeEdit, document: Document, *, kind: Optional[str] = None) -> None:
         edit.apply(document)
         self._undo.append(edit)
         if len(self._undo) > self.limit:
             self._undo.pop(0)
         self._redo.clear()
+        self.log.record(
+            kind=kind or kind_for_label(edit.label),
+            label=edit.label,
+            page_id=edit.page_id,
+            removed=edit.removed,
+            added=edit.added,
+        )
+
+    def record_action(
+        self,
+        *,
+        kind: str,
+        label: str,
+        page_id: str,
+        meta: Optional[dict] = None,
+    ) -> None:
+        """Append a non-stroke mutation (e.g. grouping) to the log.
+
+        Such actions change relations, not stroke content, so they are logged
+        but do not enter the stroke undo/redo stacks.
+        """
+        self.log.record(kind=kind, label=label, page_id=page_id, meta=meta)
 
     def undo(self, document: Document) -> Optional[str]:
         if not self._undo:
@@ -112,6 +138,15 @@ class History:
         edit = self._undo.pop()
         edit.revert(document)
         self._redo.append(edit)
+        # An undo is itself an event: it removed what the edit had added and
+        # restored what the edit had removed (the inverse net effect).
+        self.log.record(
+            kind="undo",
+            label=f"undo:{edit.label}",
+            page_id=edit.page_id,
+            removed=edit.added,
+            added=edit.removed,
+        )
         return edit.label
 
     def redo(self, document: Document) -> Optional[str]:
@@ -120,4 +155,11 @@ class History:
         edit = self._redo.pop()
         edit.apply(document)
         self._undo.append(edit)
+        self.log.record(
+            kind="redo",
+            label=f"redo:{edit.label}",
+            page_id=edit.page_id,
+            removed=edit.removed,
+            added=edit.added,
+        )
         return edit.label

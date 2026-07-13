@@ -21,10 +21,11 @@ reproduces it exactly.
 """
 from __future__ import annotations
 
+import json
 import math
 import uuid
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 try:
     from uim.codec.parser.uim import UIMParser
@@ -420,8 +421,32 @@ def _import_stroke(
 # --- file helpers -----------------------------------------------------------
 
 
-def save_uim(doc: Document, path: Union[str, Path]) -> None:
+def _events_sidecar_path(path: Union[str, Path]) -> Path:
+    """Companion JSON path holding the event log next to a UIM file."""
+    path = Path(path)
+    return path.with_name(path.name + ".events.json")
+
+
+def save_uim(doc: Document, path: Union[str, Path], *, event_log: Any = None) -> None:
+    """Write a UIM 3.1 file. If ``event_log`` is given, persist the append-only
+    history as a ``<name>.events.json`` sidecar (UIM's binary body cannot carry
+    it), so replay/recover survive an interchange round-trip.
+    """
     Path(path).write_bytes(document_to_uim(doc))
+    if event_log is not None:
+        _events_sidecar_path(path).write_text(
+            json.dumps(event_log.to_snapshot(), indent=2), encoding="utf-8"
+        )
+
+
+def load_uim_events(path: Union[str, Path]) -> "Optional[Any]":
+    """Load the event-log sidecar written by :func:`save_uim`, or None if absent."""
+    from neeh.canvas.events import EventLog
+
+    sidecar = _events_sidecar_path(path)
+    if not sidecar.exists():
+        return None
+    return EventLog.from_snapshot(json.loads(sidecar.read_text(encoding="utf-8")))
 
 
 def load_uim(path: Union[str, Path]) -> Document:

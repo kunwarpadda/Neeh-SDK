@@ -1,8 +1,10 @@
 """Query-aware temporal indexing for digital ink.
 
 The timeline treats a drawing as a sparse sequence of creation episodes rather
-than a dense video.  It only claims history present in the current document:
-erased strokes are not recoverable until Neeh gains a persistent revision log.
+than a dense video.  Given the append-only event log (``neeh.canvas.events``)
+it reconstructs a complete history -- erased and replaced strokes fold back into
+their creation episodes and ``history_complete`` is true. Without the log it
+falls back to the current page snapshot and reports history as incomplete.
 """
 from __future__ import annotations
 
@@ -121,11 +123,46 @@ def _cross_out_targets(stroke: Stroke, earlier: Sequence[Stroke]) -> list[str]:
     return targets
 
 
-def build_ink_timeline(page: Page, *, config: Optional[TimelineConfig] = None) -> dict[str, Any]:
-    """Build stable, coarse-to-fine creation episodes for the visible page."""
+def _logged_additions(page: Page, event_log: Any) -> dict[str, Stroke]:
+    """Creation snapshot (first added) per stroke id logged for this page."""
+    first_added: dict[str, Stroke] = {}
+    for event in event_log.events:
+        if event.page_id != page.id:
+            continue
+        for _, stroke in event.added:
+            first_added.setdefault(stroke.id, stroke)
+    return first_added
+
+
+def build_ink_timeline(
+    page: Page,
+    *,
+    config: Optional[TimelineConfig] = None,
+    event_log: Any = None,
+) -> dict[str, Any]:
+    """Build stable, coarse-to-fine creation episodes for the page.
+
+    With ``event_log`` supplied, the timeline is completed from the append-only
+    log: strokes that were erased or replaced are folded back into the creation
+    episodes (tagged as erased). ``history_complete`` is claimed only when every
+    currently-visible stroke actually came through the log, so a page whose ink
+    bypassed the log (e.g. added straight to a layer) is honestly reported as
+    incomplete rather than falsely complete.
+    """
     config = config or TimelineConfig()
-    page_order = {stroke.id: i for i, stroke in enumerate(_visible_strokes(page))}
-    strokes = sorted(_visible_strokes(page), key=lambda s: (_start_ms(s), page_order[s.id]))
+    visible = _visible_strokes(page)
+    visible_ids = {stroke.id for stroke in visible}
+    erased_ids: set[str] = set()
+    universe = list(visible)
+    history_complete = False
+    if event_log is not None:
+        logged = _logged_additions(page, event_log)
+        erased = [stroke for sid, stroke in logged.items() if sid not in visible_ids]
+        erased_ids = {stroke.id for stroke in erased}
+        universe = visible + erased
+        history_complete = visible_ids <= set(logged)
+    page_order = {stroke.id: i for i, stroke in enumerate(universe)}
+    strokes = sorted(universe, key=lambda s: (_start_ms(s), page_order[s.id]))
     target_map: dict[str, list[str]] = {}
     earlier: list[Stroke] = []
     for stroke in strokes:
@@ -185,16 +222,23 @@ def build_ink_timeline(page: Page, *, config: Optional[TimelineConfig] = None) -
             "event_types": event_types,
             "directions": sorted({record["direction"] for record in records}),
             "affected_prior_ids": list(dict.fromkeys(affected)),
+            "erased_ids": [s.id for s in group if s.id in erased_ids],
             "strokes": records,
         }
+        if moment["erased_ids"] and "erased" not in moment["event_types"]:
+            moment["event_types"].append("erased")
         moments.append(moment)
         previous_end = moment["end_ms"]
 
     return {
         "schema": TIMELINE_VERSION,
         "page_id": page.id,
-        "history_complete": False,
-        "history_limitations": ["erased strokes and undone edits are absent from the document snapshot"],
+        "history_complete": history_complete,
+        "history_limitations": (
+            []
+            if history_complete
+            else ["erased strokes and undone edits are absent from the document snapshot"]
+        ),
         "episode_gap_ms": config.episode_gap_ms,
         "moment_count": len(moments),
         "moments": moments,

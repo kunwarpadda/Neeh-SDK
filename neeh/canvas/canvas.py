@@ -5,14 +5,19 @@ go through History so every operation — user or agent — is undoable.
 """
 from __future__ import annotations
 
-from typing import Iterable, Optional, Sequence, Union
+import json
+from pathlib import Path
+from typing import Any, Iterable, Optional, Sequence, Union
 
+from neeh.canvas.events import EventLog
 from neeh.canvas.history import History, StrokeEdit
 from neeh.canvas.selection import Selection
 from neeh.canvas.viewport import Viewport
 from neeh.document import Document, Layer, Page
+from neeh.ids import new_id
 from neeh.ink import Author, BoundingBox, Point, Stroke, StrokeStyle
 
+SESSION_VERSION = "neeh-session/v1"
 PointLike = Union[Point, Sequence[float]]
 
 
@@ -65,13 +70,18 @@ class Canvas:
         style: Optional[StrokeStyle] = None,
         author: Author = Author.USER,
         layer: Optional[Layer] = None,
+        created_at_ms: Optional[int] = None,
     ) -> Stroke:
         # Build and validate the immutable value before resolving a default
-        # layer, because agent-layer resolution may create one.
+        # layer, because agent-layer resolution may create one. An explicit
+        # created_at_ms lets synthetic data and tests control stroke timing;
+        # live capture omits it and the stroke is stamped now.
+        stroke_kwargs = {} if created_at_ms is None else {"created_at_ms": created_at_ms}
         stroke = Stroke(
             points=_coerce_points(points),
             style=style or StrokeStyle(),
             author=author,
+            **stroke_kwargs,
         )
         _validate_points_in_bounds(stroke.points, self.page)
         target = layer or self._default_layer(author)
@@ -244,6 +254,78 @@ class Canvas:
 
     def redo(self) -> Optional[str]:
         return self.history.redo(self.document)
+
+    @property
+    def events(self) -> EventLog:
+        """The append-only document event log for this session."""
+        return self.history.log
+
+    # -- grouping --------------------------------------------------------
+
+    def group(self, stroke_ids: Iterable[str], label: Optional[str] = None) -> str:
+        """Group visible strokes and record a group event; returns the group id.
+
+        Grouping is a relation over strokes, not stroke content, so it is logged
+        (recoverable, ordered) without mutating the immutable strokes.
+        """
+        members = list(dict.fromkeys(stroke_ids))
+        if len(members) < 2:
+            raise ValueError("a group needs at least two strokes")
+        visible = {stroke.id for layer in self.page.layers for stroke in layer.strokes}
+        unknown = [sid for sid in members if sid not in visible]
+        if unknown:
+            raise ValueError(f"cannot group strokes not visible on the page: {unknown}")
+        group_id = new_id("grp")
+        self.history.record_action(
+            kind="group",
+            label="group",
+            page_id=self.page.id,
+            meta={"group_id": group_id, "member_ids": members, "label": label},
+        )
+        return group_id
+
+    def ungroup(self, group_id: str) -> bool:
+        """Dissolve a group, recording an ungroup event. Returns whether it existed."""
+        if group_id not in self.events.current_groups():
+            return False
+        self.history.record_action(
+            kind="group",
+            label="ungroup",
+            page_id=self.page.id,
+            meta={"group_id": group_id, "ungroup": True},
+        )
+        return True
+
+    def groups(self) -> dict[str, Any]:
+        """Current group membership, folded from the event log."""
+        return self.events.current_groups()
+
+    # -- session persistence --------------------------------------------
+
+    def session_snapshot(self) -> dict[str, Any]:
+        """Bundle the document with its event log for a complete save.
+
+        Unlike ``document.to_dict()`` (page content only), this preserves the
+        append-only history, so replay/recover survive a save/load round-trip.
+        """
+        return {
+            "schema": SESSION_VERSION,
+            "document": self.document.to_dict(),
+            "event_log": self.history.log.to_snapshot(),
+        }
+
+    @classmethod
+    def from_session(cls, data: dict[str, Any]) -> "Canvas":
+        canvas = cls(Document.from_dict(data["document"]))
+        canvas.history.log = EventLog.from_snapshot(data.get("event_log", {}))
+        return canvas
+
+    def save_session(self, path: Union[str, Path]) -> None:
+        Path(path).write_text(json.dumps(self.session_snapshot(), indent=2), encoding="utf-8")
+
+    @classmethod
+    def load_session(cls, path: Union[str, Path]) -> "Canvas":
+        return cls.from_session(json.loads(Path(path).read_text(encoding="utf-8")))
 
     # -- queries ---------------------------------------------------------
 
