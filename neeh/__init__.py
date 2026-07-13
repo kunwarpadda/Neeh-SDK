@@ -19,7 +19,16 @@ from neeh.document import Document, Layer, Page
 from neeh.ink import Author, BoundingBox, Brush, Point, Stroke, StrokeStyle
 from neeh.rendering import Renderer, SvgRenderer, render_page_ascii, render_page_svg
 
-__version__ = "0.1.0"
+# Single source of truth is pyproject.toml; read the installed metadata so the
+# runtime version can never drift from the published one. The fallback covers
+# running from an uninstalled checkout.
+try:
+    from importlib.metadata import PackageNotFoundError, version as _dist_version
+
+    __version__ = _dist_version("neeh")
+except PackageNotFoundError:  # pragma: no cover - uninstalled checkout
+    __version__ = "0.2.0"
+del _dist_version, PackageNotFoundError
 
 __all__ = [
     "Author",

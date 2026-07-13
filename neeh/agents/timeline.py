@@ -102,23 +102,20 @@ def _cross_out_targets(stroke: Stroke, earlier: Sequence[Stroke]) -> list[str]:
     if _length(stroke) < max(stroke.style.width * 4, 12.0):
         return []
     targets: list[str] = []
+    samples: Optional[list[tuple[float, float]]] = None
     for prior in earlier:
         if not stroke.bbox.intersects(prior.bbox):
             continue
-        interior = prior.bbox.expanded(-min(prior.bbox.width, prior.bbox.height) * 0.08)
-        samples = list(stroke.points)
-        samples.extend(
-            type(a)(
-                (a.x + b.x) / 2,
-                (a.y + b.y) / 2,
-                (a.t_ms + b.t_ms) // 2,
-                (a.pressure + b.pressure) / 2,
-                (a.tilt_x + b.tilt_x) / 2,
-                (a.tilt_y + b.tilt_y) / 2,
+        if samples is None:
+            # Points plus segment midpoints; they depend only on the stroke,
+            # so they are built once, not per overlapping prior.
+            samples = [(p.x, p.y) for p in stroke.points]
+            samples.extend(
+                ((a.x + b.x) / 2, (a.y + b.y) / 2)
+                for a, b in zip(stroke.points, stroke.points[1:])
             )
-            for a, b in zip(stroke.points, stroke.points[1:])
-        )
-        if any(interior.contains(point.x, point.y) for point in samples):
+        interior = prior.bbox.expanded(-min(prior.bbox.width, prior.bbox.height) * 0.08)
+        if any(interior.contains(x, y) for x, y in samples):
             targets.append(prior.id)
     return targets
 
@@ -163,11 +160,28 @@ def build_ink_timeline(
         history_complete = visible_ids <= set(logged)
     page_order = {stroke.id: i for i, stroke in enumerate(universe)}
     strokes = sorted(universe, key=lambda s: (_start_ms(s), page_order[s.id]))
+    # Incremental spatial grid over earlier strokes: each stroke only tests
+    # the chronologically-earlier strokes sharing a bbox grid cell, instead of
+    # every earlier stroke (two intersecting bboxes always share a cell, so
+    # candidate recall is exact and the scan stays near-linear on dense pages).
     target_map: dict[str, list[str]] = {}
-    earlier: list[Stroke] = []
+    grid_cell = 64.0
+    grid: dict[tuple[int, int], list[int]] = {}
+    seen_order: list[Stroke] = []
     for stroke in strokes:
-        target_map[stroke.id] = _cross_out_targets(stroke, earlier)
-        earlier.append(stroke)
+        box = stroke.bbox
+        x0, x1 = int(box.min_x // grid_cell), int(box.max_x // grid_cell)
+        y0, y1 = int(box.min_y // grid_cell), int(box.max_y // grid_cell)
+        cells = [(cx, cy) for cx in range(x0, x1 + 1) for cy in range(y0, y1 + 1)]
+        candidate_indices = sorted({
+            index for cell in cells for index in grid.get(cell, ())
+        })
+        candidates = [seen_order[index] for index in candidate_indices]
+        target_map[stroke.id] = _cross_out_targets(stroke, candidates)
+        position = len(seen_order)
+        seen_order.append(stroke)
+        for cell in cells:
+            grid.setdefault(cell, []).append(position)
 
     groups: list[list[Stroke]] = []
     group_box: Optional[BoundingBox] = None

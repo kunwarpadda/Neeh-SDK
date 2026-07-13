@@ -88,10 +88,20 @@ def _union_clusters(strokes: list[Stroke]) -> list[list[Stroke]]:
         return i
 
     boxes = [s.bbox.expanded(CLUSTER_MARGIN) for s in strokes]
-    for i in range(len(strokes)):
-        for j in range(i + 1, len(strokes)):
-            if boxes[i].intersects(boxes[j]):
-                parent[find(i)] = find(j)
+    # Grid-bucketed neighbour search: only boxes sharing a cell can intersect,
+    # which keeps dense pages near-linear instead of O(n^2) all-pairs.
+    cell = max(CLUSTER_MARGIN * 2.0, 1.0)
+    grid: dict[tuple[int, int], list[int]] = {}
+    for i, box in enumerate(boxes):
+        x0, x1 = int(box.min_x // cell), int(box.max_x // cell)
+        y0, y1 = int(box.min_y // cell), int(box.max_y // cell)
+        for cx in range(x0, x1 + 1):
+            for cy in range(y0, y1 + 1):
+                bucket = grid.setdefault((cx, cy), [])
+                for j in bucket:
+                    if boxes[i].intersects(boxes[j]):
+                        parent[find(i)] = find(j)
+                bucket.append(i)
     groups: dict[int, list[Stroke]] = {}
     for i, stroke in enumerate(strokes):
         groups.setdefault(find(i), []).append(stroke)

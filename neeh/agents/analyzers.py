@@ -271,20 +271,19 @@ def analyze_ink(
     if operation == "spatial_collision":
         boxes = [(record["id"], BoundingBox.from_list(record["bbox"])) for record in candidates]
         collisions = []
-        for i in range(len(boxes)):
-            for j in range(i + 1, len(boxes)):
-                (a_id, a_box), (b_id, b_box) = boxes[i], boxes[j]
-                if a_box.intersects(b_box):
-                    collisions.append({
-                        "a": a_id,
-                        "b": b_id,
-                        "overlap": [
-                            round(max(a_box.min_x, b_box.min_x), 2),
-                            round(max(a_box.min_y, b_box.min_y), 2),
-                            round(min(a_box.max_x, b_box.max_x), 2),
-                            round(min(a_box.max_y, b_box.max_y), 2),
-                        ],
-                    })
+        for i, j in _grid_candidate_pairs([box for _, box in boxes], 48.0):
+            (a_id, a_box), (b_id, b_box) = boxes[i], boxes[j]
+            if a_box.intersects(b_box):
+                collisions.append({
+                    "a": a_id,
+                    "b": b_id,
+                    "overlap": [
+                        round(max(a_box.min_x, b_box.min_x), 2),
+                        round(max(a_box.min_y, b_box.min_y), 2),
+                        round(min(a_box.max_x, b_box.max_x), 2),
+                        round(min(a_box.max_y, b_box.max_y), 2),
+                    ],
+                })
         return {
             **envelope,
             "collisions": collisions[:limit],
@@ -294,15 +293,15 @@ def analyze_ink(
 
     if operation == "intersection":
         ids = [record["id"] for record in candidates]
+        id_boxes = [strokes_by_id[stroke_id].bbox for stroke_id in ids]
         crossings = []
-        for i in range(len(ids)):
-            for j in range(i + 1, len(ids)):
-                a, b = strokes_by_id[ids[i]], strokes_by_id[ids[j]]
-                if not a.bbox.intersects(b.bbox):
-                    continue  # exact crossing impossible without bbox overlap
-                point = _polyline_crossing(a, b)
-                if point is not None:
-                    crossings.append({"a": ids[i], "b": ids[j], "at": point})
+        for i, j in _grid_candidate_pairs(id_boxes, 48.0):
+            a, b = strokes_by_id[ids[i]], strokes_by_id[ids[j]]
+            if not a.bbox.intersects(b.bbox):
+                continue  # exact crossing impossible without bbox overlap
+            point = _polyline_crossing(a, b)
+            if point is not None:
+                crossings.append({"a": ids[i], "b": ids[j], "at": point})
         return {
             **envelope,
             "intersections": crossings[:limit],
@@ -418,6 +417,30 @@ def _nearest_stroke(
     return best_id, best_gap
 
 
+def _grid_candidate_pairs(
+    boxes: Sequence[BoundingBox], cell: float
+) -> "list[tuple[int, int]]":
+    """Sorted candidate pairs (i < j) whose boxes may intersect.
+
+    Buckets every box into the grid cells it covers; only boxes sharing a
+    cell are candidates. Exact for detection (two intersecting boxes always
+    share at least one cell) while avoiding the O(n^2) all-pairs scan.
+    """
+    cell = max(cell, 1.0)
+    grid: dict[tuple[int, int], list[int]] = {}
+    pairs: set[tuple[int, int]] = set()
+    for i, box in enumerate(boxes):
+        x0, x1 = int(box.min_x // cell), int(box.max_x // cell)
+        y0, y1 = int(box.min_y // cell), int(box.max_y // cell)
+        for cx in range(x0, x1 + 1):
+            for cy in range(y0, y1 + 1):
+                bucket = grid.setdefault((cx, cy), [])
+                for j in bucket:
+                    pairs.add((j, i))
+                bucket.append(i)
+    return sorted(pairs)
+
+
 def _spatial_groups(
     records: Sequence[dict[str, Any]], margin: float
 ) -> list[list[dict[str, Any]]]:
@@ -434,10 +457,10 @@ def _spatial_groups(
             i = parent[i]
         return i
 
-    for i in range(len(boxes)):
-        for j in range(i + 1, len(boxes)):
-            if boxes[i][1].intersects(boxes[j][1]):
-                parent[find(i)] = find(j)
+    expanded = [box for _, box in boxes]
+    for i, j in _grid_candidate_pairs(expanded, max(margin, 24.0)):
+        if expanded[i].intersects(expanded[j]):
+            parent[find(i)] = find(j)
 
     clusters: dict[int, list[dict[str, Any]]] = {}
     for index, (record, _) in enumerate(boxes):
@@ -445,16 +468,23 @@ def _spatial_groups(
     return [members for members in clusters.values() if len(members) > 1]
 
 
+_CONFIDENCE_SAMPLE_CAP = 64
+
+
 def _group_confidence(members: Sequence[dict[str, Any]], margin: float) -> float:
     if margin <= 0 or len(members) < 2:
         return 1.0
-    boxes = [BoundingBox.from_list(record["bbox"]) for record in members]
+    centers = [BoundingBox.from_list(record["bbox"]).center for record in members]
+    # Confidence is a compactness heuristic; nearest-neighbour distances over
+    # an evenly spaced sample keep it O(cap^2) instead of O(m^2) on big groups.
+    if len(centers) > _CONFIDENCE_SAMPLE_CAP:
+        step = len(centers) / _CONFIDENCE_SAMPLE_CAP
+        centers = [centers[int(i * step)] for i in range(_CONFIDENCE_SAMPLE_CAP)]
     gaps = []
-    for i, a in enumerate(boxes):
-        ax, ay = a.center
+    for i, (ax, ay) in enumerate(centers):
         nearest = min(
-            math.hypot(ax - b.center[0], ay - b.center[1])
-            for j, b in enumerate(boxes) if j != i
+            math.hypot(ax - bx, ay - by)
+            for j, (bx, by) in enumerate(centers) if j != i
         )
         gaps.append(nearest)
     avg_gap = sum(gaps) / len(gaps)

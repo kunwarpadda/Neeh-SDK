@@ -32,7 +32,6 @@ from neeh.agents.iai import (
 )
 from neeh.ink import Author, BoundingBox
 from neeh.context import build_ink_context, build_ink_context_v1
-from neeh.rendering.png import render_page_png
 from neeh.semantics import build_semantics
 from neeh.tools import call_tool, tool_schemas
 
@@ -219,6 +218,10 @@ def _ink_crop(canvas: Canvas) -> Optional[BoundingBox]:
 
 
 def _page_raster(canvas: Canvas) -> bytes:
+    # Imported lazily so `import neeh.agents` works without Pillow; the
+    # dependency is only needed when a raster is actually requested.
+    from neeh.rendering.png import render_page_png
+
     return render_page_png(canvas.page, region=_ink_crop(canvas))
 
 
