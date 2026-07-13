@@ -188,7 +188,9 @@ python -m pytest -q
 CI tests Python 3.10 and 3.12, builds the native core on Linux and macOS, runs the C and C++ test
 suites, and verifies the installed CMake package.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and conventions, and
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and conventions,
+[docs/API.md](docs/API.md) for the public Python API reference,
+[docs/RELEASING.md](docs/RELEASING.md) for versioning and release gates, and
 [SECURITY.md](SECURITY.md) to report a vulnerability.
 
 ## Authorship

@@ -80,6 +80,12 @@ solve within its latency and context budgets.
   compass with ties-to-even rounding); C ABI exposes `neeh_stroke_analyze`,
   `neeh_page_latest_mark`, and `neeh_page_creation_order`. Inference
   operations remain Python-only by design.
+- Release readiness: installed-artifact packaging gate (wheel into a fresh
+  venv; caught and fixed a Pillow hard-import and a stale `__version__`),
+  `benchmarks/perf.py` latency/memory harness (drove grid-bucketed spatial
+  analysis: page_summary 25x, spatial_collision 18x, workspace 3.7x faster
+  at 5000 strokes), a public API reference (docs/API.md), and a versioning/
+  deprecation/release-gate policy (docs/RELEASING.md).
 - Controlled render-identical and token-scaling experiments. A render-identical
   pairs study establishes that ink history prevents PNG-only confabulation; a
   token-budget scaling study establishes that local reduction beats both
