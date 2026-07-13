@@ -1,0 +1,681 @@
+{
+  "mode": "live",
+  "agent": "codex",
+  "model": "gpt-5.5",
+  "reasoning_effort": "high",
+  "budget_tokens": 8000,
+  "summary": {
+    "4": {
+      "coords-full": {
+        "n_trials": 6,
+        "accuracy": 1.0,
+        "mean_tokens": 265,
+        "over_budget": false
+      },
+      "index-compact": {
+        "n_trials": 6,
+        "accuracy": 1.0,
+        "mean_tokens": 218,
+        "over_budget": false
+      }
+    },
+    "16": {
+      "coords-full": {
+        "n_trials": 6,
+        "accuracy": 1.0,
+        "mean_tokens": 577,
+        "over_budget": false
+      },
+      "index-compact": {
+        "n_trials": 6,
+        "accuracy": 1.0,
+        "mean_tokens": 386,
+        "over_budget": false
+      }
+    },
+    "48": {
+      "coords-full": {
+        "n_trials": 6,
+        "accuracy": 1.0,
+        "mean_tokens": 1408,
+        "over_budget": false
+      },
+      "index-compact": {
+        "n_trials": 6,
+        "accuracy": 1.0,
+        "mean_tokens": 835,
+        "over_budget": false
+      }
+    },
+    "128": {
+      "coords-full": {
+        "n_trials": 6,
+        "accuracy": 1.0,
+        "mean_tokens": 3506,
+        "over_budget": false
+      },
+      "index-compact": {
+        "n_trials": 6,
+        "accuracy": 1.0,
+        "mean_tokens": 1967,
+        "over_budget": false
+      }
+    },
+    "320": {
+      "coords-full": {
+        "n_trials": 6,
+        "accuracy": 1.0,
+        "mean_tokens": 8554,
+        "over_budget": true
+      },
+      "index-compact": {
+        "n_trials": 6,
+        "accuracy": 1.0,
+        "mean_tokens": 4712,
+        "over_budget": false
+      }
+    }
+  },
+  "rows": [
+    {
+      "scene": "n4-0",
+      "n": 4,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 266,
+      "why": "The latest mark is mark3 at created_at_ms=1000300, and its center y is about 535, which is below 707."
+    },
+    {
+      "scene": "n4-0",
+      "n": 4,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 218,
+      "why": "The most recent mark is i=3 at created_at_ms 1000300, and its centre y=530.7 is less than 707, placing it in the upper half."
+    },
+    {
+      "scene": "n4-1",
+      "n": 4,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 264,
+      "why": "The last mark is mark1 at created_at_ms 1000300, and its center y is around 1348, which is greater than 707."
+    },
+    {
+      "scene": "n4-1",
+      "n": 4,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 218,
+      "why": "The most recent mark is i=1 at 1000300 ms, and its center y=1349.3 is greater than 707, placing it in the lower half."
+    },
+    {
+      "scene": "n4-2",
+      "n": 4,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 266,
+      "why": "The most recent mark is mark2, and its center y is about 254, which is less than 707, placing it in the upper half."
+    },
+    {
+      "scene": "n4-2",
+      "n": 4,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 218,
+      "why": "The most recent mark is i=2 at created_at_ms 1000300, and its center y=254.6 is below 707, placing it in the upper half."
+    },
+    {
+      "scene": "n4-3",
+      "n": 4,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 264,
+      "why": "The latest mark is mark0 at created_at_ms=1000300, and its center y is about 1046, which is greater than 707."
+    },
+    {
+      "scene": "n4-3",
+      "n": 4,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 218,
+      "why": "The most recent mark is i=0 at 1000300 ms, and its center y-coordinate is 1044.8, which is greater than 707."
+    },
+    {
+      "scene": "n4-4",
+      "n": 4,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 264,
+      "why": "The most recent mark is mark1, and its centre y is about 420.3, which is less than 707."
+    },
+    {
+      "scene": "n4-4",
+      "n": 4,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 218,
+      "why": "The most recent mark is i=1 at created_at_ms 1000300, and its center y=419.5 is below 707."
+    },
+    {
+      "scene": "n4-5",
+      "n": 4,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 265,
+      "why": "The last mark is mark3 at created_at_ms=1000300, and its centre y is around 1269.8, which is greater than 707."
+    },
+    {
+      "scene": "n4-5",
+      "n": 4,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 218,
+      "why": "The most recent mark is index 3 at created_at_ms 1000300, and its center y=1269.8 is greater than 707."
+    },
+    {
+      "scene": "n16-0",
+      "n": 16,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 576,
+      "why": "The latest mark is mark15 at created_at_ms=1001500, and its center y is about 91, which is less than 707."
+    },
+    {
+      "scene": "n16-0",
+      "n": 16,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 386,
+      "why": "The most recent mark is i=15 at created_at_ms 1001500, and its center y=90.8 is less than 707."
+    },
+    {
+      "scene": "n16-1",
+      "n": 16,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 576,
+      "why": "The most recent mark is mark5 at created_at_ms=1001500, and its center y is about 1013, which is greater than 707."
+    },
+    {
+      "scene": "n16-1",
+      "n": 16,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 385,
+      "why": "The last mark is index 5 at created_at_ms 1001500, and its center y=1012.3 is greater than 707."
+    },
+    {
+      "scene": "n16-2",
+      "n": 16,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 579,
+      "why": "The last mark is mark9 at created_at_ms=1001500, and its center y is about 575.6, which is less than 707."
+    },
+    {
+      "scene": "n16-2",
+      "n": 16,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 386,
+      "why": "The most recent mark is index 9 at created_at_ms 1001500, and its center y-coordinate is 573.6, which is less than 707."
+    },
+    {
+      "scene": "n16-3",
+      "n": 16,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 576,
+      "why": "The most recent mark is mark11 at created_at_ms=1001500, and its centre y is around 1022.6, which is greater than 707."
+    },
+    {
+      "scene": "n16-3",
+      "n": 16,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 386,
+      "why": "The last mark is index 11 at 1001500 ms, and its center y-coordinate is 1023.6, which is in the lower half of the 1414-unit page."
+    },
+    {
+      "scene": "n16-4",
+      "n": 16,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 577,
+      "why": "The latest mark is mark13 at created_at_ms=1001500, and its center y is about 514, which is less than 707."
+    },
+    {
+      "scene": "n16-4",
+      "n": 16,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 386,
+      "why": "The most recent mark is i=13 at created_at_ms 1001500, and its center y=515.2 is above the 707 midline, placing it in the upper half."
+    },
+    {
+      "scene": "n16-5",
+      "n": 16,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 579,
+      "why": "The most recent mark is mark12 at created_at_ms=1001500, and its center y is about 905, which is greater than 707."
+    },
+    {
+      "scene": "n16-5",
+      "n": 16,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 386,
+      "why": "The most recent mark is index 12 at created_at_ms 1001500, and its center y-coordinate is 904.2, which is greater than 707."
+    },
+    {
+      "scene": "n48-0",
+      "n": 48,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 1410,
+      "why": "The last mark is mark32 at 1004700 ms, and its center y is about 435, which is above the 707 midline."
+    },
+    {
+      "scene": "n48-0",
+      "n": 48,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 836,
+      "why": "The most recent mark is index 32 at created_at_ms 1004700, and its centre y-coordinate is 436.7, which is above the 707 midpoint."
+    },
+    {
+      "scene": "n48-1",
+      "n": 48,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 1408,
+      "why": "The most recent mark is mark21 at created_at_ms=1004700, and its center y is about 1225, which is greater than 707."
+    },
+    {
+      "scene": "n48-1",
+      "n": 48,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 836,
+      "why": "The last mark is i=21 at created_at_ms 1004700, and its center y=1227.5 is greater than 707."
+    },
+    {
+      "scene": "n48-2",
+      "n": 48,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 1404,
+      "why": "The last mark is mark5 at created_at_ms=1004700, and its center y is about 436.9, which is below 707."
+    },
+    {
+      "scene": "n48-2",
+      "n": 48,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 834,
+      "why": "The most recent mark is i=5 at 1004700 ms, and its center y-coordinate is 433.5, which is below 707."
+    },
+    {
+      "scene": "n48-3",
+      "n": 48,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 1405,
+      "why": "The most recent mark is mark7 at created_at_ms=1004700, and its center y is about 1290, which is greater than 707."
+    },
+    {
+      "scene": "n48-3",
+      "n": 48,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 834,
+      "why": "The most recent mark is index 7 at created_at_ms 1004700, and its center y-coordinate is 1290.0, which is below the halfway line at y=707."
+    },
+    {
+      "scene": "n48-4",
+      "n": 48,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 1405,
+      "why": "The most recent mark is mark12 at created_at_ms=1004700, and its center y is about 187.5, which is above the 707 midline."
+    },
+    {
+      "scene": "n48-4",
+      "n": 48,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 834,
+      "why": "The most recent mark is i=12 at 1004700 ms, and its center y-coordinate is 186.6, which is below 707 and therefore in the upper half."
+    },
+    {
+      "scene": "n48-5",
+      "n": 48,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 1413,
+      "why": "The most recent mark is mark42 at created_at_ms=1004700, and its center y is about 1101, which is greater than 707."
+    },
+    {
+      "scene": "n48-5",
+      "n": 48,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 834,
+      "why": "The most recent mark is i=42 at created_at_ms 1004700, and its center y=1103.1 is below the midpoint threshold of 707 on the page."
+    },
+    {
+      "scene": "n128-0",
+      "n": 128,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 3496,
+      "why": "The most recent mark is mark93 at 1012700 ms, and its center y is about 441, which is less than 707."
+    },
+    {
+      "scene": "n128-0",
+      "n": 128,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 1966,
+      "why": "The most recent mark is i=93 at created_at_ms 1012700, and its center y-coordinate is 440.1, which is above the 707 midpoint."
+    },
+    {
+      "scene": "n128-1",
+      "n": 128,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 3507,
+      "why": "The most recent mark is mark122 at created_at_ms 1012700, and its center y is about 909, which is greater than 707."
+    },
+    {
+      "scene": "n128-1",
+      "n": 128,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 1967,
+      "why": "The most recent mark is index 122 at 1012700 ms, and its center y-coordinate is 909.5, which is greater than 707."
+    },
+    {
+      "scene": "n128-2",
+      "n": 128,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 3510,
+      "why": "The most recent mark is mark46 at 1012700 ms, and its center y is about 359.5, which is less than 707."
+    },
+    {
+      "scene": "n128-2",
+      "n": 128,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 1968,
+      "why": "The last mark has the latest timestamp, 1012700 ms, and its center y-coordinate is 358.7, which is above the halfway line at 707."
+    },
+    {
+      "scene": "n128-3",
+      "n": 128,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 3502,
+      "why": "The most recent mark is mark69 at 1012700 ms, and its center y is about 864.4, which is greater than the 707 halfway line."
+    },
+    {
+      "scene": "n128-3",
+      "n": 128,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 1966,
+      "why": "The last mark has the greatest created_at_ms (1012700) and its centre y is 866.8, which is greater than 707."
+    },
+    {
+      "scene": "n128-4",
+      "n": 128,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 3509,
+      "why": "The last mark is mark26 at created_at_ms=1012700, and its center y is about 447.5, which is below 707."
+    },
+    {
+      "scene": "n128-4",
+      "n": 128,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 1966,
+      "why": "The most recent mark is i=26 at created_at_ms 1012700, and its center y=449.6 is above the 707 midpoint."
+    },
+    {
+      "scene": "n128-5",
+      "n": 128,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 3511,
+      "why": "The latest mark is mark15 at 1012700 ms, and its center y is about 1171.8, which is greater than 707."
+    },
+    {
+      "scene": "n128-5",
+      "n": 128,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 1968,
+      "why": "The most recent mark is i=15 at created_at_ms 1012700, and its center y=1170.2 is greater than 707."
+    },
+    {
+      "scene": "n320-0",
+      "n": 320,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 8550,
+      "why": "The most recent mark is mark283 at created_at_ms=1031900, and its center y is about 501.6, which is above the 707 midpoint."
+    },
+    {
+      "scene": "n320-0",
+      "n": 320,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 4711,
+      "why": "The most recent mark is i=283 at created_at_ms 1031900, and its center y-coordinate is 497.7, which is less than 707."
+    },
+    {
+      "scene": "n320-1",
+      "n": 320,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 8556,
+      "why": "The most recent mark is mark31 at created_at_ms=1031900, and its center y is about 1085, which is greater than 707."
+    },
+    {
+      "scene": "n320-1",
+      "n": 320,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 4713,
+      "why": "The most recent mark is i=31 at 1031900 ms, and its center y-coordinate is 1085.6, which is greater than 707."
+    },
+    {
+      "scene": "n320-2",
+      "n": 320,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 8558,
+      "why": "The latest mark is mark36 at 1031900 ms, and its center y is about 507, which is less than 707."
+    },
+    {
+      "scene": "n320-2",
+      "n": 320,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 4713,
+      "why": "The latest mark is i=36 at 1031900 ms, and its center y=508.1 is above the 707-unit midpoint, placing it in the upper half."
+    },
+    {
+      "scene": "n320-3",
+      "n": 320,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 8566,
+      "why": "The most recent mark is mark150 at created_at_ms=1031900, and its center y is about 1272.9, which is greater than 707."
+    },
+    {
+      "scene": "n320-3",
+      "n": 320,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 4712,
+      "why": "The most recent mark is i=150 at created_at_ms 1031900, and its center y=1274.2 is greater than 707."
+    },
+    {
+      "scene": "n320-4",
+      "n": 320,
+      "condition": "coords-full",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 8541,
+      "why": "The last mark is mark138 at created_at_ms 1031900, and its center y is about 96, which is in the upper half of the 1414-unit page."
+    },
+    {
+      "scene": "n320-4",
+      "n": 320,
+      "condition": "index-compact",
+      "answer": "upper",
+      "model_answer": "upper",
+      "correct": true,
+      "estimated_tokens": 4710,
+      "why": "The most recent mark has created_at_ms 1031900 and center y 98.4, which is less than 707."
+    },
+    {
+      "scene": "n320-5",
+      "n": 320,
+      "condition": "coords-full",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 8554,
+      "why": "The most recent mark is mark203 at 1031900 ms, and its centre y is about 792.8, which is greater than 707."
+    },
+    {
+      "scene": "n320-5",
+      "n": 320,
+      "condition": "index-compact",
+      "answer": "lower",
+      "model_answer": "lower",
+      "correct": true,
+      "estimated_tokens": 4711,
+      "why": "The last mark is index 203 at 1031900 ms, and its center y-coordinate is 794.6, which is greater than 707."
+    }
+  ]
+}

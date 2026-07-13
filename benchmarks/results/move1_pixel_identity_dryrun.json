@@ -1,0 +1,12 @@
+{
+  "certification": {
+    "pairs": 18,
+    "identical": 18,
+    "all_render_identical": true
+  },
+  "mean_tokens_by_condition": {
+    "png": 379,
+    "png+struct": 501,
+    "coords": 221
+  }
+}

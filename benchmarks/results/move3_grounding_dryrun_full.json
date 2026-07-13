@@ -1,0 +1,81 @@
+{
+  "mode": "dry-run",
+  "task_count": 24,
+  "kinds": [
+    "latest_mark",
+    "crossed_out",
+    "grouping",
+    "recent_change"
+  ],
+  "arms": [
+    "raster-only",
+    "raster+geometry",
+    "index-only",
+    "active-index",
+    "marked-index",
+    "analyzer-first"
+  ],
+  "grounding_by_arm": {
+    "raster-only": {
+      "n_tasks": 24,
+      "grounded": 0,
+      "grounded_rate": 0.0,
+      "exact": 0,
+      "mean_context_chars": 2650,
+      "mean_raster_pixels": 669576
+    },
+    "raster+geometry": {
+      "n_tasks": 24,
+      "grounded": 0,
+      "grounded_rate": 0.0,
+      "exact": 0,
+      "mean_context_chars": 3107,
+      "mean_raster_pixels": 669576
+    },
+    "index-only": {
+      "n_tasks": 24,
+      "grounded": 0,
+      "grounded_rate": 0.0,
+      "exact": 0,
+      "mean_context_chars": 2649,
+      "mean_raster_pixels": 0
+    },
+    "active-index": {
+      "n_tasks": 24,
+      "grounded": 24,
+      "grounded_rate": 1.0,
+      "exact": 0,
+      "mean_context_chars": 5217,
+      "mean_raster_pixels": 0
+    },
+    "marked-index": {
+      "n_tasks": 24,
+      "grounded": 24,
+      "grounded_rate": 1.0,
+      "exact": 0,
+      "mean_context_chars": 5524,
+      "mean_raster_pixels": 669576
+    },
+    "analyzer-first": {
+      "n_tasks": 24,
+      "grounded": 24,
+      "grounded_rate": 1.0,
+      "exact": 24,
+      "mean_context_chars": 5217,
+      "mean_raster_pixels": 0
+    }
+  },
+  "adversarial": {
+    "question_leaks": [],
+    "leak_free": true,
+    "balance": {
+      "latest_mark": {
+        "counts": {
+          "upper": 3,
+          "lower": 3
+        },
+        "balanced": true
+      }
+    }
+  }
+}

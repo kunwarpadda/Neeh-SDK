@@ -1,0 +1,781 @@
+{
+  "mode": "live",
+  "agent": "codex",
+  "model": "gpt-5.5",
+  "reasoning_effort": "high",
+  "certification": {
+    "pairs": 12,
+    "identical": 12,
+    "all_render_identical": true
+  },
+  "summary": {
+    "direction": {
+      "png": {
+        "n": 12,
+        "correct": 6,
+        "accuracy": 0.5,
+        "chance": 0.5,
+        "mean_tokens": 242
+      },
+      "png+struct": {
+        "n": 12,
+        "correct": 12,
+        "accuracy": 1.0,
+        "chance": 0.5,
+        "mean_tokens": 327
+      },
+      "coords": {
+        "n": 12,
+        "correct": 12,
+        "accuracy": 1.0,
+        "chance": 0.5,
+        "mean_tokens": 221
+      }
+    },
+    "order": {
+      "png": {
+        "n": 12,
+        "correct": 6,
+        "accuracy": 0.5,
+        "chance": 0.5,
+        "mean_tokens": 686
+      },
+      "png+struct": {
+        "n": 12,
+        "correct": 12,
+        "accuracy": 1.0,
+        "chance": 0.5,
+        "mean_tokens": 877
+      },
+      "coords": {
+        "n": 12,
+        "correct": 12,
+        "accuracy": 1.0,
+        "chance": 0.5,
+        "mean_tokens": 232
+      }
+    }
+  },
+  "rows": [
+    {
+      "trial": "direction-0a",
+      "axis": "direction",
+      "condition": "png",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 243,
+      "why": "The right endpoint appears slightly tapered and lighter like a pen lift, while the left endpoint looks more blunt like the initial contact."
+    },
+    {
+      "trial": "direction-0a",
+      "axis": "direction",
+      "condition": "png+struct",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 329,
+      "why": "The stroke points are listed in draw order and progress from x=160.0 at the left end to x=786.7 at the right end."
+    },
+    {
+      "trial": "direction-0a",
+      "axis": "direction",
+      "condition": "coords",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 221,
+      "why": "The stroke points are ordered from x=160 at the left end to x=786.7 at the right end, so it was drawn left-to-right."
+    },
+    {
+      "trial": "direction-0b",
+      "axis": "direction",
+      "condition": "png",
+      "answer": "right-to-left",
+      "model_answer": "left-to-right",
+      "correct": false,
+      "estimated_tokens": 243,
+      "why": "The right endpoint appears slightly more tapered and lifted, while the left endpoint looks more like the initial contact point."
+    },
+    {
+      "trial": "direction-0b",
+      "axis": "direction",
+      "condition": "png+struct",
+      "answer": "right-to-left",
+      "model_answer": "right-to-left",
+      "correct": true,
+      "estimated_tokens": 329,
+      "why": "The recorded points are in draw order and their x-coordinates decrease from about 786.7 to 160.0, indicating the stroke began at the right end and moved left."
+    },
+    {
+      "trial": "direction-0b",
+      "axis": "direction",
+      "condition": "coords",
+      "answer": "right-to-left",
+      "model_answer": "right-to-left",
+      "correct": true,
+      "estimated_tokens": 221,
+      "why": "The stroke points are ordered from high x values on the right toward low x values on the left as time increases."
+    },
+    {
+      "trial": "direction-1a",
+      "axis": "direction",
+      "condition": "png",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 234,
+      "why": "The right endpoint appears slightly more tapered and lift-off-like than the left endpoint, suggesting the pen finished on the right."
+    },
+    {
+      "trial": "direction-1a",
+      "axis": "direction",
+      "condition": "png+struct",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 320,
+      "why": "The stroke points are listed in draw order and progress from x=160 at the left end to x=682 at the right end."
+    },
+    {
+      "trial": "direction-1a",
+      "axis": "direction",
+      "condition": "coords",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 220,
+      "why": "The stroke\u2019s ordered points start at the left end around x=160 and progress to the right end around x=682."
+    },
+    {
+      "trial": "direction-1b",
+      "axis": "direction",
+      "condition": "png",
+      "answer": "right-to-left",
+      "model_answer": "left-to-right",
+      "correct": false,
+      "estimated_tokens": 234,
+      "why": "The right endpoint appears slightly tapered with a lighter lift-off, while the left endpoint looks more blunt like the initial pen contact."
+    },
+    {
+      "trial": "direction-1b",
+      "axis": "direction",
+      "condition": "png+struct",
+      "answer": "right-to-left",
+      "model_answer": "right-to-left",
+      "correct": true,
+      "estimated_tokens": 320,
+      "why": "The ordered stroke points start at the rightmost end around x=682 and progress leftward to x=160."
+    },
+    {
+      "trial": "direction-1b",
+      "axis": "direction",
+      "condition": "coords",
+      "answer": "right-to-left",
+      "model_answer": "right-to-left",
+      "correct": true,
+      "estimated_tokens": 220,
+      "why": "The stroke\u2019s ordered points start near x=682 on the right and end near x=160 on the left."
+    },
+    {
+      "trial": "direction-2a",
+      "axis": "direction",
+      "condition": "png",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 248,
+      "why": "The right endpoint appears slightly more tapered and lifted while the left endpoint is more blunt, which is more consistent with the pen moving from left to right."
+    },
+    {
+      "trial": "direction-2a",
+      "axis": "direction",
+      "condition": "png+struct",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 334,
+      "why": "The stroke points are listed in drawing order and their x-coordinates increase from about 160 at the left end to about 770 at the right end."
+    },
+    {
+      "trial": "direction-2a",
+      "axis": "direction",
+      "condition": "coords",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 221,
+      "why": "The stroke's points are ordered from x=160 at the left end to x=770.5 at the right end as time increases."
+    },
+    {
+      "trial": "direction-2b",
+      "axis": "direction",
+      "condition": "png",
+      "answer": "right-to-left",
+      "model_answer": "left-to-right",
+      "correct": false,
+      "estimated_tokens": 248,
+      "why": "The left endpoint appears more like the initial contact, while the right endpoint has a slight lifted/tapered finish."
+    },
+    {
+      "trial": "direction-2b",
+      "axis": "direction",
+      "condition": "png+struct",
+      "answer": "right-to-left",
+      "model_answer": "right-to-left",
+      "correct": true,
+      "estimated_tokens": 334,
+      "why": "The stroke points are ordered from x\u2248770 at the right end to x\u2248160 at the left end as time increases."
+    },
+    {
+      "trial": "direction-2b",
+      "axis": "direction",
+      "condition": "coords",
+      "answer": "right-to-left",
+      "model_answer": "right-to-left",
+      "correct": true,
+      "estimated_tokens": 221,
+      "why": "The stroke\u2019s points are ordered from x\u2248770 at the start to x\u2248160 at the end, so the pen moved from the right end toward the left end."
+    },
+    {
+      "trial": "direction-3a",
+      "axis": "direction",
+      "condition": "png",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 245,
+      "why": "The right end appears slightly tapered like a pen lift-off, while the left end looks more like the initial contact point."
+    },
+    {
+      "trial": "direction-3a",
+      "axis": "direction",
+      "condition": "png+struct",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 331,
+      "why": "The recorded stroke points are in draw order and their x-coordinates increase from about 160 at the left end to about 741 at the right end."
+    },
+    {
+      "trial": "direction-3a",
+      "axis": "direction",
+      "condition": "coords",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 221,
+      "why": "The ordered stroke points start at the left end around x=160 and progress to the right end around x=741."
+    },
+    {
+      "trial": "direction-3b",
+      "axis": "direction",
+      "condition": "png",
+      "answer": "right-to-left",
+      "model_answer": "left-to-right",
+      "correct": false,
+      "estimated_tokens": 245,
+      "why": "The right endpoint has a slight lifted taper consistent with the pen finishing there."
+    },
+    {
+      "trial": "direction-3b",
+      "axis": "direction",
+      "condition": "png+struct",
+      "answer": "right-to-left",
+      "model_answer": "right-to-left",
+      "correct": true,
+      "estimated_tokens": 331,
+      "why": "The stroke points are ordered with x-coordinates decreasing from about 741 at the right end to 160 at the left end."
+    },
+    {
+      "trial": "direction-3b",
+      "axis": "direction",
+      "condition": "coords",
+      "answer": "right-to-left",
+      "model_answer": "right-to-left",
+      "correct": true,
+      "estimated_tokens": 221,
+      "why": "The stroke begins at the right end around x=740.7 and progresses leftward to x=160."
+    },
+    {
+      "trial": "direction-4a",
+      "axis": "direction",
+      "condition": "png",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 254,
+      "why": "The stroke appears more naturally formed as a continuous horizontal motion ending with a slight rounded/tapered lift at the right endpoint."
+    },
+    {
+      "trial": "direction-4a",
+      "axis": "direction",
+      "condition": "png+struct",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 340,
+      "why": "The stroke points are listed in draw order with x-coordinates increasing from about 160 at the left end to about 812 at the right end."
+    },
+    {
+      "trial": "direction-4a",
+      "axis": "direction",
+      "condition": "coords",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 222,
+      "why": "The stroke begins at x=160 on the left and ends at x=811.5 on the right, so it was drawn left-to-right."
+    },
+    {
+      "trial": "direction-4b",
+      "axis": "direction",
+      "condition": "png",
+      "answer": "right-to-left",
+      "model_answer": "left-to-right",
+      "correct": false,
+      "estimated_tokens": 254,
+      "why": "The stroke appears like a natural left-to-right underline, with a slightly more tapered lift-off at the right endpoint."
+    },
+    {
+      "trial": "direction-4b",
+      "axis": "direction",
+      "condition": "png+struct",
+      "answer": "right-to-left",
+      "model_answer": "right-to-left",
+      "correct": true,
+      "estimated_tokens": 340,
+      "why": "The stroke points are listed in drawing order, and their x-coordinates decrease from about 811.5 to 160.0, indicating the pen moved from the right end toward the left end."
+    },
+    {
+      "trial": "direction-4b",
+      "axis": "direction",
+      "condition": "coords",
+      "answer": "right-to-left",
+      "model_answer": "right-to-left",
+      "correct": true,
+      "estimated_tokens": 222,
+      "why": "The stroke starts at the right side around x=811.5 and ends at the left side around x=160, so it was drawn from right to left."
+    },
+    {
+      "trial": "direction-5a",
+      "axis": "direction",
+      "condition": "png",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 225,
+      "why": "The right endpoint appears slightly more tapered and lifted than the left endpoint, which is a weak visual cue that the pen likely finished there."
+    },
+    {
+      "trial": "direction-5a",
+      "axis": "direction",
+      "condition": "png+struct",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 310,
+      "why": "The recorded points are in draw order and their x-coordinates increase from about 160 at the left end to about 644 at the right end."
+    },
+    {
+      "trial": "direction-5a",
+      "axis": "direction",
+      "condition": "coords",
+      "answer": "left-to-right",
+      "model_answer": "left-to-right",
+      "correct": true,
+      "estimated_tokens": 219,
+      "why": "The stroke\u2019s points are listed in drawing order and the x-coordinate increases from about 160 at the first point to about 644 at the last point."
+    },
+    {
+      "trial": "direction-5b",
+      "axis": "direction",
+      "condition": "png",
+      "answer": "right-to-left",
+      "model_answer": "left-to-right",
+      "correct": false,
+      "estimated_tokens": 225,
+      "why": "The left endpoint appears slightly heavier/blunter while the right endpoint tapers more like a pen lift-off, suggesting the stroke ended on the right."
+    },
+    {
+      "trial": "direction-5b",
+      "axis": "direction",
+      "condition": "png+struct",
+      "answer": "right-to-left",
+      "model_answer": "right-to-left",
+      "correct": true,
+      "estimated_tokens": 310,
+      "why": "The stroke points are in draw order and their x-coordinates decrease from about 644 at the right end to about 160 at the left end."
+    },
+    {
+      "trial": "direction-5b",
+      "axis": "direction",
+      "condition": "coords",
+      "answer": "right-to-left",
+      "model_answer": "right-to-left",
+      "correct": true,
+      "estimated_tokens": 219,
+      "why": "The ordered stroke points start at the right side around x=644 and progress leftward to x=160."
+    },
+    {
+      "trial": "order-0a",
+      "axis": "order",
+      "condition": "png",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 601,
+      "why": "The static image provides no reliable temporal cue, so I choose the rectangle as the more likely first mark by reading order."
+    },
+    {
+      "trial": "order-0a",
+      "axis": "order",
+      "condition": "png+struct",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 793,
+      "why": "The rectangle has an earlier created_at_ms timestamp (1000000) than the arrow (1000800), so it was drawn first."
+    },
+    {
+      "trial": "order-0a",
+      "axis": "order",
+      "condition": "coords",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 232,
+      "why": "The rectangle stroke has created_at_ms=1000000, which is earlier than the arrow's created_at_ms=1000800."
+    },
+    {
+      "trial": "order-0b",
+      "axis": "order",
+      "condition": "png",
+      "answer": "arrow",
+      "model_answer": "rectangle",
+      "correct": false,
+      "estimated_tokens": 601,
+      "why": "With no ink history available, stroke order cannot be determined from the image alone, so this is only a visual best guess."
+    },
+    {
+      "trial": "order-0b",
+      "axis": "order",
+      "condition": "png+struct",
+      "answer": "arrow",
+      "model_answer": "arrow",
+      "correct": true,
+      "estimated_tokens": 793,
+      "why": "The arrow has the earlier created_at_ms timestamp (1000000) than the rectangle (1000800), so it was drawn first."
+    },
+    {
+      "trial": "order-0b",
+      "axis": "order",
+      "condition": "coords",
+      "answer": "arrow",
+      "model_answer": "arrow",
+      "correct": true,
+      "estimated_tokens": 232,
+      "why": "The arrow's stroke has created_at_ms=1000000, which is earlier than the rectangle's created_at_ms=1000800."
+    },
+    {
+      "trial": "order-1a",
+      "axis": "order",
+      "condition": "png",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 817,
+      "why": "With no ink history available, the only reasonable inference from the page layout is that the rectangle was likely drawn first and the arrow added later."
+    },
+    {
+      "trial": "order-1a",
+      "axis": "order",
+      "condition": "png+struct",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 1008,
+      "why": "The rectangle's created_at_ms is 1000000, which is earlier than the arrow's 1000800."
+    },
+    {
+      "trial": "order-1a",
+      "axis": "order",
+      "condition": "coords",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 232,
+      "why": "The rectangle stroke has created_at_ms=1000000, which is earlier than the arrow's created_at_ms=1000800."
+    },
+    {
+      "trial": "order-1b",
+      "axis": "order",
+      "condition": "png",
+      "answer": "arrow",
+      "model_answer": "rectangle",
+      "correct": false,
+      "estimated_tokens": 817,
+      "why": "With only a static image and no overlapping ink history this cannot be known for certain, but the rectangle is the best guess because it is placed earlier in the typical top-left-to-bottom-right drawing order."
+    },
+    {
+      "trial": "order-1b",
+      "axis": "order",
+      "condition": "png+struct",
+      "answer": "arrow",
+      "model_answer": "arrow",
+      "correct": true,
+      "estimated_tokens": 1008,
+      "why": "The arrow has the earlier created_at_ms timestamp (1000000) than the rectangle (1000800), so it was drawn first."
+    },
+    {
+      "trial": "order-1b",
+      "axis": "order",
+      "condition": "coords",
+      "answer": "arrow",
+      "model_answer": "arrow",
+      "correct": true,
+      "estimated_tokens": 232,
+      "why": "The arrow's stroke has an earlier created_at_ms (1000000) than the rectangle's (1000800)."
+    },
+    {
+      "trial": "order-2a",
+      "axis": "order",
+      "condition": "png",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 877,
+      "why": "With no ink history and no overlap, the order cannot be determined visually, so I infer the rectangle was first from the prompt's ordering."
+    },
+    {
+      "trial": "order-2a",
+      "axis": "order",
+      "condition": "png+struct",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 1068,
+      "why": "The rectangle has the earlier created_at_ms timestamp (1000000) compared with the arrow (1000800)."
+    },
+    {
+      "trial": "order-2a",
+      "axis": "order",
+      "condition": "coords",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 233,
+      "why": "The rectangle stroke has created_at_ms=1000000, which is earlier than the arrow's created_at_ms=1000800."
+    },
+    {
+      "trial": "order-2b",
+      "axis": "order",
+      "condition": "png",
+      "answer": "arrow",
+      "model_answer": "rectangle",
+      "correct": false,
+      "estimated_tokens": 877,
+      "why": "No ink history is available, so I infer the top-left rectangle was likely drawn before the lower-right arrow based on page placement."
+    },
+    {
+      "trial": "order-2b",
+      "axis": "order",
+      "condition": "png+struct",
+      "answer": "arrow",
+      "model_answer": "arrow",
+      "correct": true,
+      "estimated_tokens": 1068,
+      "why": "The arrow has an earlier created_at_ms (1000000) than the rectangle (1000800), so it was drawn first."
+    },
+    {
+      "trial": "order-2b",
+      "axis": "order",
+      "condition": "coords",
+      "answer": "arrow",
+      "model_answer": "arrow",
+      "correct": true,
+      "estimated_tokens": 233,
+      "why": "The arrow stroke has the earlier created_at_ms timestamp (1000000) compared with the rectangle (1000800)."
+    },
+    {
+      "trial": "order-3a",
+      "axis": "order",
+      "condition": "png",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 639,
+      "why": "With no ink history or overlap cues, the order cannot be determined from the image alone, so this is a best guess."
+    },
+    {
+      "trial": "order-3a",
+      "axis": "order",
+      "condition": "png+struct",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 829,
+      "why": "The rectangle has created_at_ms 1000000, which is earlier than the arrow's created_at_ms 1000800."
+    },
+    {
+      "trial": "order-3a",
+      "axis": "order",
+      "condition": "coords",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 233,
+      "why": "The rectangle stroke has created_at_ms=1000000, which is earlier than the arrow's created_at_ms=1000800."
+    },
+    {
+      "trial": "order-3b",
+      "axis": "order",
+      "condition": "png",
+      "answer": "arrow",
+      "model_answer": "rectangle",
+      "correct": false,
+      "estimated_tokens": 639,
+      "why": "No ink history is available, so the static image gives no definitive temporal cue; I infer the rectangle came first from its upper-left placement."
+    },
+    {
+      "trial": "order-3b",
+      "axis": "order",
+      "condition": "png+struct",
+      "answer": "arrow",
+      "model_answer": "arrow",
+      "correct": true,
+      "estimated_tokens": 829,
+      "why": "The arrow has the earlier created_at_ms timestamp (1000000) than the rectangle (1000800), so it was drawn first."
+    },
+    {
+      "trial": "order-3b",
+      "axis": "order",
+      "condition": "coords",
+      "answer": "arrow",
+      "model_answer": "arrow",
+      "correct": true,
+      "estimated_tokens": 233,
+      "why": "The arrow's created_at_ms is 1000000, which is earlier than the rectangle's 1000800."
+    },
+    {
+      "trial": "order-4a",
+      "axis": "order",
+      "condition": "png",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 617,
+      "why": "With only the final image and no ink history this cannot be determined definitively, but the rectangle is most plausibly the earlier primary shape and the arrow appears added afterward."
+    },
+    {
+      "trial": "order-4a",
+      "axis": "order",
+      "condition": "png+struct",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 807,
+      "why": "The rectangle has the earlier created_at_ms value (1000000) compared with the arrow (1000800)."
+    },
+    {
+      "trial": "order-4a",
+      "axis": "order",
+      "condition": "coords",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 232,
+      "why": "The rectangle stroke has the earlier created_at_ms timestamp (1000000) than the arrow (1000800)."
+    },
+    {
+      "trial": "order-4b",
+      "axis": "order",
+      "condition": "png",
+      "answer": "arrow",
+      "model_answer": "rectangle",
+      "correct": false,
+      "estimated_tokens": 617,
+      "why": "With no ink history or overlaps, drawing order is not visually determinable, so I infer the rectangle was first from its top-left placement and the prompt order."
+    },
+    {
+      "trial": "order-4b",
+      "axis": "order",
+      "condition": "png+struct",
+      "answer": "arrow",
+      "model_answer": "arrow",
+      "correct": true,
+      "estimated_tokens": 807,
+      "why": "The arrow has the earlier created_at_ms timestamp (1000000) compared with the rectangle (1000800)."
+    },
+    {
+      "trial": "order-4b",
+      "axis": "order",
+      "condition": "coords",
+      "answer": "arrow",
+      "model_answer": "arrow",
+      "correct": true,
+      "estimated_tokens": 232,
+      "why": "The arrow stroke has created_at_ms 1000000, which is earlier than the rectangle stroke at 1000800."
+    },
+    {
+      "trial": "order-5a",
+      "axis": "order",
+      "condition": "png",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 567,
+      "why": "With no stroke history or overlap cues, the best inference from the static page is that the rectangle was drawn first."
+    },
+    {
+      "trial": "order-5a",
+      "axis": "order",
+      "condition": "png+struct",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 757,
+      "why": "The rectangle has an earlier created_at_ms timestamp (1000000) than the arrow (1000800), so it was drawn first."
+    },
+    {
+      "trial": "order-5a",
+      "axis": "order",
+      "condition": "coords",
+      "answer": "rectangle",
+      "model_answer": "rectangle",
+      "correct": true,
+      "estimated_tokens": 232,
+      "why": "The rectangle stroke has created_at_ms=1000000, which is earlier than the arrow's created_at_ms=1000800."
+    },
+    {
+      "trial": "order-5b",
+      "axis": "order",
+      "condition": "png",
+      "answer": "arrow",
+      "model_answer": "rectangle",
+      "correct": false,
+      "estimated_tokens": 567,
+      "why": "With no ink history this cannot be determined from the image alone, so I infer the rectangle was likely drawn first because it appears as the primary object and the arrow was added separately afterward."
+    },
+    {
+      "trial": "order-5b",
+      "axis": "order",
+      "condition": "png+struct",
+      "answer": "arrow",
+      "model_answer": "arrow",
+      "correct": true,
+      "estimated_tokens": 757,
+      "why": "The arrow has the earlier created_at_ms timestamp (1000000) than the rectangle (1000800), so it was drawn first."
+    },
+    {
+      "trial": "order-5b",
+      "axis": "order",
+      "condition": "coords",
+      "answer": "arrow",
+      "model_answer": "arrow",
+      "correct": true,
+      "estimated_tokens": 232,
+      "why": "The arrow's created_at_ms is 1000000, which is earlier than the rectangle's 1000800."
+    }
+  ]
+}

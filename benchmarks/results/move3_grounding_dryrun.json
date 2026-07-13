@@ -1,0 +1,35 @@
+{
+  "grounding_by_arm": {
+    "raster-only": {
+      "grounded_rate": 0.0,
+      "mean_context_chars": 2650,
+      "mean_raster_pixels": 669576
+    },
+    "raster+geometry": {
+      "grounded_rate": 0.0,
+      "mean_context_chars": 3107,
+      "mean_raster_pixels": 669576
+    },
+    "index-only": {
+      "grounded_rate": 0.0,
+      "mean_context_chars": 2649,
+      "mean_raster_pixels": 0
+    },
+    "active-index": {
+      "grounded_rate": 1.0,
+      "mean_context_chars": 5217,
+      "mean_raster_pixels": 0
+    },
+    "marked-index": {
+      "grounded_rate": 1.0,
+      "mean_context_chars": 5524,
+      "mean_raster_pixels": 669576
+    },
+    "analyzer-first": {
+      "grounded_rate": 1.0,
+      "mean_context_chars": 5217,
+      "mean_raster_pixels": 0
+    }
+  },
+  "adversarial_leak_free": true
+}

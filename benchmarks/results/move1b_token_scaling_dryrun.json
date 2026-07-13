@@ -1,0 +1,35 @@
+{
+  "budget_tokens": 8000,
+  "token_scaling": {
+    "4": {
+      "png": 806,
+      "coords-full": 265,
+      "index-compact": 218,
+      "analyzer-reduced": 275
+    },
+    "16": {
+      "png": 1532,
+      "coords-full": 577,
+      "index-compact": 386,
+      "analyzer-reduced": 276
+    },
+    "48": {
+      "png": 1806,
+      "coords-full": 1408,
+      "index-compact": 835,
+      "analyzer-reduced": 276
+    },
+    "128": {
+      "png": 1870,
+      "coords-full": 3506,
+      "index-compact": 1967,
+      "analyzer-reduced": 276
+    },
+    "320": {
+      "png": 1913,
+      "coords-full": 8554,
+      "index-compact": 4712,
+      "analyzer-reduced": 277
+    }
+  }
+}

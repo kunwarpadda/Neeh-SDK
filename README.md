@@ -22,6 +22,25 @@ answer, and native ink structure — addressable strokes, deterministic geometri
 and a bounded tool surface — for what pixels cannot. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
 full design rationale, the perception-action-feedback loop, and the trade-offs this implies.
 
+## Evidence
+
+These claims are backed by runnable benchmarks, not just prose. The deterministic ones need no API
+key or model — clone the repo and reproduce the exact numbers:
+
+```bash
+python benchmarks/move1b_token_budget.py --dry-run   # structured reduction stays flat as ink scales
+python benchmarks/move3_grounding.py   --dry-run     # only structure-aware policies ground a history answer
+```
+
+- **Pixels destroy history** — 18/18 sample pairs differing only in draw order/direction are certified to rasterize to *byte-identical* pixels.
+- **Structured reduction is cost-flat** — analyzer output holds ~275 tokens from 4 to 320 marks, while coordinate serialization grows 265 → 8,554 and crosses a representative context budget.
+- **Only structure grounds history** — raster-only and static-index policies score **0.0** on history tasks (most-recent mark, cross-out, grouping); analyzer-first grounds every one *exactly*, at zero pixels.
+- **Raster-only confabulates** (GPT-5.5, high) — sits at chance (6/12) and does not abstain, inventing the *same* nonexistent visual cue in 12/12 trials; structured context recovers 12/12. Raw transcripts archived.
+
+Full reproducibility index — claim → command → result — in
+[benchmarks/README.md](benchmarks/README.md). The complete argument, methodology, and threats to
+validity are in the [research paper](paper/neeh-icf.pdf).
+
 ## Features
 
 - Immutable points and strokes with pressure, tilt, timestamps, style, and stable IDs.
