@@ -3,207 +3,704 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Neeh — ink assistant</title>
+<meta name="theme-color" content="#f4f2ed">
+<title>Neeh Ink Workspace</title>
 <style>
-  :root { --ink: #1a1a1a; --agent: #1d4ed8; --paper: #ffffff; --bg: #f3f1ec; --line: #ddd8cf; }
+  :root {
+    --ink: #171714;
+    --muted: #6c6a63;
+    --paper: #ffffff;
+    --canvas: #e8e5de;
+    --chrome: #f7f6f2;
+    --line: #d8d5cd;
+    --line-strong: #b8b4aa;
+    --agent: #2855d9;
+    --agent-dark: #1c3fa8;
+    --amber: #e5a528;
+    --green: #167052;
+    --danger: #a43b31;
+  }
+
   * { box-sizing: border-box; }
-  body { margin: 0; font: 15px/1.45 ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--ink); }
-  header { display: flex; align-items: baseline; gap: 14px; padding: 14px 20px 10px; flex-wrap: wrap; }
-  header h1 { font-size: 17px; margin: 0; letter-spacing: -0.01em; }
-  header .tag { color: #6b675f; font-size: 13px; }
-  .bar { display: flex; gap: 8px; padding: 0 20px 12px; align-items: center; flex-wrap: wrap; }
-  .bar input[type=text] { flex: 1 1 240px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font: inherit; }
-  button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font: inherit; cursor: pointer; }
-  button.primary { background: var(--agent); border-color: var(--agent); color: white; }
-  button:disabled { opacity: 0.45; cursor: default; }
-  #status { padding: 0 20px 10px; font-size: 13px; color: #6b675f; min-height: 1.2em; white-space: pre-wrap; }
-  #agentInput { display: none; margin: 0 20px 12px; padding: 10px; max-width: min(980px, calc(100vw - 40px)); max-height: 280px; overflow: auto; border: 1px solid var(--line); background: #fff; border-radius: 6px; font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
-  #board { position: relative; margin: 0 20px 24px; width: min(660px, calc(100vw - 40px)); box-shadow: 0 1px 4px rgba(0,0,0,.12); border-radius: 4px; overflow: hidden; }
-  #page, #overlay { display: block; width: 100%; }
-  #page { background: var(--paper); }
+  [hidden] { display: none !important; }
+
+  html, body { min-height: 100%; }
+
+  body {
+    margin: 0;
+    color: var(--ink);
+    background: var(--chrome);
+    font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  button, input { font: inherit; }
+
+  button {
+    color: inherit;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    cursor: pointer;
+  }
+
+  button:hover:not(:disabled) { border-color: var(--line-strong); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--agent); outline-offset: 2px; }
+  button:disabled { cursor: default; opacity: .45; }
+
+  .app-header {
+    min-height: 58px;
+    padding: 0 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(247, 246, 242, .96);
+  }
+
+  .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--ink);
+    position: relative;
+    flex: 0 0 auto;
+  }
+
+  .brand-mark::before,
+  .brand-mark::after {
+    content: "";
+    position: absolute;
+    left: 7px;
+    right: 7px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--amber);
+    transform: rotate(-12deg);
+  }
+
+  .brand-mark::before { top: 9px; }
+  .brand-mark::after { top: 16px; }
+
+  .brand-name { font-size: 17px; font-weight: 720; }
+  .brand-view { margin-left: 8px; color: var(--muted); font-size: 13px; }
+
+  .runtime { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+
+  .badge {
+    min-height: 26px;
+    padding: 4px 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--paper);
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+
+  .scenario-strip {
+    min-height: 52px;
+    padding: 9px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+    overflow-x: auto;
+  }
+
+  .strip-label { color: var(--muted); font-size: 12px; font-weight: 650; text-transform: uppercase; white-space: nowrap; }
+
+  .segments { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; flex: 0 0 auto; }
+
+  .scenario-button {
+    min-height: 32px;
+    padding: 5px 12px;
+    border: 0;
+    border-right: 1px solid var(--line);
+    border-radius: 0;
+    background: var(--paper);
+    white-space: nowrap;
+  }
+
+  .scenario-button:last-child { border-right: 0; }
+  .scenario-button[aria-pressed="true"] { background: var(--ink); color: white; }
+
+  .app-main {
+    width: min(1480px, 100%);
+    margin: 0 auto;
+    padding: 18px 22px 24px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(330px, 390px);
+    gap: 18px;
+    align-items: start;
+  }
+
+  .workspace,
+  .inspector {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--paper);
+    overflow: hidden;
+  }
+
+  .workspace-toolbar {
+    min-height: 48px;
+    padding: 8px 10px 8px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .document-title { font-weight: 650; }
+  .document-meta { color: var(--muted); font-size: 12px; margin-left: 7px; }
+  .tool-actions { display: flex; gap: 6px; }
+
+  .tool-button {
+    min-height: 32px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    background: var(--chrome);
+  }
+
+  .page-stage {
+    min-height: 620px;
+    padding: 24px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    background: var(--canvas);
+  }
+
+  #board {
+    position: relative;
+    width: min(100%, 600px);
+    aspect-ratio: 1000 / 1414;
+    overflow: hidden;
+    background: var(--paper);
+    border: 1px solid #cfcbc1;
+    box-shadow: 0 12px 28px rgba(29, 28, 24, .12), 0 2px 5px rgba(29, 28, 24, .08);
+  }
+
+  #page, #overlay { display: block; width: 100%; height: 100%; }
+  #page { object-fit: contain; background: var(--paper); }
   #overlay { position: absolute; inset: 0; touch-action: none; cursor: crosshair; }
+
+  .workspace-status {
+    min-height: 44px;
+    padding: 11px 14px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 13px;
+    white-space: pre-wrap;
+  }
+
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: 0 0 auto; }
+  .status-dot.busy { background: var(--amber); }
+  .status-dot.error { background: var(--danger); }
+
+  .question-block { padding: 16px; border-bottom: 1px solid var(--line); }
+  .field-label { display: block; margin-bottom: 7px; color: var(--muted); font-size: 12px; font-weight: 650; }
+
+  #instruction {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    color: var(--ink);
+    background: var(--paper);
+  }
+
+  .primary-actions { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .command {
+    min-height: 38px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-weight: 680;
+  }
+
+  .command.analyze { background: var(--ink); border-color: var(--ink); color: white; }
+  .command.ask { background: var(--agent); border-color: var(--agent); color: white; }
+  .command.ask:hover:not(:disabled) { background: var(--agent-dark); border-color: var(--agent-dark); }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .metric { min-width: 0; padding: 11px 12px; border-right: 1px solid var(--line); }
+  .metric:last-child { border-right: 0; }
+  .metric-value { display: block; min-height: 20px; font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+  .metric-label { display: block; color: var(--muted); font-size: 11px; }
+
+  .tabs { min-height: 42px; display: flex; align-items: stretch; border-bottom: 1px solid var(--line); }
+
+  .tab {
+    flex: 1 1 0;
+    padding: 9px 6px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    color: var(--muted);
+    background: var(--paper);
+    font-size: 12px;
+  }
+
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--agent); font-weight: 680; }
+
+  .panel-options {
+    min-height: 38px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    border-bottom: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .panel-options label { display: flex; align-items: center; gap: 6px; }
+
+  #output {
+    margin: 0;
+    min-height: 372px;
+    max-height: 560px;
+    padding: 14px;
+    overflow: auto;
+    color: #272721;
+    background: #fbfaf7;
+    font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  @media (max-width: 980px) {
+    .app-main { grid-template-columns: 1fr; }
+    .page-stage { min-height: 0; }
+    #board { width: min(100%, 560px); }
+    #output { min-height: 260px; max-height: 420px; }
+  }
+
+  @media (max-width: 620px) {
+    .app-header { padding: 0 14px; min-height: 54px; }
+    .brand-view, #contextBadge { display: none; }
+    .scenario-strip { padding: 8px 14px; }
+    .app-main { padding: 12px 10px 18px; gap: 12px; }
+    .page-stage { padding: 12px; }
+    .workspace-toolbar { padding-left: 10px; }
+    .document-meta { display: none; }
+    .primary-actions { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>Neeh ink assistant</h1>
-  <span class="tag">write a question in ink &middot; press Ask &middot; the agent answers on the page</span>
+<header class="app-header">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <div><span class="brand-name">Neeh</span><span class="brand-view">Ink workspace</span></div>
+  </div>
+  <div class="runtime" aria-label="Runtime status">
+    <span class="badge"><span class="badge-dot"></span><span id="agentBadge">connecting</span></span>
+    <span class="badge" id="policyBadge">active-index</span>
+    <span class="badge" id="contextBadge">ink-context/v1</span>
+  </div>
 </header>
-<div class="bar">
-  <input id="instruction" type="text" aria-label="Optional extra instruction for the agent">
-  <button id="ask" class="primary">Ask</button>
-  <button id="inspect">Inspect</button>
-  <button id="inspectRaw">Raw</button>
-  <button id="modelRaw" disabled>Model Raw</button>
-  <button id="undo">Undo</button>
-  <button id="clear">Clear</button>
-</div>
-<div id="status">Draw with a mouse, finger, or pen.</div>
-<pre id="agentInput"></pre>
-<div id="board">
-  <img id="page" src="/page.svg" alt="notebook page" draggable="false">
-  <canvas id="overlay"></canvas>
-</div>
+
+<nav class="scenario-strip" aria-label="Example pages">
+  <span class="strip-label">Example</span>
+  <div class="segments" role="group" aria-label="Choose an ink example">
+    <button class="scenario-button" data-scenario="latest" aria-pressed="false">Latest mark</button>
+    <button class="scenario-button" data-scenario="direction" aria-pressed="false">Drawing direction</button>
+    <button class="scenario-button" data-scenario="crossout" aria-pressed="false">Cross-out evidence</button>
+  </div>
+</nav>
+
+<main class="app-main">
+  <section class="workspace" aria-label="Ink page">
+    <div class="workspace-toolbar">
+      <div><span class="document-title">Untitled page</span><span class="document-meta">1000 x 1414</span></div>
+      <div class="tool-actions">
+        <button id="undo" class="tool-button" title="Undo the latest edit">Undo</button>
+        <button id="clear" class="tool-button" title="Clear the page">Clear</button>
+      </div>
+    </div>
+    <div class="page-stage">
+      <div id="board">
+        <img id="page" src="/page.svg" alt="Current structured ink page" draggable="false">
+        <canvas id="overlay" aria-label="Draw ink on the current page"></canvas>
+      </div>
+    </div>
+    <div class="workspace-status" aria-live="polite">
+      <span id="statusDot" class="status-dot"></span>
+      <span id="status">Ready</span>
+    </div>
+  </section>
+
+  <aside class="inspector" aria-label="Ink analysis and agent inspector">
+    <div class="question-block">
+      <label class="field-label" for="instruction">Question or instruction</label>
+      <input id="instruction" type="text" value="Where is the most recently drawn mark?">
+      <div class="primary-actions">
+        <button id="analyze" class="command analyze">Analyze</button>
+        <button id="ask" class="command ask">Ask agent</button>
+      </div>
+    </div>
+
+    <div class="metrics" aria-label="Current result metrics">
+      <div class="metric"><span id="strokeMetric" class="metric-value">0</span><span class="metric-label">source strokes</span></div>
+      <div class="metric"><span id="contextMetric" class="metric-value">0</span><span class="metric-label">context chars</span></div>
+      <div class="metric"><span id="actionMetric" class="metric-value">0</span><span class="metric-label">agent actions</span></div>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Inspector views">
+      <button class="tab" data-tab="evidence" role="tab" aria-selected="true">Evidence</button>
+      <button class="tab" data-tab="input" role="tab" aria-selected="false">Agent input</button>
+      <button class="tab" data-tab="model" role="tab" aria-selected="false">Model output</button>
+    </div>
+    <div id="panelOptions" class="panel-options" hidden>
+      <label><input id="fullPayload" type="checkbox"> Full payload</label>
+    </div>
+    <pre id="output" role="tabpanel">Ready</pre>
+  </aside>
+</main>
+
 <script>
-const PAGE_W = 1000, PAGE_H = 1414;
+const PAGE_W = 1000;
+const PAGE_H = 1414;
 const page = document.getElementById("page");
 const overlay = document.getElementById("overlay");
-const status = document.getElementById("status");
-const askBtn = document.getElementById("ask");
-const inspectBtn = document.getElementById("inspect");
-const inspectRawBtn = document.getElementById("inspectRaw");
-const modelRawBtn = document.getElementById("modelRaw");
-const agentInput = document.getElementById("agentInput");
 const ctx = overlay.getContext("2d");
+const output = document.getElementById("output");
+const instruction = document.getElementById("instruction");
+const askBtn = document.getElementById("ask");
+const analyzeBtn = document.getElementById("analyze");
+const fullPayload = document.getElementById("fullPayload");
+
+let activeTab = "evidence";
+let activeScenario = null;
+let analysisRequest = { operation: "latest_mark" };
+let evidence = null;
+let agentInput = null;
+let modelOutput = null;
+let stroke = null;
+let strokeStartedAt = 0;
+
+function setStatus(text, mode = "ready") {
+  document.getElementById("status").textContent = text;
+  document.getElementById("statusDot").className = `status-dot ${mode === "ready" ? "" : mode}`;
+}
+
+function setBusy(busy) {
+  analyzeBtn.disabled = busy;
+  askBtn.disabled = busy;
+  document.querySelectorAll(".scenario-button").forEach(button => button.disabled = busy);
+}
+
+async function post(path, body = {}) {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || response.statusText);
+  return data;
+}
+
+async function getJson(path) {
+  const response = await fetch(path);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || response.statusText);
+  return data;
+}
+
+function refreshPage() {
+  page.src = `/page.svg?t=${Date.now()}`;
+}
 
 function sizeOverlay() {
   const rect = page.getBoundingClientRect();
-  overlay.width = rect.width * devicePixelRatio;
-  overlay.height = rect.height * devicePixelRatio;
-  overlay.style.height = rect.height + "px";
+  const ratio = window.devicePixelRatio || 1;
+  overlay.width = Math.max(1, Math.round(rect.width * ratio));
+  overlay.height = Math.max(1, Math.round(rect.height * ratio));
 }
-page.addEventListener("load", sizeOverlay);
-addEventListener("resize", sizeOverlay);
 
-function refreshPage() { page.src = "/page.svg?" + Date.now(); }
+function selectTab(name) {
+  activeTab = name;
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.setAttribute("aria-selected", String(tab.dataset.tab === name));
+  });
+  document.getElementById("panelOptions").hidden = name !== "input";
+  renderOutput();
+  if (name === "input") inspectAgentInput();
+}
 
-function toPage(e) {
+function renderOutput() {
+  const value = activeTab === "evidence" ? evidence : activeTab === "input" ? agentInput : modelOutput;
+  if (value === null) {
+    output.textContent = activeTab === "model" ? "No model response in this session." : "Ready";
+    return;
+  }
+  output.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+}
+
+function setMetrics({ strokes, context, actions } = {}) {
+  if (strokes !== undefined) document.getElementById("strokeMetric").textContent = strokes;
+  if (context !== undefined) document.getElementById("contextMetric").textContent = context;
+  if (actions !== undefined) document.getElementById("actionMetric").textContent = actions;
+}
+
+async function loadRuntime() {
+  try {
+    const data = await getJson("/status");
+    document.getElementById("agentBadge").textContent = data.agent;
+    document.getElementById("policyBadge").textContent = data.perception_mode;
+    document.getElementById("contextBadge").textContent = data.context_version === "v1" ? "ink-context/v1" : data.context_version;
+    return data;
+  } catch (error) {
+    document.getElementById("agentBadge").textContent = "offline";
+    return null;
+  }
+}
+
+async function loadScenario(name) {
+  setBusy(true);
+  setStatus("Loading example", "busy");
+  try {
+    const data = await post("/scenario", { name });
+    activeScenario = name;
+    analysisRequest = data.analysis;
+    instruction.value = data.question;
+    evidence = null;
+    agentInput = null;
+    modelOutput = null;
+    setMetrics({ context: 0, actions: 0 });
+    document.querySelectorAll(".scenario-button").forEach(button => {
+      button.setAttribute("aria-pressed", String(button.dataset.scenario === name));
+    });
+    refreshPage();
+    await runAnalysis(false);
+  } catch (error) {
+    setStatus(`Example failed: ${error.message}`, "error");
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function runAnalysis(manageBusy = true) {
+  if (manageBusy) setBusy(true);
+  setStatus("Running exact ink analysis", "busy");
+  try {
+    evidence = await post("/analyze", analysisRequest);
+    setMetrics({ strokes: evidence.source_stroke_count });
+    selectTab("evidence");
+    setStatus(`${evidence.schema} returned bounded deterministic evidence`);
+  } catch (error) {
+    setStatus(`Analysis failed: ${error.message}`, "error");
+  } finally {
+    if (manageBusy) setBusy(false);
+  }
+}
+
+async function inspectAgentInput() {
+  const raw = fullPayload.checked;
+  setStatus(raw ? "Loading full agent payload" : "Loading agent input", "busy");
+  try {
+    const params = new URLSearchParams();
+    const value = instruction.value.trim();
+    if (value) params.set("instruction", value);
+    if (raw) params.set("full", "1");
+    agentInput = await getJson(`/agent-input?${params.toString()}`);
+    setMetrics({ context: agentInput.context_chars || 0 });
+    if (activeTab === "input") renderOutput();
+    setStatus(`${agentInput.context_chars || 0} context chars prepared`);
+  } catch (error) {
+    setStatus(`Agent input failed: ${error.message}`, "error");
+  }
+}
+
+async function askAgent() {
+  setBusy(true);
+  setStatus("Agent is reading the page", "busy");
+  modelOutput = null;
+  try {
+    const value = instruction.value.trim();
+    const result = await post("/ask", value ? { instruction: value } : {});
+    if (result.raw_model_output) {
+      try {
+        modelOutput = JSON.parse(result.raw_model_output);
+      } catch {
+        modelOutput = result.raw_model_output;
+      }
+    } else {
+      modelOutput = {
+        reply: result.reply,
+        validation: result.validation || null,
+        telemetry: result.perception_telemetry || null,
+      };
+    }
+    refreshPage();
+    setMetrics({ actions: result.actions.length });
+    evidence = {
+      reply: result.reply,
+      backend: result.model ? `${result.mode}:${result.model}` : result.mode,
+      actions: result.actions,
+      validation: result.validation || null,
+      perception_telemetry: result.perception_telemetry || null,
+      fallback_reason: result.fallback_reason || null,
+    };
+    selectTab("evidence");
+    setStatus(`${result.actions.length} validated action${result.actions.length === 1 ? "" : "s"} applied`);
+  } catch (error) {
+    setStatus(`Agent failed: ${error.message}`, "error");
+  } finally {
+    setBusy(false);
+  }
+}
+
+function toPage(event) {
   const rect = overlay.getBoundingClientRect();
   return [
-    (e.clientX - rect.left) / rect.width * PAGE_W,
-    (e.clientY - rect.top) / rect.height * PAGE_H,
+    (event.clientX - rect.left) / rect.width * PAGE_W,
+    (event.clientY - rect.top) / rect.height * PAGE_H,
   ];
 }
 
-let stroke = null, t0 = 0;
-let lastRawModelOutput = null;
-
-overlay.addEventListener("pointerdown", e => {
-  overlay.setPointerCapture(e.pointerId);
-  t0 = e.timeStamp;
-  const [x, y] = toPage(e);
-  stroke = [[x, y, 0, e.pressure > 0 ? e.pressure : 1.0]];
-  e.preventDefault();
-});
-
-overlay.addEventListener("pointermove", e => {
-  if (!stroke) return;
-  const [x, y] = toPage(e);
-  stroke.push([x, y, Math.round(e.timeStamp - t0), e.pressure > 0 ? e.pressure : 1.0]);
-  drawLive();
-  e.preventDefault();
-});
-
-async function finishStroke(e) {
-  if (!stroke) return;
-  const done = stroke; stroke = null;
-  try {
-    await post("/stroke", { points: done });
-    refreshPage();
-  } catch (err) {
-    setStatus("stroke failed: " + err.message);
-  }
-  setTimeout(() => ctx.clearRect(0, 0, overlay.width, overlay.height), 150);
-}
-overlay.addEventListener("pointerup", finishStroke);
-overlay.addEventListener("pointercancel", () => { stroke = null; });
-
 function drawLive() {
   if (!stroke || stroke.length < 2) return;
-  const rect = overlay.getBoundingClientRect();
-  const sx = rect.width / PAGE_W * devicePixelRatio, sy = rect.height / PAGE_H * devicePixelRatio;
+  const ratio = window.devicePixelRatio || 1;
+  const sx = overlay.clientWidth / PAGE_W * ratio;
+  const sy = overlay.clientHeight / PAGE_H * ratio;
   ctx.clearRect(0, 0, overlay.width, overlay.height);
-  ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = 2 * sx; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.strokeStyle = varColor("--ink");
+  ctx.lineWidth = 2.2 * sx;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
   ctx.beginPath();
   ctx.moveTo(stroke[0][0] * sx, stroke[0][1] * sy);
   for (const [x, y] of stroke.slice(1)) ctx.lineTo(x * sx, y * sy);
   ctx.stroke();
 }
 
-async function post(path, body) {
-  const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify(body || {}) });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || res.statusText);
-  return data;
+function varColor(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-async function getJson(path) {
-  const res = await fetch(path);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || res.statusText);
-  return data;
-}
-
-function setStatus(text) { status.textContent = text; }
-
-async function inspectAgent(full) {
-  inspectBtn.disabled = true;
-  inspectRawBtn.disabled = true;
+async function finishStroke(event) {
+  if (!stroke) return;
+  const completed = stroke;
+  stroke = null;
   try {
-    const instruction = document.getElementById("instruction").value.trim();
-    const params = new URLSearchParams();
-    if (instruction) params.set("instruction", instruction);
-    if (full) params.set("full", "1");
-    const suffix = params.toString() ? "?" + params.toString() : "";
-    const data = await getJson("/agent-input" + suffix);
-    agentInput.textContent = JSON.stringify(data, null, 2);
-    agentInput.style.display = "block";
-    const label = full ? "raw agent input" : "agent input preview";
-    const raw = data.prompt ? "" : " · raw prompt hidden";
-    const strokeCount = data.context?.ink?.stroke_count ?? data.context?.vector?.stroke_count ?? 0;
-    setStatus(`${label}: ${data.prompt_chars} prompt chars · ${data.context_chars} context chars · ${strokeCount} strokes${raw}`);
-  } catch (err) {
-    setStatus("inspect failed: " + err.message);
-  } finally {
-    inspectBtn.disabled = false;
-    inspectRawBtn.disabled = false;
-  }
-}
-
-inspectBtn.addEventListener("click", () => inspectAgent(false));
-inspectRawBtn.addEventListener("click", () => inspectAgent(true));
-modelRawBtn.addEventListener("click", () => {
-  if (!lastRawModelOutput) return;
-  agentInput.textContent = lastRawModelOutput;
-  agentInput.style.display = "block";
-  setStatus(`raw model output: ${lastRawModelOutput.length} chars · shown exactly as returned by the CLI`);
-});
-
-askBtn.addEventListener("click", async () => {
-  askBtn.disabled = true;
-  lastRawModelOutput = null;
-  modelRawBtn.disabled = true;
-  setStatus("Thinking… (the agent is looking at the page)");
-  try {
-    const instruction = document.getElementById("instruction").value.trim();
-    const result = await post("/ask", instruction ? { instruction } : {});
-    lastRawModelOutput = result.raw_model_output || null;
-    modelRawBtn.disabled = !lastRawModelOutput;
+    await post("/stroke", { points: completed });
+    activeScenario = null;
+    document.querySelectorAll(".scenario-button").forEach(button => button.setAttribute("aria-pressed", "false"));
     refreshPage();
-    const acts = result.actions.map(a => a.error ? `${a.tool} failed: ${a.error}` : a.tool).join(", ") || "no tools used";
-    const model = result.model ? `${result.mode}:${result.model}` : result.mode;
-    const fallback = result.fallback_reason ? `\nfallback: ${result.fallback_reason}` : "";
-    setStatus(`[${model}] ${result.reply}\ntools: ${acts}${fallback}`);
-  } catch (err) {
-    setStatus("ask failed: " + err.message);
-  } finally {
-    askBtn.disabled = false;
+    setStatus("Ink added");
+  } catch (error) {
+    setStatus(`Stroke failed: ${error.message}`, "error");
   }
+  window.setTimeout(() => ctx.clearRect(0, 0, overlay.width, overlay.height), 80);
+  event.preventDefault();
+}
+
+overlay.addEventListener("pointerdown", event => {
+  overlay.setPointerCapture(event.pointerId);
+  strokeStartedAt = event.timeStamp;
+  const [x, y] = toPage(event);
+  stroke = [[x, y, 0, event.pressure > 0 ? event.pressure : 1]];
+  event.preventDefault();
 });
+
+overlay.addEventListener("pointermove", event => {
+  if (!stroke) return;
+  const [x, y] = toPage(event);
+  stroke.push([x, y, Math.round(event.timeStamp - strokeStartedAt), event.pressure > 0 ? event.pressure : 1]);
+  drawLive();
+  event.preventDefault();
+});
+
+overlay.addEventListener("pointerup", finishStroke);
+overlay.addEventListener("pointercancel", () => {
+  stroke = null;
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+});
+
+page.addEventListener("load", sizeOverlay);
+window.addEventListener("resize", sizeOverlay);
+
+document.querySelectorAll(".scenario-button").forEach(button => {
+  button.addEventListener("click", () => loadScenario(button.dataset.scenario));
+});
+
+document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", () => selectTab(tab.dataset.tab)));
+fullPayload.addEventListener("change", () => { if (activeTab === "input") inspectAgentInput(); });
+analyzeBtn.addEventListener("click", () => runAnalysis());
+askBtn.addEventListener("click", askAgent);
 
 document.getElementById("undo").addEventListener("click", async () => {
-  try { await post("/undo"); refreshPage(); } catch (err) { setStatus(err.message); }
+  try {
+    await post("/undo");
+    refreshPage();
+    setStatus("Latest edit undone");
+  } catch (error) {
+    setStatus(`Undo failed: ${error.message}`, "error");
+  }
 });
+
 document.getElementById("clear").addEventListener("click", async () => {
   try {
     await post("/clear");
-    lastRawModelOutput = null;
-    modelRawBtn.disabled = true;
+    activeScenario = null;
+    evidence = null;
+    agentInput = null;
+    modelOutput = null;
+    instruction.value = "";
+    document.querySelectorAll(".scenario-button").forEach(button => button.setAttribute("aria-pressed", "false"));
+    setMetrics({ strokes: 0, context: 0, actions: 0 });
     refreshPage();
-    setStatus("Cleared.");
-  } catch (err) { setStatus(err.message); }
+    renderOutput();
+    setStatus("Page cleared");
+  } catch (error) {
+    setStatus(`Clear failed: ${error.message}`, "error");
+  }
 });
+
+window.addEventListener("keydown", event => {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
+    event.preventDefault();
+    document.getElementById("undo").click();
+  }
+});
+
+async function initialize() {
+  const runtime = await loadRuntime();
+  if (runtime && runtime.stroke_count > 0) {
+    setMetrics({ strokes: runtime.stroke_count });
+    document.querySelectorAll(".scenario-button").forEach(button => {
+      button.setAttribute("aria-pressed", "false");
+    });
+    refreshPage();
+    setStatus("Existing page restored");
+    return;
+  }
+  await loadScenario("latest");
+}
+
+initialize();
 </script>
 </body>
 </html>

@@ -4,12 +4,16 @@ Stdlib-only HTTP server around one shared Canvas:
 
     GET  /           the drawing page
     GET  /page.svg   current page render
+    GET  /status     active backend and perception policy
     POST /stroke     {"points": [[x, y, t_ms, pressure], ...]} -> user ink
+    POST /scenario   load a deterministic example page
+    POST /analyze    run a deterministic ink reducer
     POST /ask        {"instruction": "..."} -> runs the agent, returns actions
     POST /undo       undo the last edit
     POST /clear      fresh page
 
-Run:  python examples/assistant/server.py [--port 8787] [--agent codex|claude|mock|auto]
+Run:  python examples/assistant/server.py [--port 8787] [--lan]
+                                             [--agent codex|claude|mock|auto]
                                              [--perception active-index|raster-only|raster-always|index-only|marked-index]
 The default uses the local Codex CLI login. Missing CLIs or credentials fall
 back to the canned mock agent.
@@ -17,18 +21,21 @@ back to the canned mock agent.
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
+import socket
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from neeh.canvas import Canvas
-from neeh.ink import Author
+from neeh.ink import Author, Point, Stroke
 from neeh.rendering import render_page_svg
 
 from neeh.agents import assistant as agent
 from neeh.agents import (
     ModelUnavailableError,
+    analyze_ink,
     agent_input_preview,
     run_claude,
     run_codex_cli,
@@ -40,6 +47,136 @@ HERE = Path(__file__).parent
 state_lock = threading.Lock()
 canvas = Canvas()
 agent_mode = "codex"
+
+
+def _local_ipv4_addresses() -> list[str]:
+    """Return usable IPv4 addresses for opening this server from another device."""
+    candidates: set[str] = set()
+    try:
+        candidates.update(
+            info[4][0]
+            for info in socket.getaddrinfo(
+                socket.gethostname(), None, socket.AF_INET, socket.SOCK_STREAM
+            )
+        )
+    except OSError:
+        pass
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            probe.connect(("192.0.2.1", 80))
+            candidates.add(probe.getsockname()[0])
+    except OSError:
+        pass
+
+    addresses = []
+    for candidate in candidates:
+        try:
+            address = ipaddress.ip_address(candidate)
+        except ValueError:
+            continue
+        if not (
+            address.is_loopback
+            or address.is_link_local
+            or address.is_multicast
+            or address.is_unspecified
+        ):
+            addresses.append(candidate)
+    return sorted(set(addresses))
+
+
+def _server_urls(
+    bind_host: str,
+    port: int,
+    lan_addresses: list[str] | None = None,
+) -> list[str]:
+    if bind_host == "0.0.0.0":
+        addresses = _local_ipv4_addresses() if lan_addresses is None else lan_addresses
+        hosts = ["127.0.0.1", *addresses]
+    else:
+        hosts = [bind_host]
+    return [f"http://{host}:{port}" for host in dict.fromkeys(hosts)]
+
+
+SCENARIOS = {
+    "latest": {
+        "title": "Latest mark",
+        "question": "Where is the most recently drawn mark?",
+        "analysis": {"operation": "latest_mark"},
+    },
+    "direction": {
+        "title": "Drawing direction",
+        "question": "Which direction was the long horizontal stroke drawn?",
+        "analysis": {
+            "operation": "stroke_dynamics",
+            "stroke_ids": ["st_direction"],
+        },
+    },
+    "crossout": {
+        "title": "Cross-out evidence",
+        "question": "Which earlier mark has evidence of being crossed out?",
+        "analysis": {"operation": "cross_out_candidates"},
+    },
+}
+
+
+def _stroke(
+    stroke_id: str,
+    xy: list[tuple[float, float]],
+    created_at_ms: int,
+    duration_ms: int = 400,
+) -> Stroke:
+    points = tuple(
+        Point(
+            x,
+            y,
+            t_ms=round(index * duration_ms / max(len(xy) - 1, 1)),
+            pressure=min(0.45 + index * 0.08, 0.9),
+        )
+        for index, (x, y) in enumerate(xy)
+    )
+    return Stroke(points=points, id=stroke_id, created_at_ms=created_at_ms)
+
+
+def make_scenario(name: str) -> tuple[Canvas, dict]:
+    """Build a deterministic demo page and return its public metadata."""
+    if name not in SCENARIOS:
+        raise ValueError(f"unknown scenario {name!r}")
+
+    scene = Canvas()
+    layer = scene.page.layers[0]
+    if name == "latest":
+        layer.add(_stroke(
+            "st_circle",
+            [(220, 330), (260, 285), (325, 285), (365, 330), (325, 375),
+             (260, 375), (220, 330)],
+            1_000,
+            700,
+        ))
+        layer.add(_stroke("st_underline", [(420, 360), (700, 360)], 2_000))
+        layer.add(_stroke(
+            "st_check",
+            [(650, 620), (700, 675), (810, 535)],
+            3_000,
+            550,
+        ))
+    elif name == "direction":
+        layer.add(_stroke(
+            "st_direction",
+            [(800, 470), (680, 470), (560, 470), (440, 470), (320, 470), (200, 470)],
+            1_000,
+            1_200,
+        ))
+    else:
+        layer.add(_stroke(
+            "st_original",
+            [(280, 420), (370, 405), (470, 430), (570, 410), (680, 420)],
+            1_000,
+            850,
+        ))
+        layer.add(_stroke("st_cross", [(240, 330), (720, 520)], 5_000, 650))
+
+    return scene, {"name": name, **SCENARIOS[name]}
 
 
 def _recoverable_model_error(exc: Exception) -> bool:
@@ -64,6 +201,8 @@ def ask(instruction: str | None) -> dict:
             return {"mode": mode, **runner(canvas, instruction)}
         except Exception as exc:
             if mode == "mock" or not _recoverable_model_error(exc):
+                raise
+            if agent_mode != "auto":
                 raise
             fallback_reason = f"{mode}: {exc}"
 
@@ -111,6 +250,24 @@ class Handler(BaseHTTPRequestHandler):
             with state_lock:
                 preview = agent_input_preview(canvas, instruction, full=full)
             self._json(preview)
+        elif self.path.startswith("/status"):
+            with state_lock:
+                stroke_count = sum(
+                    len(layer.strokes) for layer in canvas.page.layers
+                )
+            self._json({
+                "agent": agent_mode,
+                "perception_mode": agent.PERCEPTION_MODE,
+                "perception_policy": agent.PERCEPTION_MODE_ALIASES.get(
+                    agent.PERCEPTION_MODE, agent.PERCEPTION_MODE
+                ),
+                "context_version": agent.CONTEXT_VERSION,
+                "stroke_count": stroke_count,
+                "scenarios": [
+                    {"name": name, "title": item["title"]}
+                    for name, item in SCENARIOS.items()
+                ],
+            })
         else:
             self._json({"error": "not found"}, 404)
 
@@ -127,6 +284,21 @@ class Handler(BaseHTTPRequestHandler):
                 with state_lock:
                     result = ask(body.get("instruction") or None)
                 self._json(result)
+            elif self.path == "/analyze":
+                with state_lock:
+                    result = analyze_ink(
+                        canvas,
+                        body["operation"],
+                        stroke_ids=body.get("stroke_ids"),
+                        region=body.get("region"),
+                        limit=body.get("limit", 16),
+                    )
+                self._json(result)
+            elif self.path == "/scenario":
+                scene, metadata = make_scenario(body["name"])
+                with state_lock:
+                    canvas = scene
+                self._json(metadata)
             elif self.path == "/undo":
                 with state_lock:
                     undone = canvas.undo()
@@ -145,6 +317,17 @@ def main() -> None:
     global agent_mode
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8787)
+    network = parser.add_mutually_exclusive_group()
+    network.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="interface to bind (default: 127.0.0.1)",
+    )
+    network.add_argument(
+        "--lan",
+        action="store_true",
+        help="listen on all interfaces and print URLs for nearby devices",
+    )
     parser.add_argument(
         "--agent",
         choices=["codex", "claude", "mock", "auto"],
@@ -172,14 +355,26 @@ def main() -> None:
     agent.PERCEPTION_MODE = args.perception
     agent.CONTEXT_VERSION = args.context
 
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
+    bind_host = "0.0.0.0" if args.lan else args.host
+    server = ThreadingHTTPServer((bind_host, args.port), Handler)
     label = "codex-cli" if agent_mode == "codex" else "claude-cli" if agent_mode == "claude" else agent_mode
     if agent_mode == "auto":
         mode = f"{label} (codex-cli, claude-cli, then mock fallback)"
     else:
         mode = label
-    print(f"Neeh ink assistant on http://127.0.0.1:{args.port}  "
-          f"[agent: {mode}] [perception: {args.perception}] [context: {args.context}]")
+    print(
+        "Neeh ink assistant "
+        f"[agent: {mode}] [perception: {args.perception}] [context: {args.context}]"
+    )
+    for url in _server_urls(bind_host, args.port):
+        suffix = (
+            "  (tablet)"
+            if args.lan and not url.startswith("http://127.0.0.1:")
+            else ""
+        )
+        print(f"  {url}{suffix}")
+    if args.lan:
+        print("LAN mode has no authentication; use it only on a trusted network.")
     server.serve_forever()
 
 

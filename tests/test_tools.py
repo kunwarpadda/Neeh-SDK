@@ -617,6 +617,28 @@ def test_insert_text_does_not_reflow_when_the_existing_gap_is_large_enough():
     assert canvas.page.find(distant.id)[1].bbox.min_x == 400
 
 
+def test_insert_text_allows_bounded_short_word_reflow():
+    canvas = Canvas()
+    preceding = canvas.add_stroke([(150, 300), (190, 330)])
+    anchor = canvas.add_stroke([(200, 300), (220, 330)])
+    trailing = canvas.add_stroke([(230, 300), (300, 330)])
+
+    result = call_tool(
+        canvas,
+        "insert_text",
+        {
+            "text": "the ",
+            "stroke_ids": [anchor.id],
+            "position": "before",
+            "size": 34,
+        },
+    )
+
+    assert 64 < result["reflow"]["dx"] <= 128
+    assert result["reflow"]["moved_stroke_ids"] == [anchor.id, trailing.id]
+    assert canvas.page.find(preceding.id)[1].bbox.max_x == 190
+
+
 def test_insert_text_reflow_rejects_page_overflow_without_mutating():
     canvas = Canvas()
     anchor = canvas.add_stroke([(940, 300), (950, 340)])

@@ -15,12 +15,40 @@ python examples/assistant/server.py --agent codex --perception active-index
 
 Open <http://127.0.0.1:8787>, draw on the page, and press **Ask**.
 
+### Open the demo on a tablet
+
+Keep the SDK and model backend running on the computer, then expose the browser
+interface to devices on the same Wi-Fi network:
+
+```bash
+python examples/assistant/server.py --lan --agent codex --perception active-index
+```
+
+The server prints a tablet URL such as `http://192.168.1.20:8787`. Open that URL
+in Safari or Chrome on the tablet. Drawing uses browser Pointer Events, including
+touch or stylus pressure when the browser provides it; all API calls remain on
+the computer.
+
+If the URL does not connect, confirm both devices are on the same non-guest
+network and allow incoming Python connections in the computer's firewall. LAN
+mode has no authentication, so use it only on a trusted network and stop the
+server after recording.
+
+The interface also includes three deterministic example pages: latest-mark
+retrieval, capture-direction analysis, and cross-out evidence. **Analyze** runs
+the exact `ink-analysis/v1` reducer without a model call; **Ask agent** sends the
+same page and question through the selected agent policy. This makes the demo
+useful both as a keyless SDK inspection surface and as an end-to-end agent demo.
+
 Available backends:
 
-- `--agent codex`: use the local Codex CLI login.
-- `--agent claude`: use the local Claude CLI login.
+- `--agent codex`: use the local Codex CLI login and surface backend errors.
+- `--agent claude`: use the local Claude CLI login and surface backend errors.
 - `--agent mock`: run without an external model.
 - `--agent auto`: try Codex CLI, then Claude CLI, then the mock fallback.
+
+Explicit backends never silently replace a failed or quota-limited model call
+with mock ink. Use `auto` only when fallback behavior is desired.
 
 The default perception is `--perception active-index`: the model receives a budgeted IAI page map,
 then can call typed `analyze_ink`, `find_marks`, `view_region`, `get_ink`, and `expand_relations` actions when it
@@ -99,9 +127,14 @@ undoable.
 | `GET` | `/` | Drawing interface |
 | `GET` | `/page.svg` | Current page render |
 | `GET` | `/agent-input` | Model-input preview |
+| `GET` | `/status` | Active backend, perception policy, and scenarios |
 | `POST` | `/stroke` | Add user ink |
 | `POST` | `/ask` | Run one assistant turn |
+| `POST` | `/analyze` | Run a bounded deterministic ink reducer |
+| `POST` | `/scenario` | Load a deterministic example page |
 | `POST` | `/undo` | Undo the latest edit |
 | `POST` | `/clear` | Reset the canvas |
 
-The server binds to `127.0.0.1` and is intended for local development, not production hosting.
+The server binds to `127.0.0.1` by default. `--lan` binds to `0.0.0.0` for
+same-network tablet access; `--host` can select a specific interface. This is a
+development demo, not a production server.

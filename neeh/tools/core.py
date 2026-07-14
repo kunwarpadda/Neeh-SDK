@@ -800,7 +800,9 @@ def annotate(
 
 
 _INSERT_POSITIONS = ("before", "after", "above", "below")
-_MAX_INSERT_REFLOW = 64.0
+# A short inserted word at normal handwriting size can need roughly 90 page
+# units. Keep the shift bounded while allowing teacher-style word corrections.
+_MAX_INSERT_REFLOW = 128.0
 
 
 def _translated_box(box: BoundingBox, dx: float, dy: float) -> BoundingBox:

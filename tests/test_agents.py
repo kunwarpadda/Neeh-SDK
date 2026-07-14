@@ -128,6 +128,57 @@ def test_active_index_configures_typed_iai_for_codex(monkeypatch):
     assert "ink-context.json" not in seen["prompt"]
 
 
+def test_ink_authored_semantic_task_attaches_raster_before_codex(monkeypatch):
+    canvas = Canvas()
+    canvas.add_stroke([(100, 200), (180, 220), (260, 200)], author=Author.USER)
+    monkeypatch.setattr(assistant.shutil, "which", lambda _: "/tmp/codex")
+    seen = {}
+
+    def fake_run(command, **kwargs):
+        seen["command"] = command
+        seen["prompt"] = kwargs["input"]
+        output_path = command[command.index("--output-last-message") + 1]
+        with open(output_path, "w", encoding="utf-8") as output:
+            json.dump({"reply": "No confident edit.", "actions": []}, output)
+        return assistant.subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(assistant.subprocess, "run", fake_run)
+    result = run_codex_cli(canvas)
+
+    image_path = seen["command"][seen["command"].index("--image") + 1]
+    assert image_path.endswith("page.png")
+    assert "inspect the attached cropped page image first" in seen["prompt"]
+    assert result["perception_telemetry"]["raster_pixels"] > 0
+
+
+def test_exact_structured_task_keeps_active_index_raster_free():
+    canvas = Canvas()
+    canvas.add_stroke([(800, 300), (200, 300)], author=Author.USER)
+
+    preview = agent_input_preview(
+        canvas,
+        "Which direction was the long stroke drawn?",
+    )
+
+    assert preview["image"]["attached"] is False
+    assert preview["image"]["transport"] == "IAI view_region"
+
+
+def test_claude_active_index_can_read_bootstrap_raster_with_mcp_tools():
+    command = assistant._claude_cli_command(
+        "claude",
+        assistant.Path("/tmp"),
+        "prompt",
+        state_path=assistant.Path("/tmp/state.json"),
+        task_path=assistant.Path("/tmp/task.txt"),
+        page_available=True,
+    )
+
+    tools = command[command.index("--tools") + 1]
+    assert tools.startswith("Read,")
+    assert "mcp__neeh_iai__view_region" in tools
+
+
 def test_situation_note_conditions_on_what_is_on_the_page():
     from neeh.agents import assistant
 

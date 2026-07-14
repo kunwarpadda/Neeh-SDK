@@ -248,6 +248,55 @@ def _active_perception() -> bool:
     return _perception_policy() in {"active-index", "marked-index"}
 
 
+def _bootstrap_raster_required(
+    canvas: Canvas,
+    instruction: Optional[str],
+) -> bool:
+    """Attach pixels up front when the task requires reading ink semantics.
+
+    The structured map can answer temporal and geometric questions exactly,
+    but stroke shapes and bboxes cannot reveal the words on the page. The host
+    can identify that evidence need before model invocation, avoiding a brittle
+    dependency on the model deciding to request a raster itself.
+    """
+    if not _active_perception():
+        return False
+    user_ink = any(
+        stroke.author is Author.USER
+        for layer in canvas.page.layers if layer.visible
+        for stroke in layer.strokes
+    )
+    if not user_ink:
+        return False
+    task = " ".join((instruction or "").casefold().split())
+    if not task:
+        return True
+    semantic_visual_phrases = (
+        "handwritten",
+        "handwriting",
+        "question",
+        "sentence",
+        "read",
+        "text",
+        "word",
+        "symbol",
+        "equation",
+        "solve",
+        "fix",
+        "correct",
+        "grammar",
+        "spelling",
+        "translate",
+        "what does",
+        "what is written",
+        "this page",
+        "this diagram",
+        "this sketch",
+        "explain this",
+    )
+    return any(phrase in task for phrase in semantic_visual_phrases)
+
+
 def _recognized_semantics(canvas: Canvas) -> list[dict[str, Any]]:
     """Geometric recognizer output, filtered to strokes the payload keeps and
     trimmed to its highest-value signal.
@@ -351,6 +400,7 @@ def _perception_telemetry(
     canvas: Canvas,
     instruction: Optional[str],
     telemetry_path: Optional[Path] = None,
+    bootstrap_raster: bool = False,
 ) -> dict[str, Any]:
     bootstrap = _perception(canvas, instruction)
     telemetry: dict[str, Any] = {
@@ -364,7 +414,7 @@ def _perception_telemetry(
         "analyzer_queries": 0,
         "replay_steps": 0,
     }
-    if _raster_perception():
+    if _raster_perception() or bootstrap_raster:
         crop = _ink_crop(canvas)
         if crop is not None:
             telemetry["raster_pixels"] = round(crop.width * crop.height)
@@ -429,12 +479,14 @@ def _perception_note(
         )
     if _structured_primary():
         raster_fallback = (
-            f" A cropped page raster is available at {page_path}; inspect it with "
-            "your built-in image-reading tool only when the index is insufficient "
-            "to read handwriting or resolve visual detail."
+            f" A cropped page raster is attached from {page_path}. Inspect it before "
+            "planning any action that depends on handwritten words, symbols, or "
+            "visual meaning. Never infer page text from stroke shapes or positions."
             if page_path is not None else
             " A cropped page raster will be available to the model on demand, but "
-            "is not attached to the initial request."
+            "is not attached to the initial request. Never infer handwritten words "
+            "from stroke shapes or positions; request a raster when the task depends "
+            "on page text or visual meaning."
         )
         detail_fallback = (
             f" Detailed ink geometry and handwriting stroke ids are available at "
@@ -655,7 +707,7 @@ def agent_input_preview(
     context = _perception(canvas, instruction)
     prompt = _codex_cli_prompt(canvas, instruction, context=context)
     context_json = json.dumps(context, separators=(",", ":"))
-    attached = _raster_perception()
+    attached = _raster_perception() or _bootstrap_raster_required(canvas, instruction)
     available = _active_perception() or attached
     raster = _page_raster(canvas) if attached else b""
     preview = {
@@ -740,6 +792,12 @@ def _codex_cli_prompt(
         channel_instruction = (
             "Use only the structured page map below; this ablation provides no "
             "perception tools or raster fallback."
+        )
+    elif _active_perception() and page_path is not None:
+        channel_instruction = (
+            "The task requires reading the user's ink, so inspect the attached "
+            "cropped page image first. Use the structured page map and typed "
+            "neeh_iai perception tools to ground any targeted edits in stable ids."
         )
     elif _active_perception():
         channel_instruction = (
@@ -952,7 +1010,10 @@ def run_codex_cli(
         telemetry_path = tmp / "iai-telemetry.json"
         schema_path = tmp / "response.schema.json"
         output_path = tmp / "response.json"
-        page_available = _raster_perception()
+        page_available = (
+            _raster_perception()
+            or _bootstrap_raster_required(canvas, instruction)
+        )
         if page_available:
             image_path.write_bytes(_page_raster(canvas))
         if _perception_policy() == "raster-always":
@@ -970,7 +1031,7 @@ def run_codex_cli(
                 encoding="utf-8",
             )
         schema_path.write_text(json.dumps(_CODEX_CLI_RESPONSE_SCHEMA), encoding="utf-8")
-        attached_image = image_path if _raster_perception() else None
+        attached_image = image_path if page_available else None
         mcp_state = state_path if _active_perception() else None
         mcp_task = task_path if _active_perception() else None
 
@@ -1031,6 +1092,7 @@ def run_codex_cli(
             canvas,
             instruction,
             telemetry_path if _active_perception() else None,
+            bootstrap_raster=(page_available and not _raster_perception()),
         )
 
     validation_failures = _validation_failures(validation)
@@ -1073,6 +1135,12 @@ def _claude_cli_prompt(
         channel_instruction = (
             "Use only the structured page map below; this ablation provides no "
             "perception tools or raster fallback."
+        )
+    elif _active_perception() and page_path is not None:
+        channel_instruction = (
+            "The task requires reading the user's ink, so inspect the cropped "
+            "page image first. Use the structured page map and typed neeh_iai "
+            "perception tools to ground any targeted edits in stable ids."
         )
     elif _active_perception():
         channel_instruction = (
@@ -1118,11 +1186,12 @@ def _claude_cli_command(
     state_path: Optional[Path] = None,
     task_path: Optional[Path] = None,
     telemetry_path: Optional[Path] = None,
+    page_available: bool = False,
 ) -> list[str]:
     cmd = [claude, "-p"]
     if model := os.getenv("NEEH_CLAUDE_CLI_MODEL"):
         cmd.extend(["--model", model])
-    tools = "Read" if _raster_perception() else ""
+    tools = "Read" if page_available else ""
     if state_path is not None and task_path is not None:
         server_args = [
             "-m", "neeh.agents.iai_mcp",
@@ -1138,13 +1207,14 @@ def _claude_cli_command(
             }
         }
         cmd.extend(["--mcp-config", json.dumps(config), "--strict-mcp-config"])
-        tools = (
+        perception_tools = (
             "mcp__neeh_iai__find_marks,mcp__neeh_iai__analyze_ink,"
             "mcp__neeh_iai__reduce_ink,"
             "mcp__neeh_iai__find_ink_moments,mcp__neeh_iai__inspect_ink_moment,"
             "mcp__neeh_iai__view_region,mcp__neeh_iai__get_ink,"
             "mcp__neeh_iai__expand_relations"
         )
+        tools = f"Read,{perception_tools}" if page_available else perception_tools
     cmd.extend([
         prompt,
         "--output-format",
@@ -1192,7 +1262,10 @@ def run_claude(
         state_path = tmp / "page-state.json"
         task_path = tmp / "task.txt"
         telemetry_path = tmp / "iai-telemetry.json"
-        page_available = _raster_perception()
+        page_available = (
+            _raster_perception()
+            or _bootstrap_raster_required(canvas, instruction)
+        )
         if page_available:
             page_path.write_bytes(_page_raster(canvas))
         if _perception_policy() == "raster-always":
@@ -1227,6 +1300,7 @@ def run_claude(
                 state_path=state_path if _active_perception() else None,
                 task_path=task_path if _active_perception() else None,
                 telemetry_path=telemetry_path if _active_perception() else None,
+                page_available=page_available,
             )
             try:
                 completed = subprocess.run(
@@ -1258,6 +1332,7 @@ def run_claude(
             canvas,
             instruction,
             telemetry_path if _active_perception() else None,
+            bootstrap_raster=(page_available and not _raster_perception()),
         )
 
     validation_failures = _validation_failures(validation)

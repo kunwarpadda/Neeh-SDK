@@ -9,3 +9,21 @@ build/
 *.egg-info/
 .DS_Store
 /research/
+
+# Local credentials and private signing material
+.env
+.env.*
+!.env.example
+!.env.sample
+.envrc
+.secrets/
+.credentials/
+credentials*.json
+*-credentials.json
+service-account*.json
+google-services.json
+GoogleService-Info.plist
+*.pem
+*.p12
+*.pfx
+*.key
