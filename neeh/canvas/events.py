@@ -25,7 +25,7 @@ EVENTLOG_VERSION = "ink-eventlog/v1"
 
 # Recognized event kinds. ``label`` keeps the finer-grained edit name.
 EVENT_KINDS = (
-    "add", "erase", "move", "restyle", "group", "agent", "undo", "redo",
+    "add", "erase", "move", "restyle", "group", "page", "agent", "undo", "redo",
 )
 
 

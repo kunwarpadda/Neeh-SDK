@@ -31,7 +31,7 @@ The default loop is bounded:
 |---|---|
 | `policy` | One of the evaluation/production policies below. |
 | `task` | Stable task semantics for this turn. |
-| `page_map` | Budgeted `ink-index/v1`, ranked marks, compact relations, and optional marked view. |
+| `page_map` | Budgeted `ink-index/v1`, ranked marks, compact relations, recorded groups (exact membership folded from the event log), and optional marked view. |
 | `recent_delta` | New user strokes since the latest agent ink, with stable ids and bboxes. |
 | `analysis` | Optional deterministic evidence precomputed from an unambiguous task intent. |
 | `timeline_map` | Budgeted `ink-timeline/v1` creation episodes for active policies. |

@@ -5,6 +5,7 @@ import json
 
 from neeh import Canvas
 from neeh.agents import InkAgentInterface, analyze_ink, build_observation_workspace
+from neeh.document import Document, Page
 from neeh.ink import Point, Stroke
 
 
@@ -189,3 +190,210 @@ def test_grouping_candidates_find_separate_spatial_clusters():
     for group in result["groups"]:
         assert 0.0 <= group["confidence"] <= 1.0
         assert group["provenance"]["measured_from"] == "bbox proximity"
+
+
+def _line(stroke_id, x1, y1, x2, y2, t):
+    return Stroke(
+        id=stroke_id,
+        created_at_ms=t,
+        points=(Point(x1, y1, 0, 0.6), Point(x2, y2, 100, 0.6)),
+    )
+
+
+def test_orientation_reads_horizontal_writing_left_to_right():
+    canvas = Canvas()
+    layer = canvas.page.layers[0]
+    # Five short marks in a horizontal row, drawn left to right over time.
+    for i in range(5):
+        layer.add(_line(f"h_{i}", 100 + 40 * i, 300, 128 + 40 * i, 302, 1_000 + i))
+
+    result = analyze_ink(canvas, "orientation", stroke_ids=[s.id for s in layer.strokes])
+
+    assert result["claim_type"] == "measurement"
+    o = result["orientation"]
+    assert abs(o["angle_deg"]) < 5 or abs(o["angle_deg"] - 180) < 5
+    assert o["axis"] == "horizontal"
+    assert o["reading_direction"] == "right"
+    assert o["axis_ratio"] > 3  # clearly line-like
+
+
+def test_orientation_reads_vertical_writing_top_to_bottom():
+    canvas = Canvas()
+    layer = canvas.page.layers[0]
+    # Marks stacked top to bottom (y grows down), drawn over time downward.
+    for i in range(5):
+        layer.add(_line(f"v_{i}", 400, 100 + 40 * i, 402, 128 + 40 * i, 1_000 + i))
+
+    result = analyze_ink(canvas, "orientation", stroke_ids=[s.id for s in layer.strokes])
+    o = result["orientation"]
+
+    assert abs(o["angle_deg"] - 90) < 5
+    assert o["axis"] == "vertical"
+    assert o["reading_direction"] == "down"
+
+
+def test_orientation_distinguishes_rising_from_falling_diagonals():
+    # Rising on screen: x grows, y shrinks (up-right).
+    rising = Canvas()
+    for i in range(5):
+        rising.page.layers[0].add(
+            _line(f"r_{i}", 100 + 40 * i, 500 - 40 * i, 128 + 40 * i, 472 - 40 * i, 1_000 + i)
+        )
+    ro = analyze_ink(rising, "orientation",
+                     stroke_ids=[s.id for s in rising.page.layers[0].strokes])["orientation"]
+    assert abs(ro["angle_deg"] - 45) < 8
+    assert ro["axis"] == "diagonal-rising"
+    assert ro["reading_direction"] == "up-right"
+
+    # Falling on screen: x grows, y grows (down-right).
+    falling = Canvas()
+    for i in range(5):
+        falling.page.layers[0].add(
+            _line(f"f_{i}", 100 + 40 * i, 100 + 40 * i, 128 + 40 * i, 128 + 40 * i, 1_000 + i)
+        )
+    fo = analyze_ink(falling, "orientation",
+                     stroke_ids=[s.id for s in falling.page.layers[0].strokes])["orientation"]
+    assert abs(fo["angle_deg"] - 135) < 8
+    assert fo["axis"] == "diagonal-falling"
+    assert fo["reading_direction"] == "down-right"
+
+
+def test_orientation_of_a_dot_has_no_angle():
+    canvas = Canvas()
+    canvas.page.layers[0].add(
+        Stroke(id="dot", created_at_ms=1, points=(Point(200, 200, 0, 0.5),))
+    )
+    result = analyze_ink(canvas, "orientation", stroke_ids=["dot"])
+    assert result["orientation"]["angle_deg"] is None
+    assert result["orientation"]["axis"] is None
+
+
+def test_orientation_is_bounded_and_per_stroke_capped():
+    canvas = Canvas()
+    layer = canvas.page.layers[0]
+    for i in range(40):
+        layer.add(_line(f"s_{i}", 100 + 5 * i, 300, 128 + 5 * i, 302, 1_000 + i))
+    result = analyze_ink(canvas, "orientation",
+                         stroke_ids=[s.id for s in layer.strokes], limit=8)
+    assert len(result["strokes"]) == 8
+    assert result["truncated"] is True
+    assert result["orientation"]["stroke_count"] == 40  # aggregate sees all
+
+
+def _box(prefix: str, cx: float, cy: float, half: float = 15, t: int = 1_000):
+    """A hand-drawn box as four touching (not overlapping) edge strokes --
+    real strokes are rarely one continuous outline."""
+    x0, y0, x1, y1 = cx - half, cy - half, cx + half, cy + half
+    return [
+        _seg(f"{prefix}_top", x0, y0, x1, y0, t),
+        _seg(f"{prefix}_right", x1, y0, x1, y1, t),
+        _seg(f"{prefix}_bottom", x1, y1, x0, y1, t),
+        _seg(f"{prefix}_left", x0, y1, x0, y0, t),
+    ]
+
+
+def test_grouping_merges_touching_multi_stroke_marks_before_clustering():
+    # A box drawn as four separate touching edges, plus a two-stroke label
+    # just beside it (near but not touching) -- both belong to the same
+    # semantic object and should end up in one group. A distant, unrelated
+    # mark must stay out of it.
+    canvas = Canvas()
+    layer = canvas.page.layers[0]
+    for stroke in _box("box", 200, 200):
+        layer.add(stroke)
+    layer.add(_seg("label_a", 240, 195, 260, 195))
+    layer.add(_seg("label_b", 240, 205, 258, 205))
+    layer.add(_seg("far_mark", 900, 900, 920, 920))
+
+    result = analyze_ink(canvas, "grouping_candidates")
+
+    assert result["group_count"] == 1
+    group = result["groups"][0]
+    assert group["size"] == 6
+    assert set(group["member_ids"]) == {
+        "box_top", "box_right", "box_bottom", "box_left", "label_a", "label_b",
+    }
+
+
+def test_grouping_margin_scales_with_content_not_raw_page_size():
+    # Real device pages are often just the tablet's full screen resolution
+    # (e.g. 3122x4413), unrelated to how much of it the ink occupies. Two
+    # boxes separated by a gap that is small relative to a big page but large
+    # relative to their own content must still end up in separate groups.
+    canvas = Canvas(Document(pages=[Page(width=3200, height=4400)]))
+    layer = canvas.page.layers[0]
+    for stroke in _box("left", 200, 200, half=15):
+        layer.add(stroke)
+    layer.add(_seg("left_label", 216, 195, 236, 195))
+    for stroke in _box("right", 500, 200, half=15):
+        layer.add(stroke)
+    layer.add(_seg("right_label", 516, 195, 536, 195))
+
+    result = analyze_ink(canvas, "grouping_candidates")
+
+    assert result["group_count"] == 2
+    sizes = sorted(group["size"] for group in result["groups"])
+    assert sizes == [5, 5]
+
+
+def test_connector_margin_is_not_starved_by_elongated_content():
+    # A long, thin connector scene (two small boxes joined by a wide, flat
+    # link) has a small minimum content dimension; the margin must scale off
+    # the content's overall size, not its narrowest side, or a real link can
+    # fall outside its own proximity margin.
+    canvas = Canvas()
+    layer = canvas.page.layers[0]
+    layer.add(_seg("obj_left", 100, 100, 120, 120))
+    layer.add(_seg("obj_right", 300, 100, 320, 120))
+    layer.add(_seg("st_link", 121, 110, 299, 110))
+
+    result = analyze_ink(canvas, "connector_candidates")
+
+    ids = {item["id"] for item in result["candidates"]}
+    assert "st_link" in ids
+
+
+def test_recorded_groups_report_exact_membership_from_the_log():
+    canvas = Canvas()
+    a = canvas.add_stroke([(100, 100), (140, 100)])
+    b = canvas.add_stroke([(600, 900), (640, 900)])  # far apart on purpose
+    canvas.add_stroke([(300, 500), (340, 500)])
+    group_id = canvas.group([a.id, b.id], label="scattered")
+
+    result = analyze_ink(canvas, "recorded_groups")
+
+    assert result["claim_type"] == "measurement"
+    assert result["group_count"] == 1
+    group = result["groups"][0]
+    assert group["group_id"] == group_id
+    # Exact membership even though the members are spatially far apart --
+    # this is log truth, not a proximity guess.
+    assert group["member_ids"] == [a.id, b.id]
+    assert group["label"] == "scattered"
+    assert result["matched_stroke_count"] == 2
+
+
+def test_recorded_groups_empty_without_group_events():
+    canvas = Canvas()
+    canvas.add_stroke([(100, 100), (140, 100)])
+    result = analyze_ink(canvas, "recorded_groups")
+    assert result["group_count"] == 0
+    assert result["groups"] == []
+
+
+def test_recorded_groups_never_silently_truncate_membership():
+    canvas = Canvas()
+    members = [
+        canvas.add_stroke([(50 + 30 * i, 100), (70 + 30 * i, 100)]).id
+        for i in range(30)
+    ]
+    canvas.group(members, label="big")
+
+    result = analyze_ink(canvas, "recorded_groups", limit=6)
+
+    group = result["groups"][0]
+    # `limit` bounds groups, not members: even at limit=6 the member list is
+    # cut only at the 24-id cap, and the cut is declared, never silent.
+    assert len(group["member_ids"]) == 24
+    assert group["member_ids_truncated"] is True
+    assert group["size"] == 30

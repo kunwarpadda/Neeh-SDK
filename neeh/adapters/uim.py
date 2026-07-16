@@ -160,7 +160,13 @@ def document_to_uim(doc: Document) -> bytes:
         triples.append(SemanticTriple(page_node.uri, _BACKGROUND, page.background))
 
         for layer in page.layers:
-            layer_node = StrokeGroupNode(_node_uuid("layer", layer.id))
+            # Layer IDs are page-local in Neeh documents, while UIM node URIs
+            # must be unique across the whole model. Keep the public layer ID
+            # in the semantic triple below, but scope the internal node UUID to
+            # its page so common IDs such as ``ink`` can repeat safely.
+            layer_node = StrokeGroupNode(
+                _node_uuid("layer", f"{page.id}:{layer.id}")
+            )
             page_node.add(layer_node)
             triples.append(SemanticTriple(layer_node.uri, _TYPE, "layer"))
             triples.append(SemanticTriple(layer_node.uri, _ID, layer.id))

@@ -1,0 +1,47 @@
+{
+  "schema": "ink-analysis/v1",
+  "operation": "orientation",
+  "deterministic": true,
+  "claim_type": "measurement",
+  "source_stroke_count": 4,
+  "matched_stroke_count": 4,
+  "orientation": {
+    "angle_deg": 179.8,
+    "axis": "horizontal",
+    "axis_ratio": 98.21,
+    "reading_direction": "right",
+    "stroke_count": 4,
+    "point_count": 8,
+    "centroid": [
+      174.0,
+      300.5
+    ]
+  },
+  "strokes": [
+    {
+      "id": "st_row_0",
+      "angle_deg": 178.0,
+      "axis": "horizontal",
+      "direction": "right"
+    },
+    {
+      "id": "st_row_1",
+      "angle_deg": 178.0,
+      "axis": "horizontal",
+      "direction": "right"
+    },
+    {
+      "id": "st_row_2",
+      "angle_deg": 178.0,
+      "axis": "horizontal",
+      "direction": "right"
+    },
+    {
+      "id": "st_row_3",
+      "angle_deg": 178.0,
+      "axis": "horizontal",
+      "direction": "right"
+    }
+  ],
+  "truncated": false
+}

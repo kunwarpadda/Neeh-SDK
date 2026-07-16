@@ -100,3 +100,69 @@ def test_write_text_user_font_still_reserved():
             "write_text",
             {"text": "hi", "region": [0, 0, 100, 100], "style": "user_font"},
         )
+
+
+def test_rotation_by_90_makes_a_horizontal_line_vertical():
+    box = BoundingBox(200, 200, 600, 260)
+    flat, _ = layout_text("horizon", box, size=30, angle_deg=0)
+    turned, _ = layout_text("horizon", box, size=30, angle_deg=90)
+    fx = [x for x, _ in flatten(flat)]
+    fy = [y for _, y in flatten(flat)]
+    tx = [x for x, _ in flatten(turned)]
+    ty = [y for _, y in flatten(turned)]
+    # Flat text is much wider than tall; a 90-degree turn swaps that.
+    assert (max(fx) - min(fx)) > (max(fy) - min(fy))
+    assert (max(ty) - min(ty)) > (max(tx) - min(tx))
+
+
+def test_rotation_pivots_about_region_top_left():
+    box = BoundingBox(300, 300, 700, 360)
+    flat, _ = layout_text("abc", box, size=24, angle_deg=0)
+    turned, _ = layout_text("abc", box, size=24, angle_deg=37)
+    # The pivot (region top-left) is a fixed point of the rotation, so both
+    # layouts start their first glyph from the same neighborhood.
+    fp = flatten(flat)[0]
+    tp = flatten(turned)[0]
+    assert abs(fp[0] - tp[0]) < 30 and abs(fp[1] - tp[1]) < 30
+
+
+def test_rotation_preserves_ink_shape_lengths():
+    import math
+
+    box = BoundingBox(0, 0, 400, 80)
+    flat, _ = layout_text("x=2", box, size=24, angle_deg=0)
+    turned, _ = layout_text("x=2", box, size=24, angle_deg=90)
+
+    def total_len(polylines):
+        return sum(
+            math.hypot(b[0] - a[0], b[1] - a[1])
+            for pl in polylines for a, b in zip(pl, pl[1:])
+        )
+
+    assert total_len(flat) == pytest.approx(total_len(turned), rel=1e-6)
+
+
+def test_write_text_tool_accepts_angle_and_reports_it():
+    canvas = Canvas()
+    result = call_tool(
+        canvas,
+        "write_text",
+        {"text": "note", "region": [400, 400, 700, 460], "angle_deg": 90},
+    )
+    assert result["angle_deg"] == 90
+    assert result["stroke_ids"]
+    # The written strokes span more vertically than horizontally after the turn.
+    strokes = [s for s in canvas.page.all_strokes() if s.id in result["stroke_ids"]]
+    xs = [p.x for s in strokes for p in s.points]
+    ys = [p.y for s in strokes for p in s.points]
+    assert (max(ys) - min(ys)) > (max(xs) - min(xs))
+
+
+def test_write_text_rejects_out_of_range_angle():
+    canvas = Canvas()
+    with pytest.raises(Exception):
+        call_tool(
+            canvas,
+            "write_text",
+            {"text": "x", "region": [0, 0, 100, 40], "angle_deg": 270},
+        )

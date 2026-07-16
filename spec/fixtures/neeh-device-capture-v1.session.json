@@ -1,0 +1,204 @@
+{
+  "schema": "neeh-device-capture/v1",
+  "session": {
+    "id": "capture_device_fixture",
+    "name": "Device capture: correction and cross-out",
+    "started_at_ms": 1784000000000,
+    "ended_at_ms": 1784000001000
+  },
+  "device": {
+    "manufacturer": "Fixture Devices",
+    "model": "Stylus Test Tablet",
+    "android_version": "16",
+    "sdk_int": 36,
+    "pressure_available": true,
+    "tilt_available": true,
+    "orientation_available": true
+  },
+  "app": {
+    "name": "Device Recorder",
+    "package_name": "com.device.recorder",
+    "version_name": "fixture",
+    "version_code": 1,
+    "build_type": "research"
+  },
+  "coordinate_space": { "unit": "px", "origin": "top-left" },
+  "pages": [
+    { "id": "pg_notes", "index": 0, "width": 1200, "height": 1800, "background": "#fffdf5" },
+    { "id": "pg_more", "index": 1, "width": 1200, "height": 1800, "background": "#ffffff" }
+  ],
+  "events": [
+    {
+      "seq": 0, "event_id": "raw_keep_begin", "kind": "stroke_begin", "t_ms": 10,
+      "page_id": "pg_notes", "stroke_id": "st_keep", "layer_id": "ink",
+      "author": "user", "tool": "pen", "created_at_ms": 1784000000010,
+      "style": { "color_argb": "#FF202020", "width": 3.0 }
+    },
+    {
+      "seq": 1, "event_id": "raw_keep_p0", "kind": "stroke_sample", "t_ms": 10,
+      "page_id": "pg_notes", "stroke_id": "st_keep",
+      "point": { "x": 80, "y": 120, "t_ms": 0, "pressure": 0.4, "tilt_rad": 0.2, "orientation_rad": 0.1, "action": "down", "event_time_ms": 4000010 }
+    },
+    {
+      "seq": 2, "event_id": "raw_keep_p1", "kind": "stroke_sample", "t_ms": 25,
+      "page_id": "pg_notes", "stroke_id": "st_keep",
+      "point": { "x": 180, "y": 124, "t_ms": 15, "pressure": 0.7, "tilt_rad": 0.25, "orientation_rad": 0.15, "action": "up", "event_time_ms": 4000025 }
+    },
+    { "seq": 3, "event_id": "raw_keep_end", "kind": "stroke_end", "t_ms": 25, "page_id": "pg_notes", "stroke_id": "st_keep" },
+
+    {
+      "seq": 4, "event_id": "raw_erased_begin", "kind": "stroke_begin", "t_ms": 100,
+      "page_id": "pg_notes", "stroke_id": "st_erased", "layer_id": "ink",
+      "author": "user", "tool": "pen", "created_at_ms": 1784000000100,
+      "style": { "color_argb": "#FF202020", "width": 3.0 }
+    },
+    {
+      "seq": 5, "event_id": "raw_erased_p0", "kind": "stroke_sample", "t_ms": 100,
+      "page_id": "pg_notes", "stroke_id": "st_erased",
+      "point": { "x": 80, "y": 200, "t_ms": 0, "pressure": 0.45, "tilt_rad": 0.2, "orientation_rad": 0.1, "action": "down", "event_time_ms": 4000100 }
+    },
+    {
+      "seq": 6, "event_id": "raw_erased_p1", "kind": "stroke_sample", "t_ms": 120,
+      "page_id": "pg_notes", "stroke_id": "st_erased",
+      "point": { "x": 180, "y": 202, "t_ms": 20, "pressure": 0.65, "tilt_rad": 0.2, "orientation_rad": 0.1, "action": "up", "event_time_ms": 4000120 }
+    },
+    { "seq": 7, "event_id": "raw_erased_end", "kind": "stroke_end", "t_ms": 120, "page_id": "pg_notes", "stroke_id": "st_erased" },
+    {
+      "seq": 8, "event_id": "raw_erase", "kind": "stroke_delete", "t_ms": 150,
+      "page_id": "pg_notes", "reason": "eraser",
+      "removed": [
+        {
+          "stroke_id": "st_erased", "layer_id": "ink", "author": "user", "tool": "pen",
+          "created_at_ms": 1784000000100,
+          "style": { "color_argb": "#FF202020", "width": 3.0 },
+          "points": [
+            { "x": 80, "y": 200, "t_ms": 0, "pressure": 0.45, "tilt_rad": 0.2, "orientation_rad": 0.1, "action": "down", "event_time_ms": 4000100 },
+            { "x": 180, "y": 202, "t_ms": 20, "pressure": 0.65, "tilt_rad": 0.2, "orientation_rad": 0.1, "action": "up", "event_time_ms": 4000120 }
+          ]
+        }
+      ],
+      "added": []
+    },
+
+    {
+      "seq": 9, "event_id": "raw_rewrite_begin", "kind": "stroke_begin", "t_ms": 200,
+      "page_id": "pg_notes", "stroke_id": "st_rewrite", "layer_id": "ink",
+      "author": "user", "tool": "pen", "created_at_ms": 1784000000200,
+      "style": { "color_argb": "#FF202020", "width": 3.0 }
+    },
+    {
+      "seq": 10, "event_id": "raw_rewrite_p0", "kind": "stroke_sample", "t_ms": 200,
+      "page_id": "pg_notes", "stroke_id": "st_rewrite",
+      "point": { "x": 82, "y": 198, "t_ms": 0, "pressure": 0.5, "tilt_rad": 0.3, "orientation_rad": 0.2, "action": "down", "event_time_ms": 4000200 }
+    },
+    {
+      "seq": 11, "event_id": "raw_rewrite_p1", "kind": "stroke_sample", "t_ms": 220,
+      "page_id": "pg_notes", "stroke_id": "st_rewrite",
+      "point": { "x": 188, "y": 197, "t_ms": 20, "pressure": 0.75, "tilt_rad": 0.3, "orientation_rad": 0.2, "action": "up", "event_time_ms": 4000220 }
+    },
+    { "seq": 12, "event_id": "raw_rewrite_end", "kind": "stroke_end", "t_ms": 220, "page_id": "pg_notes", "stroke_id": "st_rewrite" },
+
+    {
+      "seq": 13, "event_id": "raw_crossed_begin", "kind": "stroke_begin", "t_ms": 300,
+      "page_id": "pg_notes", "stroke_id": "st_crossed", "layer_id": "ink",
+      "author": "user", "tool": "pen", "created_at_ms": 1784000000300,
+      "style": { "color_argb": "#FF202020", "width": 3.0 }
+    },
+    {
+      "seq": 14, "event_id": "raw_crossed_p0", "kind": "stroke_sample", "t_ms": 300,
+      "page_id": "pg_notes", "stroke_id": "st_crossed",
+      "point": { "x": 80, "y": 300, "t_ms": 0, "pressure": 0.5, "tilt_rad": 0.1, "orientation_rad": 0.0, "action": "down", "event_time_ms": 4000300 }
+    },
+    {
+      "seq": 15, "event_id": "raw_crossed_p1", "kind": "stroke_sample", "t_ms": 320,
+      "page_id": "pg_notes", "stroke_id": "st_crossed",
+      "point": { "x": 200, "y": 302, "t_ms": 20, "pressure": 0.6, "tilt_rad": 0.1, "orientation_rad": 0.0, "action": "up", "event_time_ms": 4000320 }
+    },
+    { "seq": 16, "event_id": "raw_crossed_end", "kind": "stroke_end", "t_ms": 320, "page_id": "pg_notes", "stroke_id": "st_crossed" },
+
+    {
+      "seq": 17, "event_id": "raw_crossout_begin", "kind": "stroke_begin", "t_ms": 350,
+      "page_id": "pg_notes", "stroke_id": "st_crossout", "layer_id": "ink",
+      "author": "user", "tool": "pen", "created_at_ms": 1784000000350,
+      "style": { "color_argb": "#FFB00020", "width": 4.0 }
+    },
+    {
+      "seq": 18, "event_id": "raw_crossout_p0", "kind": "stroke_sample", "t_ms": 350,
+      "page_id": "pg_notes", "stroke_id": "st_crossout",
+      "point": { "x": 70, "y": 315, "t_ms": 0, "pressure": 0.7, "tilt_rad": 0.15, "orientation_rad": 0.0, "action": "down", "event_time_ms": 4000350 }
+    },
+    {
+      "seq": 19, "event_id": "raw_crossout_p1", "kind": "stroke_sample", "t_ms": 370,
+      "page_id": "pg_notes", "stroke_id": "st_crossout",
+      "point": { "x": 210, "y": 288, "t_ms": 20, "pressure": 0.8, "tilt_rad": 0.15, "orientation_rad": 0.0, "action": "up", "event_time_ms": 4000370 }
+    },
+    { "seq": 20, "event_id": "raw_crossout_end", "kind": "stroke_end", "t_ms": 370, "page_id": "pg_notes", "stroke_id": "st_crossout" },
+
+    {
+      "seq": 21, "event_id": "raw_undo_rewrite", "kind": "undo", "t_ms": 400,
+      "page_id": "pg_notes", "target_event_id": "raw_rewrite_end",
+      "removed": [
+        {
+          "stroke_id": "st_rewrite", "layer_id": "ink", "author": "user", "tool": "pen",
+          "created_at_ms": 1784000000200,
+          "style": { "color_argb": "#FF202020", "width": 3.0 },
+          "points": [
+            { "x": 82, "y": 198, "t_ms": 0, "pressure": 0.5, "tilt_rad": 0.3, "orientation_rad": 0.2, "action": "down", "event_time_ms": 4000200 },
+            { "x": 188, "y": 197, "t_ms": 20, "pressure": 0.75, "tilt_rad": 0.3, "orientation_rad": 0.2, "action": "up", "event_time_ms": 4000220 }
+          ]
+        }
+      ],
+      "added": []
+    },
+    {
+      "seq": 22, "event_id": "raw_redo_rewrite", "kind": "redo", "t_ms": 450,
+      "page_id": "pg_notes", "target_event_id": "raw_rewrite_end",
+      "removed": [],
+      "added": [
+        {
+          "stroke_id": "st_rewrite", "layer_id": "ink", "author": "user", "tool": "pen",
+          "created_at_ms": 1784000000200,
+          "style": { "color_argb": "#FF202020", "width": 3.0 },
+          "points": [
+            { "x": 82, "y": 198, "t_ms": 0, "pressure": 0.5, "tilt_rad": 0.3, "orientation_rad": 0.2, "action": "down", "event_time_ms": 4000200 },
+            { "x": 188, "y": 197, "t_ms": 20, "pressure": 0.75, "tilt_rad": 0.3, "orientation_rad": 0.2, "action": "up", "event_time_ms": 4000220 }
+          ]
+        }
+      ]
+    },
+
+    {
+      "seq": 23, "event_id": "raw_page_create", "kind": "page_create", "t_ms": 500,
+      "page_id": "pg_more",
+      "page": { "id": "pg_more", "index": 1, "width": 1200, "height": 1800, "background": "#ffffff" }
+    },
+    {
+      "seq": 24, "event_id": "raw_page_change", "kind": "page_change", "t_ms": 510,
+      "page_id": "pg_more", "from_page_id": "pg_notes", "to_page_id": "pg_more"
+    },
+    {
+      "seq": 25, "event_id": "raw_page2_begin", "kind": "stroke_begin", "t_ms": 520,
+      "page_id": "pg_more", "stroke_id": "st_page2", "layer_id": "ink",
+      "author": "app", "tool": "generated", "created_at_ms": 1784000000520,
+      "style": { "color_argb": "#CC0057B8", "width": 5.0 }
+    },
+    {
+      "seq": 26, "event_id": "raw_page2_p0", "kind": "stroke_sample", "t_ms": 520,
+      "page_id": "pg_more", "stroke_id": "st_page2",
+      "point": { "x": 100, "y": 100, "t_ms": 0, "pressure": 0.5, "tilt_rad": 0.0, "orientation_rad": 0.0, "action": 0, "event_time_ms": 4000520 }
+    },
+    {
+      "seq": 27, "event_id": "raw_page2_p1", "kind": "stroke_sample", "t_ms": 540,
+      "page_id": "pg_more", "stroke_id": "st_page2",
+      "point": { "x": 220, "y": 180, "t_ms": 20, "pressure": 0.5, "tilt_rad": 0.0, "orientation_rad": 0.0, "action": 1, "event_time_ms": 4000540 }
+    },
+    { "seq": 28, "event_id": "raw_page2_end", "kind": "stroke_end", "t_ms": 540, "page_id": "pg_more", "stroke_id": "st_page2" }
+  ],
+  "ground_truth": {
+    "visible_stroke_ids": ["st_keep", "st_rewrite", "st_crossed", "st_crossout", "st_page2"],
+    "erased_stroke_ids": ["st_erased"],
+    "cross_out_target_ids": ["st_crossed"],
+    "cross_out_mark_ids": ["st_crossout"],
+    "restored_stroke_ids": ["st_rewrite"]
+  }
+}

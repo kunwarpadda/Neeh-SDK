@@ -1,0 +1,26 @@
+{
+  "schema": "ink-analysis/v1",
+  "operation": "recorded_groups",
+  "deterministic": true,
+  "claim_type": "measurement",
+  "source_stroke_count": 3,
+  "matched_stroke_count": 2,
+  "groups": [
+    {
+      "group_id": "grp_equation",
+      "label": "equation",
+      "member_ids": [
+        "st_eq_top",
+        "st_eq_bottom"
+      ],
+      "member_ids_truncated": false,
+      "size": 2,
+      "members_on_page": 2,
+      "provenance": {
+        "measured_from": "event log group membership"
+      }
+    }
+  ],
+  "group_count": 1,
+  "truncated": false
+}

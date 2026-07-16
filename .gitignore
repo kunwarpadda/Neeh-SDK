@@ -8,7 +8,15 @@ build/
 /cmake-build-*/
 *.egg-info/
 .DS_Store
-/research/
+
+# Local research artifacts remain private; only the device recording protocol
+# is repository documentation.
+/research/*
+!/research/data/
+/research/data/*
+!/research/data/device/
+/research/data/device/*
+!/research/data/device/RECORDING.md
 
 # Local credentials and private signing material
 .env

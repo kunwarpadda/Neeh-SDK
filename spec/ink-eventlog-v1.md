@@ -9,7 +9,8 @@ yet part of stable protocol discovery.
 Undo/redo is a *mutable* stack: it pops on undo and discards the redo branch on
 the next edit, so it cannot answer "what was here before I erased it?". The
 event log is the immutable complement. Every mutation that flows through the
-editing history -- add, erase, move, restyle, group, agent action, undo, redo --
+editing history -- add, erase, move, restyle, group, page lifecycle, agent
+action, undo, redo --
 is appended as one `DocumentEvent` and never removed. Because each event carries
 the exact strokes it removed and added (strokes are immutable snapshots), erased
 and replaced ink stays fully recoverable.
@@ -20,8 +21,11 @@ Each event has:
 
 - `seq`: monotonically increasing sequence number, never reused;
 - `event_id`: stable `evt_*` id;
-- `kind`: one of `add`, `erase`, `move`, `restyle`, `group`, `agent`, `undo`,
-  `redo` (the finer-grained edit `label` is kept verbatim);
+- `kind`: one of `add`, `erase`, `move`, `restyle`, `group`, `page`, `agent`,
+  `undo`, `redo` (the finer-grained edit `label` is kept verbatim). Device
+  imports map page creation, deletion, and navigation to `kind=page`, preserve
+  the original operation in `label`, and retain its descriptor/transition in
+  `meta`;
 - `page_id` and `at_ms`;
 - `removed_ids` / `added_ids`: the strokes actually removed and added at that
   step. Undo records the inverse effect of the edit it reverts; redo re-records

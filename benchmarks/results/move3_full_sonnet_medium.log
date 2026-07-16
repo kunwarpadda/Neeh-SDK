@@ -1,0 +1,444 @@
+live sweep: 354 calls planned, 6 already in ledger (claude/claude-sonnet-5, arms=['raster-only', 'raster+geometry', 'index-only', 'active-index', 'marked-index', 'analyzer-first'])
+  latest_1|raster-only|claude|claude-sonnet-5|seed0: ok
+  latest_2|raster-only|claude|claude-sonnet-5|seed0: ok
+  latest_3|raster-only|claude|claude-sonnet-5|seed0: ok
+  latest_4|raster-only|claude|claude-sonnet-5|seed0: ok
+  latest_5|raster-only|claude|claude-sonnet-5|seed0: ok
+  crossout_0|raster-only|claude|claude-sonnet-5|seed0: ok
+  crossout_1|raster-only|claude|claude-sonnet-5|seed0: ok
+  crossout_2|raster-only|claude|claude-sonnet-5|seed0: ok
+  crossout_3|raster-only|claude|claude-sonnet-5|seed0: ok
+  crossout_4|raster-only|claude|claude-sonnet-5|seed0: ok
+  crossout_5|raster-only|claude|claude-sonnet-5|seed0: ok
+  group_0|raster-only|claude|claude-sonnet-5|seed0: ok
+  group_1|raster-only|claude|claude-sonnet-5|seed0: ok
+  group_2|raster-only|claude|claude-sonnet-5|seed0: ok
+  group_3|raster-only|claude|claude-sonnet-5|seed0: ok
+  group_4|raster-only|claude|claude-sonnet-5|seed0: ok
+  group_5|raster-only|claude|claude-sonnet-5|seed0: ok
+  recent_0|raster-only|claude|claude-sonnet-5|seed0: ok
+  recent_1|raster-only|claude|claude-sonnet-5|seed0: ok
+  recent_2|raster-only|claude|claude-sonnet-5|seed0: ok
+  recent_3|raster-only|claude|claude-sonnet-5|seed0: ok
+  recent_4|raster-only|claude|claude-sonnet-5|seed0: ok
+  recent_5|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: e":"success","is_error":true,"api_error_status":429,"dura)
+  mw_latest_0|raster-only|claude|claude-sonnet-5|seed0: ok
+  mw_latest_1|raster-only|claude|claude-sonnet-5|seed0: ok
+  mw_latest_2|raster-only|claude|claude-sonnet-5|seed0: ok
+  mw_latest_3|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_4|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_5|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_0|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_1|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_2|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_3|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_4|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_5|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_1|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_2|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_3|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_4|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_5|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_0|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_1|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_2|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_3|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_4|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_5|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_0|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_1|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_2|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_3|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_4|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_5|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_0|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_1|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_2|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_3|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_4|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_5|raster-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_0|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_1|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_2|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_3|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_4|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_5|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_0|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_1|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_2|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_3|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_4|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_5|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_0|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_1|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_2|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_3|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_4|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_5|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_0|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_1|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_2|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_3|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_4|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_5|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_0|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_1|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_2|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_3|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_4|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_5|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_0|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_1|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_2|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_3|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_4|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_5|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_0|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_1|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_2|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_3|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_4|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_5|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_0|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_1|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_2|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_3|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_4|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_5|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_0|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_1|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_2|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_3|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_4|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_5|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_0|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_1|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_2|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_3|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_4|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_5|raster+geometry|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_1|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_2|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_3|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_4|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_5|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_0|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_1|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_2|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_3|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_4|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_5|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_0|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_1|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_2|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_3|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_4|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_5|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_0|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_1|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_2|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_3|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_4|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_5|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_0|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_1|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_2|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_3|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_4|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_5|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_0|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_1|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_2|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_3|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_4|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_5|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_1|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_2|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_3|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_4|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_5|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_0|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_1|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_2|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_3|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_4|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_5|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_0|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_1|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_2|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_3|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_4|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_5|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_0|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_1|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_2|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_3|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_4|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_5|index-only|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_0|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_1|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_2|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_3|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_4|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_5|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_0|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_1|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_2|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_3|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_4|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_5|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_0|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_1|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_2|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_3|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_4|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_5|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_0|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_1|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_2|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_3|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_4|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_5|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_0|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_1|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_2|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_3|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_4|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_5|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_0|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_1|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_2|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_3|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_4|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_5|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_0|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_1|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_2|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_3|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_4|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_5|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_0|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_1|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_2|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_3|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_4|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_5|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_0|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_1|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_2|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_3|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_4|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_5|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_0|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_1|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_2|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_3|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_4|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_5|active-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_0|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_1|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_2|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_3|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_4|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_5|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_0|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_1|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_2|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_3|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_4|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_5|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_0|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_1|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_2|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_3|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_4|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_5|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_0|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_1|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_2|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_3|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_4|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_5|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_0|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_1|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_2|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_3|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_4|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_5|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_0|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_1|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_2|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_3|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_4|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_5|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_0|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_1|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_2|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_3|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_4|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_5|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_0|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_1|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_2|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_3|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_4|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_5|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_0|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_1|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_2|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_3|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_4|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_5|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_0|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_1|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_2|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_3|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_4|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_5|marked-index|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_1|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_2|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_3|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_4|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  latest_5|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_0|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_1|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_2|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_3|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_4|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  crossout_5|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_0|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_1|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_2|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_3|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_4|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  group_5|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_0|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_1|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_2|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_3|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_4|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  recent_5|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_0|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_1|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_2|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_3|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_4|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_latest_5|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_0|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_1|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_2|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_3|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_4|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_crossout_5|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_1|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_2|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_3|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_4|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_erased_5|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_0|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_1|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_2|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_3|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_4|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_group_5|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_0|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_1|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_2|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_3|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_4|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_recent_5|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_0|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_1|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_2|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_3|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_4|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+  mw_annotate_5|analyzer-first|claude|claude-sonnet-5|seed0: error (ModelUnavailableError: {"type":"result","subtype":"success","is_error":true,"api)
+{
+  "summary": {
+    "raster-only": {
+      "n_ok": 27,
+      "n_error": 33,
+      "accuracy": 0.0,
+      "abstention_rate": 1.0,
+      "false_explanation_rate": 0.0,
+      "mean_estimated_tokens": 1034,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 733555,
+      "mean_latency_s": 5.18,
+      "accuracy_by_kind": {
+        "crossed_out": 0.0,
+        "grouping": 0.0,
+        "latest_mark": 0.0,
+        "mw_erased_rewrite": 0.0,
+        "mw_latest_symbol": 0.0,
+        "recent_change": 0.0
+      }
+    },
+    "raster+geometry": {
+      "n_ok": 0,
+      "n_error": 60,
+      "accuracy": null,
+      "abstention_rate": null,
+      "false_explanation_rate": null,
+      "mean_estimated_tokens": null,
+      "mean_retrieval_calls": null,
+      "mean_raster_pixels": null,
+      "mean_latency_s": null,
+      "accuracy_by_kind": {}
+    },
+    "index-only": {
+      "n_ok": 2,
+      "n_error": 58,
+      "accuracy": 1.0,
+      "abstention_rate": 0.0,
+      "false_explanation_rate": 0.0,
+      "mean_estimated_tokens": 922,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 0,
+      "mean_latency_s": 5.74,
+      "accuracy_by_kind": {
+        "latest_mark": 1.0,
+        "mw_erased_rewrite": 1.0
+      }
+    },
+    "active-index": {
+      "n_ok": 0,
+      "n_error": 60,
+      "accuracy": null,
+      "abstention_rate": null,
+      "false_explanation_rate": null,
+      "mean_estimated_tokens": null,
+      "mean_retrieval_calls": null,
+      "mean_raster_pixels": null,
+      "mean_latency_s": null,
+      "accuracy_by_kind": {}
+    },
+    "marked-index": {
+      "n_ok": 0,
+      "n_error": 60,
+      "accuracy": null,
+      "abstention_rate": null,
+      "false_explanation_rate": null,
+      "mean_estimated_tokens": null,
+      "mean_retrieval_calls": null,
+      "mean_raster_pixels": null,
+      "mean_latency_s": null,
+      "accuracy_by_kind": {}
+    },
+    "analyzer-first": {
+      "n_ok": 2,
+      "n_error": 58,
+      "accuracy": 1.0,
+      "abstention_rate": 0.0,
+      "false_explanation_rate": 0.0,
+      "mean_estimated_tokens": 1494,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 0,
+      "mean_latency_s": 5.25,
+      "accuracy_by_kind": {
+        "latest_mark": 1.0,
+        "mw_erased_rewrite": 1.0
+      }
+    }
+  }
+}

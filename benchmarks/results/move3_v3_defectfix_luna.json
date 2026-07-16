@@ -1,0 +1,84 @@
+{
+  "agent": "codex",
+  "model": "gpt-5.6-luna",
+  "seed": 0,
+  "kinds": [
+    "grouping",
+    "mw_grouping",
+    "recent_change",
+    "mw_recent_change",
+    "mw_erased_rewrite"
+  ],
+  "per_kind": 6,
+  "arms": [
+    "index-only",
+    "active-index",
+    "analyzer-first"
+  ],
+  "calls_made": 0,
+  "rows_scored": 90,
+  "adversarial": {
+    "question_leaks": [],
+    "leak_free": true,
+    "balance": {},
+    "label_contamination": [],
+    "labels_disjoint_from_answers": true
+  },
+  "summary": {
+    "index-only": {
+      "n_ok": 30,
+      "n_error": 0,
+      "accuracy": 0.733,
+      "abstention_rate": 0.0,
+      "false_explanation_rate": 0.267,
+      "mean_estimated_tokens": 800,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 0,
+      "mean_latency_s": 6.17,
+      "accuracy_by_kind": {
+        "grouping": 1.0,
+        "mw_erased_rewrite": 1.0,
+        "mw_grouping": 1.0,
+        "mw_recent_change": 0.667,
+        "recent_change": 0.0
+      }
+    },
+    "active-index": {
+      "n_ok": 30,
+      "n_error": 0,
+      "accuracy": 0.667,
+      "abstention_rate": 0.067,
+      "false_explanation_rate": 0.267,
+      "mean_estimated_tokens": 1430,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 0,
+      "mean_latency_s": 6.49,
+      "accuracy_by_kind": {
+        "grouping": 1.0,
+        "mw_erased_rewrite": 1.0,
+        "mw_grouping": 1.0,
+        "mw_recent_change": 0.167,
+        "recent_change": 0.167
+      }
+    },
+    "analyzer-first": {
+      "n_ok": 30,
+      "n_error": 0,
+      "accuracy": 0.967,
+      "abstention_rate": 0.0,
+      "false_explanation_rate": 0.033,
+      "mean_estimated_tokens": 1440,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 0,
+      "mean_latency_s": 6.14,
+      "accuracy_by_kind": {
+        "grouping": 1.0,
+        "mw_erased_rewrite": 1.0,
+        "mw_grouping": 1.0,
+        "mw_recent_change": 0.833,
+        "recent_change": 1.0
+      }
+    }
+  },
+  "reasoning_effort": "high"
+}

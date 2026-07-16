@@ -180,3 +180,49 @@ def test_stdio_mcp_rejects_oversized_line_without_crashing(tmp_path):
     assert "byte limit" in responses[0]["error"]["message"]
     # the server kept running and answered the next, well-formed request
     assert responses[1]["result"]["serverInfo"]["name"] == "neeh-iai"
+
+
+def test_intent_routing_reads_history_and_recorded_groups_exactly():
+    canvas = Canvas()
+    a = canvas.add_stroke([(100, 100), (160, 100)], author=Author.USER)
+    b = canvas.add_stroke([(100, 200), (160, 200)], author=Author.USER)
+    c = canvas.add_stroke([(400, 400), (460, 400)], author=Author.USER)
+    group_id = canvas.group([a.id, b.id], label="pair")
+    canvas.erase([c.id])
+    rewrite = canvas.add_stroke([(404, 404), (466, 404)], author=Author.USER)
+    canvas.move(9, 9, stroke_ids=[a.id])
+
+    # "erased" routes to event-log-backed revisions; the erase and its rewrite
+    # arrive as the top-ranked, confidence-1.0 entry.
+    erased = build_observation_workspace(canvas, "which stroke id was erased?")["analysis"]
+    assert erased["task"] == "revisions"
+    top = erased["revisions"][0]
+    assert top["kind"] == "erase_rewrite"
+    assert top["target_ids"] == [c.id]
+    assert top["by_ids"] == [rewrite.id]
+    assert top["confidence"] == 1.0
+
+    # "changed most recently" is about modification history, so it must not be
+    # shadowed by the latest_mark intent ("...most recent..."): the answer is
+    # the moved stroke, which no drawing-time measure can see.
+    changed = build_observation_workspace(
+        canvas, "which stroke id was changed most recently?"
+    )["analysis"]
+    assert changed["task"] == "recent_changes"
+    assert changed["changes"][0]["id"] == a.id
+    assert changed["changes"][0]["change"] == "move"
+
+    # Group questions read recorded membership, never a spatial guess, when
+    # the log has groups.
+    groups = build_observation_workspace(
+        canvas, f"which stroke ids belong to group {group_id}?"
+    )["analysis"]
+    assert groups["operation"] == "recorded_groups"
+    assert groups["groups"][0]["member_ids"] == [a.id, b.id]
+
+    # ...and recorded membership rides in the static page map for every
+    # policy, including index-only, which has no perception actions.
+    workspace = build_observation_workspace(canvas, "hello", policy="index-only")
+    page_groups = workspace["page_map"]["groups"]
+    assert page_groups[0]["group_id"] == group_id
+    assert page_groups[0]["member_ids"] == [a.id, b.id]

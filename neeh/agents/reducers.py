@@ -15,9 +15,9 @@ from neeh.canvas import Canvas
 from neeh.ink import BoundingBox
 from neeh.agents.analyzers import (
     ANALYSIS_VERSION,
+    _content_margin,
     _endpoints,
     _point_to_polyline_distance,
-    _proximity_margin,
     _records,
     analyze_ink,
 )
@@ -79,7 +79,7 @@ def reduce_ink(
     }
 
     if task == "recent_changes":
-        return _recent_changes(envelope, records, since_ms, limit)
+        return _recent_changes(envelope, canvas, records, region, since_ms, limit)
     if task == "overwritten_ink":
         return _overwritten_ink(envelope, records, limit)
     if task == "revisions":
@@ -89,12 +89,93 @@ def reduce_ink(
     return _page_summary(envelope, canvas, records, region)
 
 
+# Event kinds that change a stroke's state. Group membership and page
+# lifecycle are relations, not stroke changes, so they are excluded here.
+_CHANGE_EVENT_KINDS = frozenset(("add", "erase", "move", "restyle", "undo", "redo", "agent"))
+
+
+def _log_change_entries(
+    canvas: Canvas, region: Optional[Sequence[float]]
+) -> list[dict[str, Any]]:
+    """The last event-log change per stroke on the current page, newest first.
+
+    Reading the log (not stroke geometry) is what makes a *move* or an *erase*
+    count as the most recent change: a moved stroke keeps its original
+    created_at/point times, and an erased stroke is no longer on the page at
+    all, so both are invisible to a created-at sort over live strokes.
+    """
+    page_id = canvas.page.id
+    box = None if region is None else BoundingBox.from_list([float(v) for v in region])
+    latest: dict[str, dict[str, Any]] = {}
+    for event in canvas.events.events:
+        if event.page_id != page_id or event.kind not in _CHANGE_EVENT_KINDS:
+            continue
+        for _layer_id, stroke in event.removed + event.added:
+            if box is not None and not box.intersects(stroke.bbox):
+                continue
+            latest[stroke.id] = {
+                "id": stroke.id,
+                "changed_ms": event.at_ms,
+                "change": event.kind,
+                "seq": event.seq,
+                "bbox": stroke.bbox,
+            }
+    if not latest:
+        return []
+    live = {s.id for layer in canvas.page.layers for s in layer.strokes}
+    entries = sorted(latest.values(), key=lambda e: (e["changed_ms"], e["seq"]), reverse=True)
+    for entry in entries:
+        entry["visible"] = entry["id"] in live
+    return entries
+
+
 def _recent_changes(
     envelope: dict[str, Any],
+    canvas: Canvas,
     records: list[dict[str, Any]],
+    region: Optional[Sequence[float]],
     since_ms: Optional[int],
     limit: int,
 ) -> dict[str, Any]:
+    entries = _log_change_entries(canvas, region)
+    if entries:
+        considered = (
+            entries if since_ms is None
+            else [e for e in entries if e["changed_ms"] >= since_ms]
+        )
+        latest_ms = considered[0]["changed_ms"] if considered else None
+        top = considered[:limit]
+        changes = []
+        for entry in top:
+            cx, cy = entry["bbox"].center
+            changes.append({
+                "id": entry["id"],
+                "changed_ms": entry["changed_ms"],
+                # The log's sequence number is the authoritative total order:
+                # wall-clock changed_ms can tie (batch edits, ms resolution),
+                # and without seq a consumer has no evidence that the first
+                # entry really is the newest change rather than a tie.
+                "seq": entry["seq"],
+                "change": entry["change"],
+                "visible": entry["visible"],
+                "ms_since_latest": (
+                    latest_ms - entry["changed_ms"] if latest_ms is not None else None
+                ),
+                "center": [round(cx, 2), round(cy, 2)],
+                "bbox": [round(v, 2) for v in entry["bbox"].to_list()],
+            })
+        return {
+            **envelope,
+            "latest_ms": latest_ms,
+            "since_ms": since_ms,
+            "measured_from": "event log",
+            "order": "newest change first, by event-log sequence (seq breaks changed_ms ties)",
+            "changes": changes,
+            "truncated": len(considered) > len(top),
+        }
+
+    # No event log (e.g. strokes added straight onto layers): fall back to the
+    # geometric view -- most recently *ended* strokes, newest first.
     considered = records
     if since_ms is not None:
         considered = [record for record in records if record["end_ms"] >= since_ms]
@@ -117,6 +198,7 @@ def _recent_changes(
         **envelope,
         "latest_ms": latest_ms,
         "since_ms": since_ms,
+        "measured_from": "stroke end times",
         "changes": changes,
         "truncated": len(considered) > len(top),
     }
@@ -178,6 +260,63 @@ def _overwritten_ink(
     }
 
 
+def _log_revisions(
+    canvas: Canvas,
+    records: list[dict[str, Any]],
+    region: Optional[Sequence[float]],
+) -> list[dict[str, Any]]:
+    """Erase and erase-then-rewrite revisions read straight off the event log.
+
+    These are exact history facts (confidence 1.0), so they rank above the
+    geometric overwrite/cross-out inferences: an erase followed by fresh ink
+    written near the erased stroke's location is the strongest revision
+    evidence a page can carry, and it is exactly the case a final-page
+    geometric view can never see -- the erased stroke is gone.
+    """
+    page_id = canvas.page.id
+    box = None if region is None else BoundingBox.from_list([float(v) for v in region])
+    events = list(canvas.events.events)
+    live = {s.id for layer in canvas.page.layers for s in layer.strokes}
+    margin = _content_margin(records, 0.04) if records else 0.0
+    entries: list[dict[str, Any]] = []
+    for index, event in enumerate(events):
+        if event.page_id != page_id or event.kind != "erase":
+            continue
+        for _layer_id, erased in event.removed:
+            if box is not None and not box.intersects(erased.bbox):
+                continue
+            search = erased.bbox.expanded(margin)
+            rewrite_ids: list[str] = []
+            rewrite_event_id = None
+            for later in events[index + 1:]:
+                if later.page_id != page_id or later.kind != "add":
+                    continue
+                near = [
+                    stroke.id for _l, stroke in later.added
+                    if stroke.id != erased.id and stroke.bbox.intersects(search)
+                ]
+                if near:
+                    rewrite_ids = near
+                    rewrite_event_id = later.event_id
+                    break
+            provenance = {
+                "event_id": event.event_id,
+                "at_ms": event.at_ms,
+                "measured_from": "event log erase",
+            }
+            if rewrite_event_id is not None:
+                provenance["rewrite_event_id"] = rewrite_event_id
+            entries.append({
+                "kind": "erase_rewrite" if rewrite_ids else "erase",
+                "by_ids": rewrite_ids,
+                "target_ids": [erased.id],
+                "target_visible": erased.id in live,
+                "confidence": 1.0,
+                "provenance": provenance,
+            })
+    return entries
+
+
 def _revisions(
     envelope: dict[str, Any],
     canvas: Canvas,
@@ -185,7 +324,7 @@ def _revisions(
     region: Optional[Sequence[float]],
     limit: int,
 ) -> dict[str, Any]:
-    revisions: list[dict[str, Any]] = []
+    revisions: list[dict[str, Any]] = list(_log_revisions(canvas, records, region))
     for pair in _overwrite_pairs(records):
         revisions.append({
             "kind": "overwrite",
@@ -227,7 +366,7 @@ def _ambiguous_connectors(
     strokes_by_id: dict[str, Any],
     limit: int,
 ) -> dict[str, Any]:
-    margin = _proximity_margin(canvas, 0.04)
+    margin = _content_margin(records, 0.04)
     near_tie = margin * 0.25
     ids = [record["id"] for record in records]
     found = []
@@ -295,6 +434,7 @@ def _page_summary(
         BoundingBox.from_list(record["bbox"]) for record in records
     )
     groups = analyze_ink(canvas, "grouping_candidates", region=region, limit=8)
+    recorded = analyze_ink(canvas, "recorded_groups", region=region, limit=8)
     return {
         **envelope,
         "stroke_count": len(records),
@@ -303,6 +443,16 @@ def _page_summary(
         "last_ms": last_ms,
         "time_span_ms": last_ms - first_ms,
         "page_bbox": [round(v, 2) for v in page_bbox.to_list()],
+        "recorded_group_count": recorded["group_count"],
+        "recorded_groups": [
+            {
+                "group_id": group["group_id"],
+                "label": group["label"],
+                "member_ids": group["member_ids"],
+                "size": group["size"],
+            }
+            for group in recorded["groups"]
+        ],
         "group_count": groups["group_count"],
         "groups": [
             {"member_ids": group["member_ids"], "bbox": group["bbox"], "confidence": group["confidence"]}

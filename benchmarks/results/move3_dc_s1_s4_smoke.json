@@ -1,0 +1,72 @@
+{
+  "agent": "codex",
+  "model": "gpt-5.6-luna",
+  "seed": 0,
+  "kinds": [
+    "dc_erased_ink",
+    "dc_recent_change"
+  ],
+  "per_kind": 4,
+  "arms": [
+    "raster-only",
+    "index-only",
+    "analyzer-first"
+  ],
+  "calls_made": 18,
+  "rows_scored": 24,
+  "adversarial": {
+    "question_leaks": [],
+    "leak_free": true,
+    "balance": {},
+    "label_contamination": [],
+    "labels_disjoint_from_answers": true
+  },
+  "summary": {
+    "raster-only": {
+      "n_ok": 8,
+      "n_error": 0,
+      "accuracy": 0.0,
+      "abstention_rate": 1.0,
+      "false_explanation_rate": 0.0,
+      "mean_estimated_tokens": 4841,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 3584257,
+      "mean_latency_s": 8.47,
+      "accuracy_by_kind": {
+        "dc_erased_ink": 0.0,
+        "dc_recent_change": 0.0
+      }
+    },
+    "index-only": {
+      "n_ok": 8,
+      "n_error": 0,
+      "accuracy": 0.25,
+      "abstention_rate": 0.5,
+      "false_explanation_rate": 0.25,
+      "mean_estimated_tokens": 1478,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 0,
+      "mean_latency_s": 8.53,
+      "accuracy_by_kind": {
+        "dc_erased_ink": 0.0,
+        "dc_recent_change": 0.5
+      }
+    },
+    "analyzer-first": {
+      "n_ok": 8,
+      "n_error": 0,
+      "accuracy": 0.5,
+      "abstention_rate": 0.25,
+      "false_explanation_rate": 0.25,
+      "mean_estimated_tokens": 1482,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 0,
+      "mean_latency_s": 21.15,
+      "accuracy_by_kind": {
+        "dc_erased_ink": 0.0,
+        "dc_recent_change": 1.0
+      }
+    }
+  },
+  "reasoning_effort": "high"
+}

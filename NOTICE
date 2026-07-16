@@ -6,3 +6,9 @@ Licensed under the Apache License, Version 2.0; see LICENSE for the full text.
 
 This product includes third-party data. See THIRD_PARTY_NOTICES for required
 acknowledgements and attribution.
+
+Neeh brand notice
+-----------------
+The Neeh name and logomark are reserved brand/trademark material. The
+Apache-2.0 license applies to the SDK source code and does not grant rights to
+publish an app or product under the Neeh marks. See docs/brand/README.md.

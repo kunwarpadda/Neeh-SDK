@@ -28,6 +28,7 @@ _PROTOCOL_VERSIONS: Final = {
 # for stability commitments; each graduates to the stable manifest once its
 # fixtures have held across a release.
 _EXPERIMENTAL_PROTOCOL_VERSIONS: Final = {
+    "device_capture": "neeh-device-capture/v1",
     "ink_analysis": "ink-analysis/v1",
     "ink_eventlog": "ink-eventlog/v1",
     "ink_timeline": "ink-timeline/v1",

@@ -21,7 +21,7 @@
           "seq": { "type": "integer", "minimum": 0 },
           "event_id": { "type": "string" },
           "kind": {
-            "enum": ["add", "erase", "move", "restyle", "group", "agent", "undo", "redo"]
+            "enum": ["add", "erase", "move", "restyle", "group", "page", "agent", "undo", "redo"]
           },
           "label": { "type": "string" },
           "page_id": { "type": "string" },

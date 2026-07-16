@@ -1,0 +1,269 @@
+{
+  "rows": 360,
+  "agent": "codex",
+  "kinds": [
+    "crossed_out",
+    "grouping",
+    "latest_mark",
+    "mw_annotate_crossed",
+    "mw_crossed_out",
+    "mw_erased_rewrite",
+    "mw_grouping",
+    "mw_latest_symbol",
+    "mw_recent_change",
+    "recent_change"
+  ],
+  "summary": {
+    "raster-only": {
+      "n_ok": 60,
+      "n_error": 0,
+      "accuracy": 0.0,
+      "abstention_rate": 1.0,
+      "false_explanation_rate": 0.0,
+      "mean_estimated_tokens": 1019,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 724607,
+      "mean_latency_s": 8.59,
+      "action": {
+        "n": 6,
+        "target_accuracy": 0.0,
+        "repair_attempted": 2,
+        "repair_success": 2
+      },
+      "accuracy_by_kind": {
+        "crossed_out": 0.0,
+        "grouping": 0.0,
+        "latest_mark": 0.0,
+        "mw_crossed_out": 0.0,
+        "mw_erased_rewrite": 0.0,
+        "mw_grouping": 0.0,
+        "mw_latest_symbol": 0.0,
+        "mw_recent_change": 0.0,
+        "recent_change": 0.0
+      }
+    },
+    "raster+geometry": {
+      "n_ok": 60,
+      "n_error": 0,
+      "accuracy": 0.296,
+      "abstention_rate": 0.667,
+      "false_explanation_rate": 0.037,
+      "mean_estimated_tokens": 1019,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 724607,
+      "mean_latency_s": 11.36,
+      "action": {
+        "n": 6,
+        "target_accuracy": 0.167,
+        "repair_attempted": 2,
+        "repair_success": 2
+      },
+      "accuracy_by_kind": {
+        "crossed_out": 1.0,
+        "grouping": 0.667,
+        "latest_mark": 0.167,
+        "mw_crossed_out": 0.833,
+        "mw_erased_rewrite": 0.0,
+        "mw_grouping": 0.0,
+        "mw_latest_symbol": 0.0,
+        "mw_recent_change": 0.0,
+        "recent_change": 0.0
+      }
+    },
+    "index-only": {
+      "n_ok": 60,
+      "n_error": 0,
+      "accuracy": 0.667,
+      "abstention_rate": 0.222,
+      "false_explanation_rate": 0.111,
+      "mean_estimated_tokens": 717,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 0,
+      "mean_latency_s": 6.61,
+      "action": {
+        "n": 6,
+        "target_accuracy": 0.833,
+        "repair_attempted": 1,
+        "repair_success": 1
+      },
+      "accuracy_by_kind": {
+        "crossed_out": 1.0,
+        "grouping": 0.0,
+        "latest_mark": 1.0,
+        "mw_crossed_out": 1.0,
+        "mw_erased_rewrite": 1.0,
+        "mw_grouping": 0.0,
+        "mw_latest_symbol": 1.0,
+        "mw_recent_change": 1.0,
+        "recent_change": 0.0
+      }
+    },
+    "active-index": {
+      "n_ok": 60,
+      "n_error": 0,
+      "accuracy": 0.741,
+      "abstention_rate": 0.13,
+      "false_explanation_rate": 0.13,
+      "mean_estimated_tokens": 1317,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 0,
+      "mean_latency_s": 7.66,
+      "action": {
+        "n": 6,
+        "target_accuracy": 1.0,
+        "repair_attempted": 1,
+        "repair_success": 1
+      },
+      "accuracy_by_kind": {
+        "crossed_out": 1.0,
+        "grouping": 1.0,
+        "latest_mark": 1.0,
+        "mw_crossed_out": 1.0,
+        "mw_erased_rewrite": 0.667,
+        "mw_grouping": 0.0,
+        "mw_latest_symbol": 1.0,
+        "mw_recent_change": 1.0,
+        "recent_change": 0.0
+      }
+    },
+    "marked-index": {
+      "n_ok": 60,
+      "n_error": 0,
+      "accuracy": 0.778,
+      "abstention_rate": 0.111,
+      "false_explanation_rate": 0.111,
+      "mean_estimated_tokens": 2392,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 724607,
+      "mean_latency_s": 10.12,
+      "action": {
+        "n": 6,
+        "target_accuracy": 1.0,
+        "repair_attempted": 2,
+        "repair_success": 2
+      },
+      "accuracy_by_kind": {
+        "crossed_out": 1.0,
+        "grouping": 1.0,
+        "latest_mark": 1.0,
+        "mw_crossed_out": 1.0,
+        "mw_erased_rewrite": 1.0,
+        "mw_grouping": 0.0,
+        "mw_latest_symbol": 1.0,
+        "mw_recent_change": 1.0,
+        "recent_change": 0.0
+      }
+    },
+    "analyzer-first": {
+      "n_ok": 60,
+      "n_error": 0,
+      "accuracy": 0.722,
+      "abstention_rate": 0.13,
+      "false_explanation_rate": 0.148,
+      "mean_estimated_tokens": 1351,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 0,
+      "mean_latency_s": 5.89,
+      "action": {
+        "n": 6,
+        "target_accuracy": 1.0,
+        "repair_attempted": 1,
+        "repair_success": 1
+      },
+      "accuracy_by_kind": {
+        "crossed_out": 1.0,
+        "grouping": 1.0,
+        "latest_mark": 1.0,
+        "mw_crossed_out": 1.0,
+        "mw_erased_rewrite": 0.5,
+        "mw_grouping": 0.0,
+        "mw_latest_symbol": 1.0,
+        "mw_recent_change": 1.0,
+        "recent_change": 0.0
+      }
+    }
+  },
+  "exit_gate": {
+    "active-index": {
+      "decidable": true,
+      "candidate": "active-index",
+      "raster_baseline": "raster+geometry",
+      "accuracy": {
+        "candidate": 0.741,
+        "baseline": 0.296
+      },
+      "matches_or_beats_accuracy": true,
+      "mean_estimated_tokens": {
+        "candidate": 1317,
+        "baseline": 1019
+      },
+      "context_reduction": -0.292,
+      "context_reduction_threshold": 0.25,
+      "materially_reduces_context": false,
+      "false_explanation_rate": {
+        "candidate": 0.13,
+        "baseline": 0.037
+      },
+      "reduces_unsupported_claims": false,
+      "raster_pixels": {
+        "candidate": 0,
+        "baseline": 724607
+      },
+      "gate_passed": false
+    },
+    "marked-index": {
+      "decidable": true,
+      "candidate": "marked-index",
+      "raster_baseline": "raster+geometry",
+      "accuracy": {
+        "candidate": 0.778,
+        "baseline": 0.296
+      },
+      "matches_or_beats_accuracy": true,
+      "mean_estimated_tokens": {
+        "candidate": 2392,
+        "baseline": 1019
+      },
+      "context_reduction": -1.347,
+      "context_reduction_threshold": 0.25,
+      "materially_reduces_context": false,
+      "false_explanation_rate": {
+        "candidate": 0.111,
+        "baseline": 0.037
+      },
+      "reduces_unsupported_claims": false,
+      "raster_pixels": {
+        "candidate": 724607,
+        "baseline": 724607
+      },
+      "gate_passed": false
+    },
+    "analyzer-first": {
+      "decidable": true,
+      "candidate": "analyzer-first",
+      "raster_baseline": "raster+geometry",
+      "accuracy": {
+        "candidate": 0.722,
+        "baseline": 0.296
+      },
+      "matches_or_beats_accuracy": true,
+      "mean_estimated_tokens": {
+        "candidate": 1351,
+        "baseline": 1019
+      },
+      "context_reduction": -0.326,
+      "context_reduction_threshold": 0.25,
+      "materially_reduces_context": false,
+      "false_explanation_rate": {
+        "candidate": 0.148,
+        "baseline": 0.037
+      },
+      "reduces_unsupported_claims": false,
+      "raster_pixels": {
+        "candidate": 0,
+        "baseline": 724607
+      },
+      "gate_passed": false
+    }
+  }
+}

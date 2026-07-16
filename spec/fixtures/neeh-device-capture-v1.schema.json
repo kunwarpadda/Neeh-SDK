@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neeh.dev/spec/fixtures/neeh-device-capture-v1.schema.json",
+  "title": "Neeh research device capture v1",
+  "description": "Lossless raw stylus and edit event sidecar. Unknown additive fields are allowed; event and point t_ms values are relative offsets, while session.started_at_ms and stroke created_at_ms are Unix epoch milliseconds.",
+  "type": "object",
+  "required": ["schema", "session", "device", "app", "coordinate_space", "pages", "events"],
+  "properties": {
+    "schema": { "const": "neeh-device-capture/v1" },
+    "session": {
+      "type": "object",
+      "required": ["id", "started_at_ms"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "document_id": { "$ref": "#/$defs/nonEmptyString" },
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "started_at_ms": { "$ref": "#/$defs/nonNegativeInteger" },
+        "ended_at_ms": { "$ref": "#/$defs/nonNegativeInteger" }
+      },
+      "additionalProperties": true
+    },
+    "device": {
+      "type": "object",
+      "required": ["model", "android_version", "pressure_available", "tilt_available", "orientation_available"],
+      "properties": {
+        "manufacturer": { "type": "string" },
+        "model": { "$ref": "#/$defs/nonEmptyString" },
+        "android_version": { "$ref": "#/$defs/nonEmptyString" },
+        "sdk_int": { "$ref": "#/$defs/nonNegativeInteger" },
+        "pressure_available": { "type": "boolean" },
+        "tilt_available": { "type": "boolean" },
+        "orientation_available": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "app": {
+      "type": "object",
+      "required": ["name", "package_name", "version_name"],
+      "properties": {
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "package_name": { "$ref": "#/$defs/nonEmptyString" },
+        "version_name": { "$ref": "#/$defs/nonEmptyString" },
+        "version_code": { "$ref": "#/$defs/nonNegativeInteger" },
+        "build_type": { "type": "string" },
+        "git_revision": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "coordinate_space": {
+      "type": "object",
+      "required": ["unit", "origin"],
+      "properties": {
+        "unit": { "const": "px" },
+        "origin": { "const": "top-left" }
+      },
+      "additionalProperties": true
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/page" }
+    },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/event" }
+    },
+    "ground_truth": { "type": "object" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "nonNegativeInteger": { "type": "integer", "minimum": 0 },
+    "page": {
+      "type": "object",
+      "required": ["id", "index", "width", "height"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "index": { "$ref": "#/$defs/nonNegativeInteger" },
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "height": { "type": "number", "exclusiveMinimum": 0 },
+        "background": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" }
+      },
+      "additionalProperties": true
+    },
+    "style": {
+      "type": "object",
+      "required": ["width"],
+      "properties": {
+        "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "color_argb": { "type": "string", "pattern": "^#[0-9A-Fa-f]{8}$" },
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "opacity": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "brush": { "enum": ["pen", "marker", "highlighter"] }
+      },
+      "anyOf": [
+        { "required": ["color"] },
+        { "required": ["color_argb"] }
+      ],
+      "additionalProperties": true
+    },
+    "point": {
+      "type": "object",
+      "required": ["x", "y", "t_ms"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "t_ms": { "$ref": "#/$defs/nonNegativeInteger" },
+        "pressure": { "type": "number", "minimum": 0, "maximum": 1 },
+        "tilt_rad": { "type": "number", "minimum": 0, "maximum": 1.5707963267948966 },
+        "orientation_rad": { "type": "number", "minimum": -6.283185307179586, "maximum": 6.283185307179586 },
+        "action": { "type": ["string", "integer"] },
+        "event_time_ms": { "$ref": "#/$defs/nonNegativeInteger" }
+      },
+      "additionalProperties": true
+    },
+    "strokeSnapshot": {
+      "type": "object",
+      "required": ["stroke_id", "layer_id", "author", "tool", "style", "created_at_ms", "points"],
+      "properties": {
+        "stroke_id": { "$ref": "#/$defs/nonEmptyString" },
+        "layer_id": { "$ref": "#/$defs/nonEmptyString" },
+        "author": { "enum": ["user", "agent", "app"] },
+        "tool": { "$ref": "#/$defs/nonEmptyString" },
+        "style": { "$ref": "#/$defs/style" },
+        "created_at_ms": { "$ref": "#/$defs/nonNegativeInteger" },
+        "points": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20000,
+          "items": { "$ref": "#/$defs/point" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "strokeSnapshots": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/strokeSnapshot" }
+    },
+    "event": {
+      "type": "object",
+      "required": ["seq", "event_id", "kind", "t_ms", "page_id"],
+      "properties": {
+        "seq": { "$ref": "#/$defs/nonNegativeInteger" },
+        "event_id": { "$ref": "#/$defs/nonEmptyString" },
+        "kind": {
+          "enum": [
+            "page_create", "page_delete", "page_change",
+            "stroke_begin", "stroke_sample", "stroke_end", "stroke_delete",
+            "stroke_transform", "stroke_restyle", "undo", "redo", "group", "ungroup"
+          ]
+        },
+        "t_ms": { "$ref": "#/$defs/nonNegativeInteger" },
+        "page_id": { "$ref": "#/$defs/nonEmptyString" },
+        "page": { "$ref": "#/$defs/page" },
+        "from_page_id": { "$ref": "#/$defs/nonEmptyString" },
+        "to_page_id": { "$ref": "#/$defs/nonEmptyString" },
+        "stroke_id": { "$ref": "#/$defs/nonEmptyString" },
+        "layer_id": { "$ref": "#/$defs/nonEmptyString" },
+        "author": { "enum": ["user", "agent", "app"] },
+        "tool": { "$ref": "#/$defs/nonEmptyString" },
+        "style": { "$ref": "#/$defs/style" },
+        "created_at_ms": { "$ref": "#/$defs/nonNegativeInteger" },
+        "point": { "$ref": "#/$defs/point" },
+        "cancelled": { "type": "boolean" },
+        "reason": { "enum": ["eraser", "scratch_erase", "page_delete", "other"] },
+        "removed": { "$ref": "#/$defs/strokeSnapshots" },
+        "added": { "$ref": "#/$defs/strokeSnapshots" },
+        "target_event_id": { "$ref": "#/$defs/nonEmptyString" },
+        "group_id": { "$ref": "#/$defs/nonEmptyString" },
+        "stroke_ids": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/nonEmptyString" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "stroke_begin" } }, "required": ["kind"] },
+          "then": { "required": ["stroke_id", "layer_id", "author", "tool", "style", "created_at_ms"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "stroke_sample" } }, "required": ["kind"] },
+          "then": { "required": ["stroke_id", "point"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "stroke_end" } }, "required": ["kind"] },
+          "then": { "required": ["stroke_id"] }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": { "enum": ["stroke_delete", "stroke_transform", "stroke_restyle", "undo", "redo"] }
+            },
+            "required": ["kind"]
+          },
+          "then": { "required": ["removed", "added"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "stroke_delete" } }, "required": ["kind"] },
+          "then": { "required": ["reason"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "page_create" } }, "required": ["kind"] },
+          "then": { "required": ["page"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "page_delete" } }, "required": ["kind"] },
+          "then": { "required": ["removed", "added"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "page_change" } }, "required": ["kind"] },
+          "then": { "required": ["from_page_id", "to_page_id"] }
+        },
+        {
+          "if": { "properties": { "kind": { "enum": ["group", "ungroup"] } }, "required": ["kind"] },
+          "then": { "required": ["group_id", "stroke_ids"] }
+        }
+      ],
+      "additionalProperties": true
+    }
+  }
+}

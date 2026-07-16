@@ -156,19 +156,36 @@ def _task_analysis(canvas: Canvas, task: str) -> Optional[dict[str, Any]]:
     def has(*phrases: str) -> bool:
         return any(phrase in normalized for phrase in phrases)
 
-    if has("most recent", "latest", "last drawn", "last mark", "newest"):
-        return analyze_ink(canvas, "latest_mark")
     if has("crossed out", "cross-out", "cross out", "struck through", "scratched out"):
         return analyze_ink(canvas, "cross_out_candidates", limit=4)
+    # Change-flavored recency must outrank the bare "most recent" intent below:
+    # "which stroke was changed most recently" asks about modification history
+    # (moves, erases, restyles -- the event log), not drawing time, and
+    # "changed most recently" contains the substring "most recent", so checking
+    # latest_mark first silently rewrites the question into the wrong one.
+    if has("changed", "change", "modified", "edited", "what changed",
+           "new since", "just added"):
+        return reduce_ink(canvas, "recent_changes", limit=6)
+    if has("erased", "erase", "rubbed out"):
+        return reduce_ink(canvas, "revisions", limit=6)
     if has("revis", "overwrit", "corrected", "replaced", "rewrote", "rewritten"):
         return reduce_ink(canvas, "revisions", limit=6)
-    if has("recently", "recent change", "what changed", "new since", "just added"):
+    if has("most recent", "latest", "last drawn", "last mark", "newest"):
+        return analyze_ink(canvas, "latest_mark")
+    if has("recently", "recent change"):
         return reduce_ink(canvas, "recent_changes", limit=6)
     if has("summar", "overview", "what is on the page", "describe the page"):
         return reduce_ink(canvas, "page_summary")
+    if has("orientation", "rotated", "tilted", "slanted", "sideways",
+           "at an angle", "upside down", "which way"):
+        return analyze_ink(canvas, "orientation")
     if has("connector", "connect", "arrow", "links to", "linking", "joins"):
         return analyze_ink(canvas, "connector_candidates", limit=6)
     if has("group", "cluster"):
+        # Recorded membership is an exact fact; only guess spatially when the
+        # log has no groups to report.
+        if canvas.groups():
+            return analyze_ink(canvas, "recorded_groups", limit=6)
         return analyze_ink(canvas, "grouping_candidates", limit=6)
     return None
 
@@ -188,7 +205,21 @@ def build_observation_workspace(
     index = build_ink_index(canvas)
     ranked = _rank_marks(canvas, task_text, index["marks"])
     relations = _compact_relations(canvas)
-    timeline = build_ink_timeline(canvas.page)
+    # Recorded group membership is exact page state (folded from the event
+    # log), so it rides in the static page map for every policy -- without it,
+    # a recorded group is invisible in every evidence channel and a model can
+    # only guess membership from spatial proximity.
+    recorded_groups = [
+        {
+            "group_id": group_id,
+            "label": group.get("label"),
+            "member_ids": list(group.get("member_ids", []))[:24],
+            "member_ids_truncated": len(group.get("member_ids", [])) > 24,
+            "size": len(group.get("member_ids", [])),
+        }
+        for group_id, group in sorted(canvas.groups().items())
+    ][:12]
+    timeline = build_ink_timeline(canvas.page, event_log=canvas.events)
     task_analysis = (
         _task_analysis(canvas, task_text)
         if policy in {"active-index", "marked-index"}
@@ -239,6 +270,8 @@ def build_observation_workspace(
                 "relations": relations[:relation_count],
                 "included_relation_count": relation_count,
                 "omitted_relation_count": len(relations) - relation_count,
+                "groups": recorded_groups,
+                "group_count": len(recorded_groups),
                 "marked_view": marked_view,
             },
             "recent_delta": _recent_delta(canvas, budget.max_recent_strokes),
@@ -404,7 +437,7 @@ class InkAgentInterface:
         )
         full_index = build_ink_index(canvas)
         self._all_marks = _rank_marks(canvas, self.task, full_index["marks"])
-        self._timeline = build_ink_timeline(canvas.page)
+        self._timeline = build_ink_timeline(canvas.page, event_log=canvas.events)
         self._actions = 0
         self._observation_chars = 0
         self._raster_pixels = 0

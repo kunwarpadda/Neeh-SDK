@@ -1,6 +1,6 @@
 # Neeh SDK roadmap
 
-Updated 2026-07-12 from current code, tests, and controlled internal experiments.
+Updated 2026-07-14 from current code, tests, and controlled internal experiments.
 
 ## Product thesis
 
@@ -122,10 +122,71 @@ can be replayed without reconstructing history from the final page.
 
 ### M3 - Prove grounding on real ink
 
+Status 2026-07-14: first live arm complete (four synthetic kinds + six kinds
+built from human MathWriting ink with scripted, event-logged histories;
+gpt-5.6-luna/high — owner decision superseding the GPT-5.5 pin; 360-row grid,
+`benchmarks/README.md` §B2). Structured arms beat the best raster arm 0.72–0.78
+vs 0.30 at zero pixels and 6/6 exact action targets, but the exit gate is NOT
+met: priced context does not drop against cheap cropped pixels, and misrouted/
+mis-ranked precomputed evidence produces more unsupported claims than the
+all-abstaining raster baseline. Three mechanistic analysis-plane defects
+account for the failures (intent-routing order, geometry-only revisions
+reducer ignoring the event log, recorded groups surfacing in no evidence
+channel) — fixing them and re-measuring is the path to the gate, alongside the
+remaining scope below.
+
+Status 2026-07-15: four of six planned genuine-device recordings landed
+(`research/data/device/raw/{s1_notes,s2_math,s3_diagram,s4_dense}`, real
+device captures on a Samsung Galaxy Tab S9/S10, ~671 live strokes,
+32 real erasures, no pressure/tilt on this hardware). `s5_edit` and
+`s6_crossouts` were not recorded (time-boxed); real undo/redo and genuine
+scribble-cross-out therefore remain untested against device data (both paths
+are still covered by the synthetic fixture) and every capture so far is
+single-page. All four pass the deterministic real-capture regression gate
+(`benchmarks/real_capture_regression.py`) with 100% erase/history recovery,
+and two new `dc_erased_ink`/`dc_recent_change` task kinds in
+`benchmarks/move3_grounding.py` draw round-robin across whichever sessions are
+present. This work directly found and fixed two real defects: a Samsung S
+Pen pressure/tilt capability-detection race in the device recorder (fixed
+in `research_capture.cpp`/`renderer.cpp`/`MainActivity.kt`), and a
+`grouping_candidates`/`connector_candidates` proximity margin that scaled off
+raw page dimensions instead of content extent — invisible on synthetic scenes
+sized to their content, but badly wrong on a real device page (the tablet's
+full screen resolution) — caught specifically by `s3_diagram`'s real,
+multi-stroke diagram geometry (`neeh/agents/analyzers.py`). A live smoke
+sweep across all four sessions also surfaced a new failure mode not seen on
+a single session: under `index-only`, gpt-5.6-luna sometimes fabricates a
+plausible-sounding but factually ungrounded citation (an invented gap in
+stroke-id sequencing) rather than abstaining -- a genuine false-explanation
+case worth tracking alongside the three routing defects above.
+
+Status 2026-07-15 (later): all three analysis-plane defects are fixed and
+live-verified. (1) Intent routing checks change/erase intents before the
+"most recent" intent, so modification questions reach the event log instead
+of being silently rewritten into drawing-time questions; an "erased" intent
+now exists at all. (2) `revisions` and `recent_changes` read the event log:
+erase and erase-then-rewrite arrive as exact confidence-1.0 facts ranked
+above geometric inference, and a move or erase counts as the most recent
+change. (3) Recorded group membership surfaces as a `recorded_groups`
+measurement, in the workspace page map for every policy, and in
+`page_summary`. Re-measuring the five defect-poisoned kinds live
+(gpt-5.6-luna/high, `benchmarks/results/move3_ledger_v3.jsonl`):
+analyzer-first went 15/30 correct with 8 false explanations → 29/30 correct
+with 1, including recent_change 0/6→6/6, mw_grouping 0/6→6/6, and
+mw_erased_rewrite 3/6→6/6 at zero pixels and ~1.4k estimated tokens. The
+live loop also caught two evidence-quality defects in the first fix attempt
+-- routed `recorded_groups` silently truncated membership at the group
+limit, and `recent_changes` exposed wall-clock timestamps that tie within a
+millisecond, which the model rightly refused to rank -- fixed by a declared
+24-id member cap and by exposing the log's tie-proof `seq` order. Remaining
+for the gate: a full 360-row grid re-run to restate the exit-gate clauses
+(priced context vs cheap cropped pixels) with the fixed analysis plane.
+
 - Expand beyond synthetic shapes to handwriting, math, diagrams, corrections,
   dense notes, and multi-turn edits from real devices/writers.
 - Compare raster-only, raster+geometry, index-only, active-index, marked-index,
-  and analyzer-first policies with GPT-5.5/high fixed for Codex runs.
+  and analyzer-first policies with a fixed pinned model for Codex runs
+  (gpt-5.6-luna/high as of 2026-07-14).
 - Measure exact target/action accuracy, abstention, false explanations,
   retrieval calls, context, pixels, latency, repair success, and human
   acceptance.

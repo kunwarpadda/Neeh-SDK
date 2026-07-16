@@ -99,3 +99,97 @@ def test_page_summary_handles_empty_page():
     result = reduce_ink(Canvas(), "page_summary")
     assert result["stroke_count"] == 0
     assert result["time_span_ms"] is None
+
+
+def test_recent_changes_reads_the_event_log_for_moves_and_erases():
+    canvas = Canvas()
+    a = canvas.add_stroke([(100, 100), (140, 100)])
+    b = canvas.add_stroke([(200, 200), (240, 200)])
+    canvas.erase([a.id])
+    canvas.move(10, 10, stroke_ids=[b.id])
+
+    result = reduce_ink(canvas, "recent_changes")
+
+    assert result["measured_from"] == "event log"
+    changes = result["changes"]
+    # The move is the most recent change even though the moved stroke's own
+    # point/creation times never changed -- only the log knows.
+    assert changes[0]["id"] == b.id
+    assert changes[0]["change"] == "move"
+    assert changes[0]["visible"] is True
+    erased = next(change for change in changes if change["id"] == a.id)
+    assert erased["change"] == "erase"
+    assert erased["visible"] is False
+
+
+def test_recent_changes_without_a_log_falls_back_to_stroke_end_times():
+    canvas = Canvas()
+    layer = canvas.page.layers[0]
+    layer.add(_seg("old", 100, 100, 110, 110, 1_000))
+    layer.add(_seg("new", 300, 300, 310, 310, 9_000))
+
+    result = reduce_ink(canvas, "recent_changes")
+
+    assert result["measured_from"] == "stroke end times"
+    assert [c["id"] for c in result["changes"]] == ["new", "old"]
+
+
+def test_revisions_surface_event_log_erase_and_rewrite_first():
+    canvas = Canvas()
+    canvas.add_stroke([(100, 100), (160, 160)])
+    gone = canvas.add_stroke([(300, 300), (360, 300)])
+    canvas.erase([gone.id])
+    rewrite = canvas.add_stroke([(304, 302), (364, 302)])
+    far = canvas.add_stroke([(900, 1200), (960, 1200)])
+    canvas.erase([far.id])
+
+    result = reduce_ink(canvas, "revisions")
+
+    # The event-log erase-then-rewrite outranks every geometric inference.
+    top = result["revisions"][0]
+    assert top["confidence"] == 1.0
+    assert top["provenance"]["measured_from"] == "event log erase"
+    by_kind = {
+        (rev["kind"], tuple(rev["target_ids"]))
+        for rev in result["revisions"] if rev["confidence"] == 1.0
+    }
+    assert ("erase_rewrite", (gone.id,)) in by_kind
+    assert ("erase", (far.id,)) in by_kind
+    rewrite_entry = next(
+        rev for rev in result["revisions"] if rev["kind"] == "erase_rewrite"
+    )
+    assert rewrite_entry["by_ids"] == [rewrite.id]
+    assert rewrite_entry["target_visible"] is False
+
+
+def test_page_summary_reports_recorded_groups_exactly():
+    canvas = Canvas()
+    a = canvas.add_stroke([(100, 100), (140, 100)])
+    b = canvas.add_stroke([(600, 900), (640, 900)])
+    canvas.add_stroke([(300, 500), (340, 500)])
+    group_id = canvas.group([a.id, b.id], label="pair")
+
+    result = reduce_ink(canvas, "page_summary")
+
+    assert result["recorded_group_count"] == 1
+    recorded = result["recorded_groups"][0]
+    assert recorded["group_id"] == group_id
+    assert recorded["member_ids"] == [a.id, b.id]
+    assert recorded["label"] == "pair"
+
+
+def test_recent_changes_expose_the_tie_proof_event_order():
+    canvas = Canvas()
+    # All events land within the same wall-clock millisecond, so changed_ms
+    # ties -- the log sequence number is the only trustworthy order.
+    a = canvas.add_stroke([(100, 100), (140, 100)])
+    b = canvas.add_stroke([(200, 200), (240, 200)])
+    canvas.move(10, 10, stroke_ids=[a.id])
+
+    result = reduce_ink(canvas, "recent_changes")
+
+    assert "seq" in result["changes"][0]
+    assert result["changes"][0]["id"] == a.id  # the move is the newest change
+    seqs = [change["seq"] for change in result["changes"]]
+    assert seqs == sorted(seqs, reverse=True)
+    assert result["order"].startswith("newest change first")

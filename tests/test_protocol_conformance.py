@@ -90,8 +90,11 @@ def _scene() -> Canvas:
 # --- golden fixtures validate against their schemas -------------------------
 
 @pytest.mark.parametrize("fixture,schema", [
+    ("neeh-device-capture-v1.session.json", "neeh-device-capture-v1.schema.json"),
     ("ink-analysis-v1.latest_mark.json", "ink-analysis-v1.envelope.schema.json"),
     ("ink-analysis-v1.connector_candidates.json", "ink-analysis-v1.envelope.schema.json"),
+    ("ink-analysis-v1.orientation.json", "ink-analysis-v1.envelope.schema.json"),
+    ("ink-analysis-v1.recorded_groups.json", "ink-analysis-v1.envelope.schema.json"),
     ("ink-analysis-v1.reduce_recent_changes.json", "ink-analysis-v1.reducer.schema.json"),
     ("ink-eventlog-v1.compact.json", "ink-eventlog-v1.compact.schema.json"),
     ("ink-eventlog-v1.snapshot.json", "ink-eventlog-v1.snapshot.schema.json"),

@@ -23,6 +23,8 @@
         "intersection",
         "endpoints",
         "spatial_collision",
+        "orientation",
+        "recorded_groups",
         "cross_out_candidates",
         "connector_candidates",
         "grouping_candidates"

@@ -48,8 +48,8 @@ PERCEPTION_MODE = os.getenv("NEEH_PERCEPTION_MODE", "active-index")
 PERCEPTION_MODE_ALIASES = {"index": "active-index", "raster": "raster-always"}
 PERCEPTION_MODES = ("index", "raster", *PERCEPTION_POLICIES)
 PROMPT_PREVIEW_CHARS = int(os.getenv("NEEH_PROMPT_PREVIEW_CHARS", "5000"))
-CODEX_MODEL = "gpt-5.5"
-CODEX_REASONING_EFFORT = "high"
+CODEX_MODEL = os.getenv("NEEH_CODEX_MODEL", "gpt-5.5")
+CODEX_REASONING_EFFORT = os.getenv("NEEH_CODEX_REASONING_EFFORT", "high")
 
 SYSTEM = """\
 You are Neeh, an ink assistant who lives on a shared handwriting page. The user
@@ -128,6 +128,7 @@ _CODEX_CLI_ACTION_INPUT_SCHEMA = {
         "brush": {"type": ["string", "null"], "enum": ["pen", "marker", "highlighter", None]},
         "style": {"type": ["string", "null"], "enum": ["handwritten", None]},
         "size": {"type": ["number", "null"]},
+        "angle_deg": {"type": ["number", "null"], "minimum": -180, "maximum": 180},
         "stroke_ids": {"type": ["array", "null"], "items": {"type": "string"}},
         "source_stroke_ids": {"type": ["array", "null"], "items": {"type": "string"}},
         "kind": {"type": ["string", "null"],
@@ -142,8 +143,8 @@ _CODEX_CLI_ACTION_INPUT_SCHEMA = {
                "minimum": -MAX_AGENT_NUDGE, "maximum": MAX_AGENT_NUDGE},
     },
     "required": ["points", "region", "text", "color", "width", "brush", "style",
-                 "size", "stroke_ids", "source_stroke_ids", "kind", "position",
-                 "side", "dx", "dy"],
+                 "size", "angle_deg", "stroke_ids", "source_stroke_ids", "kind",
+                 "position", "side", "dx", "dy"],
 }
 _CODEX_CLI_RESPONSE_SCHEMA = {
     "type": "object",
@@ -258,7 +259,13 @@ def _bootstrap_raster_required(
     but stroke shapes and bboxes cannot reveal the words on the page. The host
     can identify that evidence need before model invocation, avoiding a brittle
     dependency on the model deciding to request a raster itself.
+
+    ``NEEH_BOOTSTRAP_RASTER=never`` disables the heuristic so an evaluation
+    host can hold perception evidence fixed per policy arm; the default
+    ("auto") keeps the product behavior.
     """
+    if os.getenv("NEEH_BOOTSTRAP_RASTER", "auto") == "never":
+        return False
     if not _active_perception():
         return False
     user_ink = any(
@@ -621,7 +628,10 @@ def _codex_cli_tool_contract() -> list[dict[str, Any]]:
                        "this to reproduce or correct a line already on the page",
             "required": {"text": "string", "region": "[min_x,min_y,max_x,max_y]"},
             "optional": {"color": f"hex, prefer {AGENT_INK}",
-                         "style": "handwritten (applied by default)", "size": "number"},
+                         "style": "handwritten (applied by default)", "size": "number",
+                         "angle_deg": "degrees CCW on screen; match rotated user "
+                                      "ink (the orientation analysis reports its "
+                                      "angle_deg), default 0 = horizontal"},
         },
         {
             "name": "highlight",
@@ -1191,6 +1201,8 @@ def _claude_cli_command(
     cmd = [claude, "-p"]
     if model := os.getenv("NEEH_CLAUDE_CLI_MODEL"):
         cmd.extend(["--model", model])
+    if effort := os.getenv("NEEH_CLAUDE_CLI_EFFORT"):
+        cmd.extend(["--effort", effort])
     tools = "Read" if page_available else ""
     if state_path is not None and task_path is not None:
         server_args = [
@@ -1349,6 +1361,7 @@ def run_claude(
         ),
         "actions": actions,
         "model": os.getenv("NEEH_CLAUDE_CLI_MODEL", "default-profile"),
+        "reasoning_effort": os.getenv("NEEH_CLAUDE_CLI_EFFORT", "default"),
         "perception_mode": _perception_mode(),
         "perception_policy": _perception_policy(),
         "validation": {

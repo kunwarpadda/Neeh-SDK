@@ -1,0 +1,110 @@
+{
+  "agent": "codex",
+  "model": "gpt-5.5",
+  "seed": 0,
+  "kinds": [
+    "mw_latest_symbol",
+    "mw_crossed_out",
+    "mw_erased_rewrite",
+    "mw_grouping",
+    "mw_recent_change",
+    "mw_annotate_crossed"
+  ],
+  "per_kind": 1,
+  "arms": [
+    "raster-only",
+    "index-only",
+    "analyzer-first"
+  ],
+  "calls_made": 18,
+  "rows_scored": 18,
+  "adversarial": {
+    "question_leaks": [],
+    "leak_free": true,
+    "balance": {
+      "mw_latest_symbol": {
+        "counts": {
+          "upper": 1,
+          "lower": 0
+        },
+        "balanced": true
+      }
+    },
+    "label_contamination": [],
+    "labels_disjoint_from_answers": true
+  },
+  "summary": {
+    "raster-only": {
+      "n_ok": 6,
+      "n_error": 0,
+      "accuracy": 0.0,
+      "abstention_rate": 1.0,
+      "false_explanation_rate": 0.0,
+      "mean_estimated_tokens": 999,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 712618,
+      "mean_latency_s": 8.55,
+      "action": {
+        "n": 1,
+        "target_accuracy": 0.0,
+        "repair_attempted": 0,
+        "repair_success": 0
+      },
+      "accuracy_by_kind": {
+        "mw_crossed_out": 0.0,
+        "mw_erased_rewrite": 0.0,
+        "mw_grouping": 0.0,
+        "mw_latest_symbol": 0.0,
+        "mw_recent_change": 0.0
+      }
+    },
+    "index-only": {
+      "n_ok": 6,
+      "n_error": 0,
+      "accuracy": 0.6,
+      "abstention_rate": 0.2,
+      "false_explanation_rate": 0.2,
+      "mean_estimated_tokens": 750,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 0,
+      "mean_latency_s": 9.06,
+      "action": {
+        "n": 1,
+        "target_accuracy": 1.0,
+        "repair_attempted": 1,
+        "repair_success": 1
+      },
+      "accuracy_by_kind": {
+        "mw_crossed_out": 1.0,
+        "mw_erased_rewrite": 1.0,
+        "mw_grouping": 0.0,
+        "mw_latest_symbol": 1.0,
+        "mw_recent_change": 0.0
+      }
+    },
+    "analyzer-first": {
+      "n_ok": 5,
+      "n_error": 1,
+      "accuracy": 0.5,
+      "abstention_rate": 0.25,
+      "false_explanation_rate": 0.25,
+      "mean_estimated_tokens": 2462,
+      "mean_retrieval_calls": 0.0,
+      "mean_raster_pixels": 815287,
+      "mean_latency_s": 12.24,
+      "action": {
+        "n": 1,
+        "target_accuracy": 1.0,
+        "repair_attempted": 1,
+        "repair_success": 1
+      },
+      "accuracy_by_kind": {
+        "mw_crossed_out": 1.0,
+        "mw_grouping": 0.0,
+        "mw_latest_symbol": 1.0,
+        "mw_recent_change": 0.0
+      }
+    }
+  },
+  "reasoning_effort": "high"
+}

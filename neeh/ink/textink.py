@@ -5,6 +5,7 @@ a true cursive stroke face with calligraphic weight and connected letterforms.
 """
 from __future__ import annotations
 
+import math
 from typing import Optional
 
 from neeh.ink.geometry import BoundingBox
@@ -119,6 +120,7 @@ def layout_text(
     region: BoundingBox,
     size: Optional[float] = None,
     style: str = "print",
+    angle_deg: float = 0.0,
 ) -> tuple[list[Polyline], float]:
     """Lay `text` out inside `region`, top-left aligned.
 
@@ -127,9 +129,21 @@ def layout_text(
     MIN_SIZE — long text degrades to small ink, never to an exception.
     Cursive side bearings, ascenders, descenders, and flourishes are included
     in measurement and kept inside the region.
+
+    `angle_deg` rotates the finished layout about the region's top-left
+    corner, in degrees counterclockwise as seen on screen (page y grows
+    down). `region` is always the text's own unrotated frame — wrapping and
+    auto-sizing happen before rotation — so rotated ink can leave the region
+    and must still land on the page when added to a canvas.
     Returns (polylines in page coordinates, size used).
     """
     _validate_style(style)
+    if (
+        isinstance(angle_deg, bool)
+        or not isinstance(angle_deg, (int, float))
+        or not math.isfinite(angle_deg)
+    ):
+        raise ValueError(f"angle_deg must be a finite number, got {angle_deg!r}")
     if size is None:
         size = max(region.height / (LINE_HEIGHT * 2), MIN_SIZE)  # generous start
         while size > MIN_SIZE and not _fits(
@@ -160,4 +174,20 @@ def layout_text(
                     ])
                 x += advance * scale
         baseline += size * _line_height(style)
+    if angle_deg % 360.0:
+        # Visual-CCW rotation in page coordinates (y down): the y-flip folds
+        # into the sign of the sine terms.
+        theta = math.radians(angle_deg % 360.0)
+        cos_t, sin_t = math.cos(theta), math.sin(theta)
+        pivot_x, pivot_y = region.min_x, region.min_y
+        polylines = [
+            [
+                (
+                    pivot_x + (x - pivot_x) * cos_t + (y - pivot_y) * sin_t,
+                    pivot_y - (x - pivot_x) * sin_t + (y - pivot_y) * cos_t,
+                )
+                for x, y in line
+            ]
+            for line in polylines
+        ]
     return polylines, size

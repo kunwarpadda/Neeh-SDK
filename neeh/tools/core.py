@@ -399,6 +399,17 @@ def highlight(canvas: Canvas, region: Sequence[float], color: str = "#ffe066") -
                 "exclusiveMinimum": 0,
                 "description": "Cap height in page units; omit to auto-fit the region",
             },
+            "angle_deg": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180,
+                "description": (
+                    "Baseline rotation in degrees, counterclockwise as seen on "
+                    "screen; matches the orientation analyzer's angle_deg. "
+                    "0 (default) writes horizontally. The region is the text's "
+                    "unrotated frame; rotated ink must stay on the page."
+                ),
+            },
         },
         "required": ["text", "region"],
     },
@@ -410,6 +421,7 @@ def write_text(
     style: str = "handwritten",
     color: Optional[str] = None,
     size: Optional[float] = None,
+    angle_deg: float = 0.0,
 ) -> dict[str, Any]:
     if style == "user_font":
         raise NotImplementedError(
@@ -428,16 +440,24 @@ def write_text(
         size = _finite_number(size, "size")
         if size <= 0:
             raise ValueError("size must be positive")
+    angle_deg = _finite_number(angle_deg, "angle_deg")
+    if not -180.0 <= angle_deg <= 180.0:
+        raise ValueError("angle_deg must be between -180 and 180")
     box = _region(region)
-    polylines, used_size = layout_text(text, box, size=size, style=style)
+    polylines, used_size = layout_text(
+        text, box, size=size, style=style, angle_deg=angle_deg
+    )
     stroke_style = StrokeStyle(color=color or "#1a1a1a", width=max(used_size / 12.0, 0.8))
     strokes = canvas.add_strokes(polylines, style=stroke_style, author=Author.AGENT)
-    return {
+    result = {
         "stroke_ids": [s.id for s in strokes],
         "size": used_size,
         "region": box.to_list(),
         "style": style,
     }
+    if angle_deg:
+        result["angle_deg"] = angle_deg
+    return result
 
 
 def _anchor_bbox(
