@@ -7,6 +7,18 @@ can render, query, edit, persist, and expose ink to tools without flattening it 
 > Neeh is pre-alpha. The protocol specifications are versioned, but the Python and native APIs
 > may change before the first stable release.
 
+## Review Neeh quickly
+
+| If you have... | Start here |
+|---|---|
+| 5 minutes | [Reviewer start: problem, proof, and fastest runnable path](docs/RECRUITER_START.md) |
+| 10 minutes | [Technical case study: decisions, evidence, and limitations](docs/CASE_STUDY.md) |
+| A local checkout | Run the [Python quickstart](examples/quickstart.py) or the [browser assistant demo](examples/assistant/README.md) |
+| A question about a claim | Use the [benchmark reproducibility index](benchmarks/README.md) to go from claim to command to raw result |
+
+The browser demo has an exact [60–90 second recording path](docs/RECRUITER_START.md#record-the-demo)
+for a stylus-first walkthrough. No prerecorded hero asset is checked in yet.
+
 ## Why not OCR, a canvas API, or an image pipeline
 
 A rendered image or a handwriting-recognition transcript is a *many-to-one* view of digital ink:
@@ -29,12 +41,12 @@ key or model — clone the repo and reproduce the exact numbers:
 
 ```bash
 python benchmarks/move1b_token_budget.py --dry-run   # structured reduction stays flat as ink scales
-python benchmarks/move3_grounding.py   --dry-run     # only structure-aware policies ground a history answer
+python benchmarks/move3_grounding.py --dry-run --kinds latest_mark crossed_out grouping recent_change
 ```
 
 - **Pixels destroy history** — 18/18 sample pairs differing only in draw order/direction are certified to rasterize to *byte-identical* pixels.
 - **Structured reduction is cost-flat** — analyzer output holds ~275 tokens from 4 to 320 marks, while coordinate serialization grows 265 → 8,554 and crosses a representative context budget.
-- **Only structure grounds history** — raster-only and static-index policies score **0.0** on history tasks (most-recent mark, cross-out, grouping); analyzer-first grounds every one *exactly*, at zero pixels.
+- **Analyzers ground the full history set** — raster-only scores **0.0** and a static index reaches **0.25** on the controlled history tasks; analyzer-first grounds every one *exactly*, at zero pixels.
 - **Raster-only confabulates** (GPT-5.5, high) — sits at chance (6/12) and does not abstain, inventing the *same* nonexistent visual cue in 12/12 trials; structured context recovers 12/12. Raw transcripts archived.
 
 Full reproducibility index — claim → command → result — in

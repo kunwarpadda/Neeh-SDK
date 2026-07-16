@@ -21,7 +21,7 @@
       "grounded": 0,
       "grounded_rate": 0.0,
       "exact": 0,
-      "mean_context_chars": 2650,
+      "mean_context_chars": 2717,
       "mean_raster_pixels": 669576
     },
     "raster+geometry": {
@@ -29,15 +29,15 @@
       "grounded": 0,
       "grounded_rate": 0.0,
       "exact": 0,
-      "mean_context_chars": 3107,
+      "mean_context_chars": 3175,
       "mean_raster_pixels": 669576
     },
     "index-only": {
       "n_tasks": 24,
-      "grounded": 0,
-      "grounded_rate": 0.0,
-      "exact": 0,
-      "mean_context_chars": 2649,
+      "grounded": 6,
+      "grounded_rate": 0.25,
+      "exact": 6,
+      "mean_context_chars": 2716,
       "mean_raster_pixels": 0
     },
     "active-index": {
@@ -45,7 +45,7 @@
       "grounded": 24,
       "grounded_rate": 1.0,
       "exact": 0,
-      "mean_context_chars": 5217,
+      "mean_context_chars": 5402,
       "mean_raster_pixels": 0
     },
     "marked-index": {
@@ -53,7 +53,7 @@
       "grounded": 24,
       "grounded_rate": 1.0,
       "exact": 0,
-      "mean_context_chars": 5524,
+      "mean_context_chars": 5706,
       "mean_raster_pixels": 669576
     },
     "analyzer-first": {
@@ -61,7 +61,7 @@
       "grounded": 24,
       "grounded_rate": 1.0,
       "exact": 24,
-      "mean_context_chars": 5217,
+      "mean_context_chars": 5402,
       "mean_raster_pixels": 0
     }
   },
@@ -76,6 +76,8 @@
         },
         "balanced": true
       }
-    }
+    },
+    "label_contamination": [],
+    "labels_disjoint_from_answers": true
   }
 }

@@ -57,29 +57,32 @@ stays flat (~275) across an 80× density range.
 
 Raw: [`results/move1b_token_scaling_dryrun.json`](results/move1b_token_scaling_dryrun.json)
 
-### A3. Only structure-aware policies ground a history answer
+### A3. Analyzer-bearing policies ground the full history set
 
 Six perception policies compared over history-bearing tasks (most-recent mark,
 cross-out, grouping, most-recent change). Ground truth is read exactly off the
 document and event log; grounding is scored conservatively.
 
 ```bash
-python benchmarks/move3_grounding.py --dry-run
+python benchmarks/move3_grounding.py --dry-run \
+  --kinds latest_mark crossed_out grouping recent_change
 ```
 
 | Arm | Grounded | Context chars | Raster pixels |
 |---|---:|---:|---:|
-| raster-only | **0.0** | 2,650 | 669,576 |
-| raster+geometry | **0.0** | 3,107 | 669,576 |
-| index-only | **0.0** | 2,649 | 0 |
-| active-index | **1.0** | 5,217 | 0 |
-| marked-index | **1.0** | 5,524 | 669,576 |
-| **analyzer-first** | **1.0 (exact)** | 5,217 | **0** |
+| raster-only | **0.0** | 2,717 | 669,576 |
+| raster+geometry | **0.0** | 3,175 | 669,576 |
+| index-only | **0.25** | 2,716 | 0 |
+| active-index | **1.0** | 5,402 | 0 |
+| marked-index | **1.0** | 5,706 | 669,576 |
+| **analyzer-first** | **1.0 (exact)** | 5,402 | **0** |
 
-Pixels and a static map cannot recover a temporal/history/grouping signal;
-analyzer-bearing policies can, and **analyzer-first grounds every task exactly
-at zero pixels**. Adversarial controls confirm no answer leaks into the question
-and the dataset stays balanced (`adversarial_leak_free: true`).
+Pixels ground none of this history set. The static index exposes enough order
+for one task kind but does not cover the set; analyzer-bearing policies do, and
+**analyzer-first grounds every task exactly at zero pixels**. Adversarial
+controls confirm no answer leaks into the question and the dataset stays
+balanced (`adversarial_leak_free: true`). The explicit `--kinds` list keeps this
+checked-in synthetic result independent of optional local research datasets.
 
 Raw: [`results/move3_grounding_dryrun_full.json`](results/move3_grounding_dryrun_full.json)
 
@@ -169,8 +172,9 @@ Raw: [`results/move3_ledger_v2.jsonl`](results/move3_ledger_v2.jsonl),
 ## What each result establishes
 
 - **A1 + A2 + A3** are the load-bearing, credential-free claims: pixels lose
-  history, structured reduction is cost-flat, and only structure grounds a
-  history answer. Anyone can reproduce these in seconds.
+  history, structured reduction is cost-flat, and deterministic analyzers cover
+  the full controlled history set that pixels and a static index do not. Anyone
+  can reproduce these in seconds.
 - **B1** is the safety finding (confident confabulation) — it needs a model, so
   we publish the transcripts rather than ask you to take it on faith.
 - **B2** is the live grounding study on real ink: structure beats pixels on

@@ -1,0 +1,66 @@
+name: Bug report
+description: Report a reproducible SDK, protocol, rendering, or tooling defect.
+title: "bug: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Neeh. Do not attach private handwriting, credentials, or sensitive capture bundles.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Affected surface
+      options:
+        - Python SDK
+        - Native C++ or C ABI
+        - Agent or tool surface
+        - Protocol or persistence
+        - Rendering
+        - Assistant example
+        - Benchmarks or documentation
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: v0.2.0 or git commit
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include the smallest code, command, or fixture that demonstrates the problem.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the complete error text or observable result.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: OS, Python/compiler version, optional dependencies, model backend if relevant
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues for this defect.
+          required: true
+        - label: I removed private ink, credentials, and personal data from the reproduction.
+          required: true

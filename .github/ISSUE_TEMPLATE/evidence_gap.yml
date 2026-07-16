@@ -1,0 +1,41 @@
+name: Benchmark or evidence gap
+description: Identify a claim, dataset, fixture, or measurement that should be strengthened.
+title: "evidence: "
+body:
+  - type: textarea
+    id: claim
+    attributes:
+      label: Claim or decision under test
+      description: Link to the README, benchmark, roadmap gate, or ADR.
+    validations:
+      required: true
+  - type: textarea
+    id: gap
+    attributes:
+      label: Current evidence gap
+      description: State what the existing harness or data cannot establish.
+    validations:
+      required: true
+  - type: textarea
+    id: experiment
+    attributes:
+      label: Reproducible experiment
+      description: Describe inputs, controls, metrics, and an acceptance condition.
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Data and privacy notes
+      description: Explain the data source and how private handwriting or device metadata will be excluded.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I checked benchmarks/README.md and ROADMAP.md for existing coverage.
+          required: true
+        - label: This report contains no private capture data or credentials.
+          required: true

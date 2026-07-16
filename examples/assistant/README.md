@@ -15,6 +15,11 @@ python examples/assistant/server.py --agent codex --perception active-index
 
 Open <http://127.0.0.1:8787>, draw on the page, and press **Ask**.
 
+For a short public walkthrough, use the stylus-first shot list in
+[`docs/RECRUITER_START.md`](../../docs/RECRUITER_START.md#record-the-demo).
+The deterministic scenario buttons are useful as backup footage, but the
+recommended hero path starts from a blank page and real handwriting.
+
 ### Open the demo on a tablet
 
 Keep the SDK and model backend running on the computer, then expose the browser

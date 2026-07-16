@@ -1,0 +1,50 @@
+name: Focused feature proposal
+description: Propose a scoped capability that fits Neeh's documented direction.
+title: "proposal: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please connect the proposal to a concrete application or measured gap. Read ROADMAP.md and ARCHITECTURE.md before proposing a new representation or model dependency.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What cannot an application or integration do today?
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Concrete use case
+      description: Describe the host application, ink workflow, and expected outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: surface
+    attributes:
+      label: Proposed surface
+      description: Which existing API, protocol, tool, or example should change?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence or acceptance test
+      description: How could the need and the result be measured reproducibly?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Could an existing public surface or bounded composition solve it?
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I checked the roadmap and architecture non-goals.
+          required: true
+        - label: I searched existing issues for a related proposal.
+          required: true

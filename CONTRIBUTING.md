@@ -4,6 +4,20 @@ Neeh is pre-alpha. APIs and protocol identifiers are versioned but may still
 change before a first stable release — see [ROADMAP.md](ROADMAP.md) for the
 current milestones and what's explicitly not planned.
 
+## Where to start
+
+- Use the repository's issue forms for a reproducible bug, a focused feature
+  proposal, or a benchmark/evidence gap. Search existing issues before opening
+  a new one.
+- For a small first change, prefer a test-backed bug fix, an example that uses
+  an existing public API, or a reproducibility improvement linked to a claim in
+  [`benchmarks/README.md`](benchmarks/README.md).
+- Discuss protocol-shape or architecture changes in an issue before investing
+  in an implementation. The current direction and explicit non-goals are in
+  [ROADMAP.md](ROADMAP.md) and [ARCHITECTURE.md](ARCHITECTURE.md).
+- Never attach private handwriting, credentials, or personal capture bundles
+  to a public issue. Follow [SECURITY.md](SECURITY.md) for vulnerabilities.
+
 ## Development history
 
 Neeh is created and maintained by Kunwarbir Singh Padda (see
